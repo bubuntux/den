@@ -9,9 +9,8 @@
   # Lets also configure some defaults using aspects.
   # These are global static settings.
   den.default = {
-    darwin.system.stateVersion = 6;
-    nixos.system.stateVersion = "25.05";
-    homeManager.home.stateVersion = "25.05";
+    nixos.system.stateVersion = "25.11";
+    homeManager.home.stateVersion = "25.11";
   };
 
   # These are functions that produce configs

@@ -16,11 +16,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    darwin = {
-      url = "github:nix-darwin/nix-darwin";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     ## these stable inputs are for wsl
     #nixpkgs-stable.url = "github:nixos/nixpkgs/release-25.05";
     #home-manager-stable.url = "github:nix-community/home-manager/release-25.05";
