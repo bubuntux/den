@@ -95,6 +95,12 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
+### Module Requirements (NixOS Den)
+
+- **MR-001**: Module Category: [Auto / Community / Personal]
+- **MR-002**: Compatibility: [NixOS / Home Manager / Both / Darwin]
+- **MR-003**: Config Options: [List key options to be exposed, e.g., `programs.my-app.enable`]
+
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]

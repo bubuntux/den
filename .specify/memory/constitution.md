@@ -1,50 +1,61 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT
+Version Change: 1.0.1 -> 1.1.0 (Added Architectural Context)
+Modified Principles: None
+Added Sections: Architectural Concepts
+Removed Sections: None
+Templates Requiring Updates: None
+Follow-up TODOs: None
+-->
+
+# NixOS Den Constitution
+
+## Architectural Concepts
+
+### Dendritic Pattern
+The **Dendritic Pattern** is a configuration philosophy for Nix that relies on **Aspect-Oriented Design**. Instead of organizing code by "Host" (e.g., `hosts/laptop/configuration.nix`), code is organized by **Feature** (e.g., `modules/community/gaming.nix`).
+- **Inversion of Control**: The module defines *where* it applies (NixOS, Home Manager, Darwin) rather than the host importing the module.
+- **Reference**: [Dendritic Design Pattern](https://dendrix.oeiuwq.com/Dendritic.html)
+
+### Den Library
+**Den** is the specific implementation of the Dendritic pattern used in this repository. It provides the tooling for:
+- **Recursive Loading**: Automatically finding and importing all `.nix` files in the module tree.
+- **Unified Arguments**: Passing consistent arguments to all modules.
+- **Reference**: [vic/den Repository](https://github.com/vic/den)
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Dendritic & Aspect-Oriented Design
+Configurations MUST be organized by feature or "aspect" rather than by host or operating system. A single module file should contain the configuration for that feature across all applicable environments (NixOS, Home Manager, Darwin). This inversion of control enhances flexibility and reduces duplication.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Automated Discovery & Loading
+Modules MUST be automatically discovered and loaded recursively. Manual `import` statements for feature modules are prohibited. The project utilizes tools (like `import-tree` or `haumea`) to ensure that adding a file to the directory structure automatically makes its configuration available.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Tiered Module Structure
+Modules MUST be categorized into three distinct tiers:
+1. `auto`: Core, system-wide modules that are automatically loaded.
+2. `community`: Generic, reusable modules shared across the community.
+3. `personal`: Highly specific, user-tailored configurations.
+This structure ensures clear separation of concerns and promotes reusability.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Universal Compatibility
+Modules MUST be designed to be as universal as possible. Where applicable, a module should provide configuration for both NixOS and Home Manager. Code should be written to be agnostic of the specific instantiation method, enabling reuse across different system types.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
-
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Validated Configuration
+Changes to configuration options and packages MUST be validated using the NixOS Model Context Protocol (MCP) tools (`nixos_info`, `home_manager_info`). This ensures that options exist, types are correct, and packages are available before code is committed.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### Amendment Process
+Amendments to this constitution require a Pull Request with a "Sync Impact Report" detailing the changes and their propagation to dependent templates. Changes must be ratified by the repository owner.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+### Versioning
+This constitution follows Semantic Versioning:
+- **MAJOR**: Backward incompatible governance or principle removals/redefinitions.
+- **MINOR**: New principle/section added or materially expanded guidance.
+- **PATCH**: Clarifications, wording, typo fixes.
+
+### Compliance
+All feature specifications and implementation plans must explicitly state their adherence to these principles. Non-compliant code will be rejected during review.
+
+**Version**: 1.0.0 | **Ratified**: 2025-12-31 | **Last Amended**: 2025-12-31

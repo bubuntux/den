@@ -31,7 +31,10 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **Aspect-Oriented**: Is the feature self-contained in a module (or set of modules) rather than scattered across host configs?
+- [ ] **Tiered Structure**: Is the module correctly placed in `auto`, `community`, or `personal`?
+- [ ] **Universal Compatibility**: Does the module support both NixOS and Home Manager where applicable?
+- [ ] **Validation**: Is NixOS MCP validation planned for options and packages?
 
 ## Project Structure
 
@@ -56,7 +59,19 @@ specs/[###-feature]/
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+# [REMOVE IF UNUSED] Option 1: NixOS / Dendritic (DEFAULT)
+modules/
+├── auto/
+│   └── [feature].nix
+├── community/
+│   ├── [feature].nix
+│   └── [feature]/
+│       ├── default.nix
+│       └── ...
+└── personal/
+    └── [feature].nix
+
+# [REMOVE IF UNUSED] Option 2: Single project
 src/
 ├── models/
 ├── services/
