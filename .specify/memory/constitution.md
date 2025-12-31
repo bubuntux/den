@@ -1,10 +1,10 @@
 <!--
 SYNC IMPACT REPORT
-Version Change: 1.0.1 -> 1.1.0 (Added Architectural Context)
+Version Change: 1.2.0 -> 1.3.0 (Added Reuse & Promotion Principle)
 Modified Principles: None
-Added Sections: Architectural Concepts
+Added Sections: Principle VIII. Reuse & Promotion
 Removed Sections: None
-Templates Requiring Updates: None
+Templates Requiring Updates: plan-template.md (Constitution Check), tasks-template.md (Reuse/Refactor Tasks) - ✅ Updated
 Follow-up TODOs: None
 -->
 
@@ -44,6 +44,17 @@ Modules MUST be designed to be as universal as possible. Where applicable, a mod
 ### V. Validated Configuration
 Changes to configuration options and packages MUST be validated using the NixOS Model Context Protocol (MCP) tools (`nixos_info`, `home_manager_info`). This ensures that options exist, types are correct, and packages are available before code is committed.
 
+### VI. Explicit External Dependencies
+Modules relying on external flakes (e.g., `nixos-hardware`, `home-manager`) MUST declare them internally using `flake-file.inputs`. This ensures modules are self-contained and reproducible without implicit reliance on the root `flake.nix` or global arguments.
+
+### VII. Flake Integrity & Workflow
+The repository's flake state MUST remain valid throughout development.
+- **Validation**: `nix flake check` MUST be executed before implementation (to establish a baseline) and after implementation (to ensure no regressions).
+- **Input Registration**: When adding new dependencies/inputs, developers MUST run `nix run .#write-flake` to automatically register them in the root `flake.nix` before committing. Manual edits to `flake.nix` for inputs are discouraged.
+
+### VIII. Reuse & Promotion
+Existing modules MUST be prioritized. Before creating new configurations, developers MUST search for existing implementations in `community` or `auto`. When similar patterns or configurations emerge across multiple personal or specific scopes, they MUST be refactored into a generalized `community` module to facilitate reuse and reduce duplication.
+
 ## Governance
 
 ### Amendment Process
@@ -58,4 +69,4 @@ This constitution follows Semantic Versioning:
 ### Compliance
 All feature specifications and implementation plans must explicitly state their adherence to these principles. Non-compliant code will be rejected during review.
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-31 | **Last Amended**: 2025-12-31
+**Version**: 1.3.0 | **Ratified**: 2025-12-31 | **Last Amended**: 2025-12-31

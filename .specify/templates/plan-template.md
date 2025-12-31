@@ -34,7 +34,10 @@
 - [ ] **Aspect-Oriented**: Is the feature self-contained in a module (or set of modules) rather than scattered across host configs?
 - [ ] **Tiered Structure**: Is the module correctly placed in `auto`, `community`, or `personal`?
 - [ ] **Universal Compatibility**: Does the module support both NixOS and Home Manager where applicable?
+- [ ] **Explicit Dependencies**: Are external flake inputs declared within the module using `flake-file.inputs`?
+- [ ] **Flake Integrity**: Is `nix flake check` planned before and after implementation?
 - [ ] **Validation**: Is NixOS MCP validation planned for options and packages?
+- [ ] **Reuse & Promotion**: Have existing modules been evaluated for reuse, and are new common patterns planned for the `community` tier?
 
 ## Project Structure
 

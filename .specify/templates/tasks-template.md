@@ -50,7 +50,9 @@ description: "Task list template for feature implementation"
 
 - [ ] T001 Create project structure per implementation plan
 - [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T003 [P] Search for existing `community` modules to reuse
+- [ ] T004 [P] Configure linting and formatting tools
+- [ ] T005 Run `nix flake check` to validate initial state
 
 ---
 
@@ -152,10 +154,14 @@ Examples of foundational tasks (adjust based on your project):
 
 - [ ] TXXX [P] Documentation updates in docs/
 - [ ] TXXX Code cleanup and refactoring
+- [ ] TXXX Refactor common patterns into `community` modules
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
+- [ ] TXXX Verify external dependencies are declared via `flake-file.inputs`
+- [ ] TXXX Run `nix run .#write-flake` to register new inputs (if applicable)
+- [ ] TXXX Run `nix flake check` to validate final state
 - [ ] TXXX Validate configuration options using NixOS MCP (`nixos_info`, `home_manager_info`)
 
 ---

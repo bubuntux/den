@@ -100,6 +100,7 @@
 - **MR-001**: Module Category: [Auto / Community / Personal]
 - **MR-002**: Compatibility: [NixOS / Home Manager / Both / Darwin]
 - **MR-003**: Config Options: [List key options to be exposed, e.g., `programs.my-app.enable`]
+- **MR-004**: External Inputs: [List external flakes to be declared via `flake-file.inputs`, e.g., `nixos-hardware`]
 
 ### Key Entities *(include if feature involves data)*
 
