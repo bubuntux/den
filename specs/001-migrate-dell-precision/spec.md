@@ -32,7 +32,7 @@ As a system administrator, I want the new Dell Precision module to provide the e
 - **Build Failure**: If the migrated configuration contains syntax errors or invalid options, the system rebuild must fail, preventing the user from switching to a broken configuration.
 - **Partial Migration**: If the legacy file is not removed but the new module is enabled, a conflict might occur (though less likely with namespacing). The process must ensure the legacy file is removed.
 
----
+______________________________________________________________________
 
 ## Requirements
 

@@ -1,8 +1,4 @@
 {
-  host,
-  lib,
-  pkgs,
-  options,
   ...
 }:
 {
@@ -104,7 +100,7 @@
     };
 
     config =
-      { config, pkgs, ... }:
+      { pkgs, ... }:
       {
         hardware.graphics.enable = true;
 

@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ ... }:
 {
   #TODO: parameterize name/emai
 

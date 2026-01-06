@@ -1,6 +1,6 @@
----
-description: "Task list template for feature implementation"
----
+______________________________________________________________________
+
+## description: "Task list template for feature implementation"
 
 # Tasks: Migrate Dell Precision 5680 Module
 
@@ -29,7 +29,7 @@ description: "Task list template for feature implementation"
 - [x] T001 Verify legacy file content and backup `old/systems/x86_64-linux/inixell/dell-precision-5680.nix`
 - [x] T002 Create empty module file at `modules/community/dell-precision-5680.nix`
 
----
+______________________________________________________________________
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
@@ -42,7 +42,7 @@ description: "Task list template for feature implementation"
 
 **Checkpoint**: Module structure exists and dependency is declared.
 
----
+______________________________________________________________________
 
 ## Phase 3: User Story 1 - Maintain Hardware Support (Priority: P1) 🎯 MVP
 
@@ -62,7 +62,7 @@ description: "Task list template for feature implementation"
 
 **Checkpoint**: User Story 1 functional, legacy file removed.
 
----
+______________________________________________________________________
 
 ## Phase N: Polish & Cross-Cutting Concerns
 
@@ -71,7 +71,7 @@ description: "Task list template for feature implementation"
 - [x] T012 Verify external dependencies are declared via `flake-file.inputs` in `modules/community/dell-precision-5680.nix`
 - [x] T013 Validate configuration options using NixOS MCP (`nixos_info`, `home_manager_info`) if applicable
 
----
+______________________________________________________________________
 
 ## Dependencies & Execution Order
 
@@ -95,13 +95,13 @@ description: "Task list template for feature implementation"
 
 - T006, T007, T008, T009 (Configuration blocks) can be implemented in any order or in parallel once the structure (T003) and inputs (T004) are set.
 
----
+______________________________________________________________________
 
 ## Implementation Strategy
 
 ### MVP First (User Story 1 Only)
 
 1. Setup & Foundational: Create module and declare inputs.
-2. User Story 1: Port all hardware settings.
-3. Validate: Ensure configuration is correct.
-4. Clean up: Remove legacy file.
+1. User Story 1: Port all hardware settings.
+1. Validate: Ensure configuration is correct.
+1. Clean up: Remove legacy file.

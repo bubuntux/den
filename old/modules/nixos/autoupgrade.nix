@@ -1,9 +1,5 @@
 # Run automatic updates. Replaces system.autoUpgrade.
 {
-  pkgs,
-  config,
-  inputs,
-  lib,
   ...
 }:
 {
