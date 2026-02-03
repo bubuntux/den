@@ -68,26 +68,6 @@
         "type": "github"
       }
     },
-    "nix-auto-follow": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1754073254,
-        "narHash": "sha256-CQp/v2HQ7AtGJQqFGRZLHt4MZAK3NF94I6GDaRyhbsc=",
-        "owner": "fzakaria",
-        "repo": "nix-auto-follow",
-        "rev": "5baa00b79d4cc46523da0b8b3532c5163d151be4",
-        "type": "github"
-      },
-      "original": {
-        "owner": "fzakaria",
-        "repo": "nix-auto-follow",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1769018530,
@@ -142,7 +122,6 @@
         "flake-parts": "flake-parts",
         "home-manager": "home-manager",
         "import-tree": "import-tree",
-        "nix-auto-follow": "nix-auto-follow",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-lib": [
           "nixpkgs"
