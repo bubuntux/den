@@ -1,20 +1,20 @@
 { self, ... }:
 {
   flake.nixosModules.base = {
-    imports = [
-      self.nixosModules.boot
-      self.nixosModules.fonts
-      self.nixosModules.locale
-      self.nixosModules.networking
-      self.nixosModules.nix
+    imports = with self.nixosModules; [
+      boot
+      fonts
+      locale
+      networking
+      nix
     ];
   };
 
   flake.homeModules.base = {
-    imports = [
-      self.homeModules.fonts
-      self.homeModules.helix
-      self.homeModules.neovim
+    imports = with self.homeModules; [
+      fonts
+      helix
+      neovim
     ];
   };
 
