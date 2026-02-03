@@ -14,6 +14,7 @@
     imports = [
       self.homeModules.fonts
       self.homeModules.helix
+      self.homeModules.neovim
     ];
   };
 
