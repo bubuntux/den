@@ -13,6 +13,7 @@
   flake.homeModules.base = {
     imports = [
       self.homeModules.fonts
+      self.homeModules.helix
     ];
   };
 
