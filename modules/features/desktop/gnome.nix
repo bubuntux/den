@@ -10,6 +10,12 @@
       services.desktopManager.gnome.enable = true;
       services.gnome.core-developer-tools.enable = false;
 
+      environment.gnome.excludePackages = with pkgs; [
+        epiphany # web browser
+        gnome-tour
+        gnome-user-docs
+      ];
+
       # Configure keymap in X11
       services.xserver.xkb = {
         layout = "us";
