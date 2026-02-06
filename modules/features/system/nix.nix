@@ -6,6 +6,7 @@ let
 in
 {
   flake.nixosModules.nix = {
+    nixpkgs.config.allowUnfree = true;
     nix = {
       settings = {
         log-lines = 20;

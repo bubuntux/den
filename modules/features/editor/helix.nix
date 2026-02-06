@@ -73,22 +73,22 @@
         tinymist
         typstyle
 
-        ty
-        ruff
-        python313Packages.python-lsp-server
+        # ty
+        # ruff
+        # python313Packages.python-lsp-server
 
-        # Rust
-        cargo
-        clippy
-        rustc
-        rustfmt
-        rust-analyzer
+        # # Rust
+        # cargo
+        # clippy
+        # rustc
+        # rustfmt
+        # rust-analyzer
 
-        # Go
-        gopls
-        golangci-lint
-        golangci-lint-langserver
-        delve
+        # # Go
+        # gopls
+        # golangci-lint
+        # golangci-lint-langserver
+        # delve
 
       ];
       languages.language = [
@@ -102,14 +102,14 @@
           auto-format = true;
           formatter.command = lib.getExe pkgs.typstyle;
         }
-        {
-          name = "java";
-          auto-format = false;
-          formatter = {
-            command = lib.getExe pkgs.google-java-format;
-            args = [ "-" ];
-          };
-        }
+        # {
+        #   name = "java";
+        #   auto-format = false;
+        #   formatter = {
+        #     command = lib.getExe pkgs.google-java-format;
+        #     args = [ "-" ];
+        #   };
+        # }
       ];
       ignores = [
         ".build/"
