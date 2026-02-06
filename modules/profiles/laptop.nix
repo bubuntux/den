@@ -2,9 +2,10 @@
 {
   flake.nixosModules.profile-laptop = {
     imports = with self.nixosModules; [
-      profile-base
       audio
+      bluetooth
       printing
+      profile-base
     ];
   };
 }
