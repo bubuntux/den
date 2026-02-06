@@ -7,7 +7,7 @@
   flake.nixosConfigurations.katara = inputs.nixpkgs.lib.nixosSystem {
     system = "x86_64-linux";
     modules = with self.nixosModules; [
-      profile-base
+      profile-laptop
       (
         { pkgs, ... }:
         {
@@ -35,16 +35,6 @@
           # Enable CUPS to print documents.
           services.printing.enable = true;
 
-          # Enable sound with pipewire.
-          services.pulseaudio.enable = false;
-          security.rtkit.enable = true;
-          services.pipewire = {
-            enable = true;
-            alsa.enable = true;
-            alsa.support32Bit = true;
-            pulse.enable = true;
-          };
-
           # Define a user account. Don't forget to set a password with ‘passwd’.
           users.users.dona = {
             isNormalUser = true;
@@ -69,8 +59,6 @@
           # Install firefox.
           programs.firefox.enable = true;
 
-          # Allow unfree packages
-          nixpkgs.config.allowUnfree = true;
         }
       )
     ];
