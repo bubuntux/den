@@ -4,6 +4,7 @@
     imports = with self.nixosModules; [
       profile-base
       audio
+      printing
     ];
   };
 }
