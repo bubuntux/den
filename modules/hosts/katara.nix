@@ -20,12 +20,6 @@
           networking.hostName = "katara";
           system.stateVersion = "25.11";
 
-          # Enable networking
-          networking.networkmanager.enable = true;
-
-          # Install firefox.
-          programs.firefox.enable = true;
-
           imports = [
             (modulesPath + "/installer/scan/not-detected.nix")
           ];
@@ -58,7 +52,6 @@
             { device = "/dev/disk/by-uuid/e6ec01aa-d7a0-4623-96fe-a6d9606dd1fc"; }
           ];
 
-          nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
           hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
         }
       )
