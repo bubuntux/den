@@ -18,6 +18,7 @@
         lib.nameValuePair "${name}-vm" {
           type = "app";
           program = "${config.config.system.build.vm}/bin/run-${name}-vm";
+          meta.description = "Run ${name} as a NixOS Virtual Machine";
         }
       ) compatibleHosts;
     in
