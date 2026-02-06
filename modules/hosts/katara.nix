@@ -5,22 +5,12 @@
 }:
 {
   flake.nixosConfigurations.katara = inputs.nixpkgs.lib.nixosSystem {
-    system = "x86_64-linux";
     modules = [
       self.nixosModules.base
       self.nixosModules.katara
     ];
 
   };
-
-  perSystem =
-    { system, lib, ... }:
-    {
-      apps.katara-vm = lib.mkIf (system == "x86_64-linux") {
-        type = "app";
-        program = "${self.nixosConfigurations.katara.config.system.build.vm}/bin/run-katara-vm";
-      };
-    };
 
   flake.nixosModules.katara =
     { pkgs, lib, ... }:
