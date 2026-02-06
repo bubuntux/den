@@ -9,7 +9,7 @@
     let
       # Filter configurations that match the current system
       compatibleHosts = lib.filterAttrs (
-        _: config: config.config.nixpkgs.hostPlatform.system == system
+        _: config: config.config.nixpkgs.system == system
       ) self.nixosConfigurations;
 
       # Generate apps for each compatible host

@@ -5,6 +5,7 @@
 }:
 {
   flake.nixosConfigurations.katara = inputs.nixpkgs.lib.nixosSystem {
+    system = "x86_64-linux";
     modules = [
       self.nixosModules.base
       self.nixosModules.katara
@@ -19,7 +20,6 @@
       imports = [ ./_katara-hardware-configuration.nix ];
 
       networking.hostName = "katara";
-      nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
       system.stateVersion = "25.11";
 
       # Enable networking
