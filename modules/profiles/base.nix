@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.base = {
+  flake.nixosModules.profile-base = {
     imports = with self.nixosModules; [
       boot
       fonts
@@ -10,7 +10,7 @@
     ];
   };
 
-  flake.homeModules.base = {
+  flake.homeModules.profile-base = {
     imports = with self.homeModules; [
       fonts
       helix

@@ -7,7 +7,7 @@
   flake.nixosConfigurations.katara = inputs.nixpkgs.lib.nixosSystem {
     system = "x86_64-linux";
     modules = with self.nixosModules; [
-      base
+      profile-base
       (
         { pkgs, ... }:
         {
