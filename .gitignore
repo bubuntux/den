@@ -1,0 +1,22 @@
+# Nix
+result
+result-*
+.direnv/
+.venv/
+
+# Persistent VM data
+*.qcow2
+
+# Logs
+*.log
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+.helix/
+
+# OS specific
+.DS_Store
+Thumbs.db
