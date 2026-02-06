@@ -5,6 +5,7 @@
 }:
 {
   flake.nixosConfigurations.katara = inputs.nixpkgs.lib.nixosSystem {
+    system = "x86_64-linux";
     modules = [
       self.nixosModules.base
       self.nixosModules.katara
@@ -16,7 +17,7 @@
     { pkgs, lib, ... }:
     {
 
-      imports = [ ./katara-hardware-configuration.nix ];
+      imports = [ ./_katara-hardware-configuration.nix ];
 
       networking.hostName = "katara";
       nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
@@ -29,8 +30,8 @@
       services.xserver.enable = true;
 
       # Enable the GNOME Desktop Environment.
-      services.xserver.displayManager.gdm.enable = true;
-      services.xserver.desktopManager.gnome.enable = true;
+      services.displayManager.gdm.enable = true;
+      services.desktopManager.gnome.enable = true;
 
       # Configure keymap in X11
       services.xserver.xkb = {
