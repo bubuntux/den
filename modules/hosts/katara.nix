@@ -7,7 +7,7 @@
   flake.nixosConfigurations.katara = inputs.nixpkgs.lib.nixosSystem {
     system = "x86_64-linux";
     modules = with self.nixosModules; [
-      profile-laptop
+      profile-wife
       (
         { pkgs, ... }:
         {
@@ -18,19 +18,6 @@
 
           # Enable networking
           networking.networkmanager.enable = true;
-
-          # Enable the X11 windowing system.
-          services.xserver.enable = true;
-
-          # Enable the GNOME Desktop Environment.
-          services.displayManager.gdm.enable = true;
-          services.desktopManager.gnome.enable = true;
-
-          # Configure keymap in X11
-          services.xserver.xkb = {
-            layout = "us";
-            variant = "";
-          };
 
           # Define a user account. Don't forget to set a password with ‘passwd’.
           users.users.dona = {
@@ -44,14 +31,6 @@
               helix
             ];
           };
-
-          # Enable automatic login for the user.
-          services.displayManager.autoLogin.enable = true;
-          services.displayManager.autoLogin.user = "dona";
-
-          # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
-          systemd.services."getty@tty1".enable = false;
-          systemd.services."autovt@tty1".enable = false;
 
           # Install firefox.
           programs.firefox.enable = true;
