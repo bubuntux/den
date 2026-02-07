@@ -2,7 +2,7 @@
 {
   flake.homeModules.user-dona = {
     imports = [ self.homeModules.profile-base ];
-    home.stateVersion = "24.05";
+    home.stateVersion = "25.11";
   };
 
   flake.nixosModules.home-dona = {
