@@ -4,5 +4,8 @@
     imports = with self.nixosModules; [
       profile-base
     ];
+
+    # Enable networking
+    networking.networkmanager.enable = true;
   };
 }
