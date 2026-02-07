@@ -5,6 +5,7 @@
 }:
 {
   flake.nixosConfigurations.katara = inputs.nixpkgs.lib.nixosSystem {
+    specialArgs = { inherit self inputs; };
     system = "x86_64-linux";
     modules = with self.nixosModules; [
       profile-laptop
@@ -17,6 +18,7 @@
           ...
         }:
         {
+          # TODO
           networking.hostName = "katara";
           system.stateVersion = "25.11";
 

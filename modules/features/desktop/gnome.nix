@@ -1,7 +1,11 @@
 {
   flake.nixosModules.gnome =
-    { pkgs, ... }:
+    { self, pkgs, ... }:
     {
+      imports = with self.nixosModules; [
+        profile-desktop-base
+      ];
+
       # Enable the GNOME Desktop Environment.
       services.displayManager.gdm.enable = true;
       services.desktopManager.gnome.enable = true;
