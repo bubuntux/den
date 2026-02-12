@@ -2,7 +2,7 @@
 {
   flake.nixosModules.profile-wife = {
     imports = with self.nixosModules; [
-      home-dona
+      user-dona
       gnome
     ];
   };
