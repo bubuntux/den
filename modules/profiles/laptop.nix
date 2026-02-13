@@ -5,7 +5,7 @@
       audio
       bluetooth
       printing
-      profile-base
+      bundle-base
     ];
   };
 }

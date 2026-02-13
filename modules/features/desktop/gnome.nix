@@ -3,7 +3,7 @@
     { self, pkgs, ... }:
     {
       imports = with self.nixosModules; [
-        profile-desktop-base
+        bundle-desktop
       ];
 
       # Enable the GNOME Desktop Environment.

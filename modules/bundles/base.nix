@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.profile-base = {
+  flake.nixosModules.bundle-base = {
     imports = with self.nixosModules; [
       boot
       fonts
@@ -11,11 +11,11 @@
     ];
 
     home-manager.sharedModules = with self.homeModules; [
-      profile-base
+      bundle-base
     ];
   };
 
-  flake.homeModules.profile-base = {
+  flake.homeModules.bundle-base = {
     imports = with self.homeModules; [
       fonts
       helix

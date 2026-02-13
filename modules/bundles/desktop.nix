@@ -1,8 +1,8 @@
 { self, ... }:
 {
-  flake.nixosModules.profile-desktop-base = {
+  flake.nixosModules.bundle-desktop = {
     imports = with self.nixosModules; [
-      profile-base
+      bundle-base
     ];
 
     # Enable networking

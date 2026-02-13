@@ -1,7 +1,7 @@
 { inputs, self, ... }:
 {
   # flake.homeModules.user-dona = {
-  #   imports = [ self.homeModules.profile-base ];
+  #   imports = [ self.homeModules.bundle-base ];
   #   # home.stateVersion = "25.11";
   # };
 
