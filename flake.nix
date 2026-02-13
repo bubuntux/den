@@ -12,6 +12,7 @@
     };
     home-manager.url = "github:nix-community/home-manager";
     import-tree.url = "github:vic/import-tree";
+    nixos-hardware.url = "github:nixos/nixos-hardware";
     nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.xz";
     nixpkgs-lib.follows = "nixpkgs";
     systems.url = "github:nix-systems/default";
