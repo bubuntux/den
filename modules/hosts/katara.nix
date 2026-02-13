@@ -10,6 +10,9 @@
     modules = with self.nixosModules; [
       profile-laptop
       profile-wife
+      bundle-productivity
+      firefox
+      plymouth
       inputs.nixos-hardware.nixosModules.common-cpu-amd
       inputs.nixos-hardware.nixosModules.common-gpu-amd
       (
@@ -23,6 +26,11 @@
           # TODO
           networking.hostName = "katara";
           system.stateVersion = "25.11";
+
+          # Enable firmware updates
+          services.fwupd.enable = true;
+          # Enable fingerprint reader
+          services.fprintd.enable = true;
 
           imports = [
             (modulesPath + "/installer/scan/not-detected.nix")
