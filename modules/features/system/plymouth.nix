@@ -10,6 +10,9 @@
       theme = "spinner";
     };
 
+    # Required for the splash screen to show up in QEMU VMs
+    boot.initrd.kernelModules = [ "virtio_gpu" ];
+
     # Ensure quiet boot so plymouth looks good
     boot.kernelParams = [
       "quiet"
@@ -20,6 +23,7 @@
       "rd.udev.log_level=3"
       "udev.log_priority=3"
       "vt.global_cursor_default=0"
+      "console=tty1"
     ];
     boot.consoleLogLevel = 0;
     boot.initrd.verbose = false;
