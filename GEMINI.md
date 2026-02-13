@@ -69,3 +69,5 @@ nix flake update
 - **Verification**:
   - **Verify Validity**: Use the configured MCP (or available search tools) to verify that packages and options exist before adding them.
   - **Flake Check**: Always run `nix flake check` after making changes to validate the configuration.
+- **Committing**:
+  - **Explicit Review**: Before committing, always present the changes (e.g., via `git diff`) and the proposed commit message to the user for explicit approval. Never commit without confirmation.
