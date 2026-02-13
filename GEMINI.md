@@ -64,6 +64,7 @@ nix flake update
   - User configurations in `modules/users/` likely define Home Manager modules.
 - **Naming**:
   - Hosts are named after Avatar: The Last Airbender characters (e.g., `zuko`, `katara`, `appa`).
+  - Users are named after Teenage Mutant Ninja Turtles (e.g., `leo`, `mike`, `rafa`).
   - Profiles describe the device role or user role (e.g., `laptop`, `developer`).
 - **Verification**:
   - **Verify Validity**: Use the configured MCP (or available search tools) to verify that packages and options exist before adding them.
