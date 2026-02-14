@@ -10,7 +10,6 @@
     modules = with self.nixosModules; [
       profile-laptop
       profile-wife
-      bundle-productivity
       firefox
       plymouth
       inputs.nixos-hardware.nixosModules.common-cpu-amd
