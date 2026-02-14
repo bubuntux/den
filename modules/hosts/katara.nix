@@ -11,7 +11,6 @@
       profile-laptop
       profile-wife
       firefox
-      plymouth
       inputs.nixos-hardware.nixosModules.common-cpu-amd
       inputs.nixos-hardware.nixosModules.common-gpu-amd
       (
