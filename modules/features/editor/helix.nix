@@ -9,6 +9,7 @@
           editor = {
             mouse = false;
             true-color = true;
+            soft-wrap.enable = true;
             line-number = "relative";
             rulers = [
               80
