@@ -13,6 +13,7 @@
 
       environment.gnome.excludePackages = with pkgs; [
         epiphany # web browser
+        gnome-calculator
         gnome-tour
         gnome-user-docs
       ];
