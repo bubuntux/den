@@ -10,6 +10,7 @@
     modules = with self.nixosModules; [
       profile-laptop
       dell-precision-5680
+      sway
       (
         {
           config,
