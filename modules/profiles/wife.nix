@@ -4,6 +4,7 @@
     imports = with self.nixosModules; [
       user-dona
       gnome
+      firefox
     ];
   };
 }
