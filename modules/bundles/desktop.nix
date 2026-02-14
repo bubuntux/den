@@ -1,5 +1,12 @@
 { self, ... }:
 {
+  # Home Manager module for desktop environments
+  flake.homeModules.bundle-desktop = {
+    targets.genericLinux.enable = true;
+    services.network-manager-applet.enable = true;
+  };
+
+  # NixOS module for desktop environments
   flake.nixosModules.bundle-desktop =
     { pkgs, ... }:
     {
@@ -17,5 +24,8 @@
         kdePackages.okular # Powerful PDF viewer
         qalculate-gtk # Versatile calculator
       ];
+
+      # Add home-manager bundle-desktop module to shared modules
+      home-manager.sharedModules = [ self.homeModules.bundle-desktop ];
     };
 }
