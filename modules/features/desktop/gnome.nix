@@ -16,6 +16,7 @@
         gnome-calculator
         gnome-tour
         gnome-user-docs
+        yelp # Help
       ];
 
       # Enable the X11 windowing system.
