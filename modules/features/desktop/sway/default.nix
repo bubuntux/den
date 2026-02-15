@@ -15,15 +15,33 @@ in
 {
   # Home Manager module for sway user configuration
   flake.homeModules.sway =
-    { pkgs, lib, ... }:
+    {
+      pkgs,
+      lib,
+      config,
+      ...
+    }:
     let
       # Import configuration fragments (curried functions, underscore prefix to avoid import-tree)
       keybindings = import ./_keybindings.nix pkgs mod;
       rules = import ./_rules.nix;
       modes = import ./_modes.nix pkgs mod;
       startup = import ./_startup.nix pkgs;
+
+      # Generate workspace output assignments from monitors config
+      # Each monitor with workspaces generates entries mapping those workspaces to the monitor
+      workspaceAssignments = lib.flatten (
+        map (
+          m:
+          map (ws: {
+            workspace = ws;
+            output = m.name;
+          }) m.workspaces
+        ) (lib.filter (m: m.workspaces != [ ]) config.monitors)
+      );
     in
     {
+      # Note: monitors module must be imported by the parent NixOS module
       imports = [ self.homeModules.foot ];
       wayland.windowManager.sway = {
         enable = true;
@@ -70,74 +88,8 @@ in
             smartGaps = true;
           };
 
-          # Workspace to output assignments
-          workspaceOutputAssign = [
-            {
-              workspace = "1";
-              output = [
-                "DP-5"
-                "DP-6"
-              ];
-            }
-            {
-              workspace = "2";
-              output = [
-                "DP-5"
-                "DP-6"
-              ];
-            }
-            {
-              workspace = "3";
-              output = [
-                "DP-5"
-                "DP-6"
-              ];
-            }
-            {
-              workspace = "4";
-              output = [
-                "DP-7"
-                "DP-8"
-                "DP-9"
-              ];
-            }
-            {
-              workspace = "5";
-              output = [
-                "DP-7"
-                "DP-8"
-                "DP-9"
-              ];
-            }
-            {
-              workspace = "6";
-              output = [
-                "DP-7"
-                "DP-8"
-                "DP-9"
-              ];
-            }
-            {
-              workspace = "7";
-              output = [
-                "DP-7"
-                "DP-8"
-                "DP-9"
-              ];
-            }
-            {
-              workspace = "8";
-              output = "eDP-1";
-            }
-            {
-              workspace = "9";
-              output = "eDP-1";
-            }
-            {
-              workspace = "10";
-              output = "eDP-1";
-            }
-          ];
+          # Workspace to output assignments (generated from monitors config)
+          workspaceOutputAssign = workspaceAssignments;
 
           keybindings = lib.mkOptionDefault keybindings;
           modes = modes;
@@ -264,6 +216,9 @@ in
       };
 
       # Add home-manager sway module to shared modules
-      home-manager.sharedModules = [ self.homeModules.sway ];
+      home-manager.sharedModules = [
+        self.homeModules.monitors
+        self.homeModules.sway
+      ];
     };
 }

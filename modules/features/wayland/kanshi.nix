@@ -1,151 +1,61 @@
 {
   self,
+  lib,
   ...
 }:
+let
+  inherit (lib) mapAttrsToList isList;
+in
 {
   # Home Manager module for kanshi display management
-  flake.homeModules.kanshi = {
-    services.kanshi = {
-      enable = true;
+  flake.homeModules.kanshi =
+    { config, ... }:
+    let
+      # Generate output definition from monitor config
+      monitorToOutput = m: {
+        output = {
+          criteria = m.name;
+          status = if m.enabled then "enable" else "disable";
+          mode = "${toString m.width}x${toString m.height}";
+        }
+        // (if m.transform != null then { transform = m.transform; } else { });
+      };
 
-      settings = [
-        # Output definitions
+      # Generate profile from config
+      # Profile can be either a list of names or an attrset of name = position
+      profileToKanshi =
+        name: value:
+        let
+          outputs =
+            if isList value then
+              # Simple list: just monitor names, no position override
+              map (n: { criteria = n; }) value
+            else
+              # Attrset: name = position
+              mapAttrsToList (n: pos: {
+                criteria = n;
+                position = pos;
+              }) value;
+        in
         {
-          output = {
-            criteria = "eDP-1";
-            status = "enable";
-            mode = "1920x1200";
-            position = "0,0";
+          profile = {
+            inherit name outputs;
           };
-        }
-        {
-          output = {
-            criteria = "DP-3";
-            status = "enable";
-            mode = "2560x1440";
-          };
-        }
-        {
-          output = {
-            criteria = "DP-4";
-            status = "enable";
-            mode = "2560x1440";
-          };
-        }
-        {
-          output = {
-            criteria = "DP-5";
-            status = "enable";
-            mode = "2560x1440";
-            transform = "270";
-          };
-        }
-        {
-          output = {
-            criteria = "DP-6";
-            status = "enable";
-            mode = "2560x1440";
-            transform = "270";
-          };
-        }
-        {
-          output = {
-            criteria = "DP-7";
-            status = "enable";
-            mode = "2560x1440";
-          };
-        }
-        {
-          output = {
-            criteria = "DP-8";
-            status = "enable";
-            mode = "2560x1440";
-          };
-        }
-        {
-          output = {
-            criteria = "DP-9";
-            status = "enable";
-            mode = "2560x1440";
-          };
-        }
+        };
 
-        # Profiles
-        {
-          profile.name = "laptop";
-          profile.outputs = [ { criteria = "eDP-1"; } ];
-        }
-        {
-          profile.name = "office";
-          profile.outputs = [
-            {
-              criteria = "DP-3";
-              position = "0,0";
-            }
-            {
-              criteria = "DP-4";
-              position = "2560,0";
-            }
-            {
-              criteria = "eDP-1";
-              position = "1440,1440";
-            }
-          ];
-        }
-        {
-          profile.name = "workstation5-7";
-          profile.outputs = [
-            {
-              criteria = "DP-5";
-              position = "0,0";
-            }
-            {
-              criteria = "DP-7";
-              position = "1440,0";
-            }
-            {
-              criteria = "eDP-1";
-              position = "1440,1440";
-            }
-          ];
-        }
-        {
-          profile.name = "workstation6-8";
-          profile.outputs = [
-            {
-              criteria = "DP-6";
-              position = "0,0";
-            }
-            {
-              criteria = "DP-8";
-              position = "1440,0";
-            }
-            {
-              criteria = "eDP-1";
-              position = "1440,1440";
-            }
-          ];
-        }
-        {
-          profile.name = "workstation6-9";
-          profile.outputs = [
-            {
-              criteria = "DP-6";
-              position = "0,0";
-            }
-            {
-              criteria = "DP-9";
-              position = "1440,0";
-            }
-            {
-              criteria = "eDP-1";
-              position = "1440,1440";
-            }
-          ];
-        }
-      ];
+      # Generate all output definitions
+      outputDefinitions = map monitorToOutput config.monitors;
+
+      # Generate all profiles
+      profiles = mapAttrsToList profileToKanshi config.monitorProfiles;
+    in
+    {
+      # Note: monitors module must be imported by the parent NixOS module
+      services.kanshi = {
+        enable = true;
+        settings = outputDefinitions ++ profiles;
+      };
     };
-  };
 
   # NixOS module that includes kanshi home module
   flake.nixosModules.kanshi =
