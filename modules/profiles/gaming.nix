@@ -63,10 +63,10 @@
       };
 
       # GameScope - SteamOS session compositor
-      programs.gamescope = {
-        enable = true;
-        capSysNice = true;
-      };
+      # capSysNice is omitted because the setuid wrapper it creates
+      # cannot inherit capabilities inside Steam's FHS sandbox.
+      # GameMode (enableRenice) handles process priority instead.
+      programs.gamescope.enable = true;
 
       # Packages
       environment.systemPackages = with pkgs; [
