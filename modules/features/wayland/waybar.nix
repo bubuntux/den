@@ -31,15 +31,14 @@
             ];
 
             modules-right = [
-              "custom/weather"
               "idle_inhibitor"
               "power-profiles-daemon"
               "group/hardware"
               "backlight"
-
               "wireplumber"
-              "clock"
               "battery"
+              "custom/weather"
+              "clock"
               "tray"
             ];
 
@@ -201,9 +200,9 @@
             "custom/weather" = {
               format = "{}";
               return-type = "json";
-              exec = "${pkgs.wttrbar}/bin/wttrbar --location auto --fahrenheit --main-indicator temp_F";
+              exec = "${pkgs.coreutils}/bin/timeout 10 ${pkgs.wttrbar}/bin/wttrbar --location auto --fahrenheit --main-indicator temp_F || echo '{\"text\": \"󰖐 N/A\", \"tooltip\": \"Weather unavailable\"}'";
               interval = 900;
-              on-click = "${pkgs.wttrbar}/bin/wttrbar --location auto --fahrenheit --main-indicator temp_F";
+              on-click = "${pkgs.coreutils}/bin/timeout 10 ${pkgs.wttrbar}/bin/wttrbar --location auto --fahrenheit --main-indicator temp_F || echo '{\"text\": \"󰖐 N/A\", \"tooltip\": \"Weather unavailable\"}'";
             };
 
             battery = {
