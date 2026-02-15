@@ -57,7 +57,6 @@ The configuration flows: **Features → Bundles → Profiles → Hosts**
 ### Naming Conventions
 
 - **Hosts**: Avatar: The Last Airbender characters (katara, zuko, appa, momo)
-- **Users**: Teenage Mutant Ninja Turtles characters (leo, mike, rafa, dona)
 
 ## Development Conventions
 

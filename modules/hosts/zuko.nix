@@ -15,7 +15,7 @@
       dell-precision-5680
       sway
       vpn
-      user-leo
+      user-bbtux
       firefox
 
       # Monitor configuration

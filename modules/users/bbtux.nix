@@ -3,8 +3,8 @@
   ...
 }:
 {
-  # Home Manager module for user leo
-  flake.homeModules.user-leo =
+  # Home Manager module for user bbtux
+  flake.homeModules.user-bbtux =
     { pkgs, ... }:
     {
       # Git user configuration
@@ -27,40 +27,18 @@
       ];
     };
 
-  # NixOS module for user leo
-  flake.nixosModules.user-leo =
+  # NixOS module for user bbtux
+  flake.nixosModules.user-bbtux =
     { config, ... }:
     let
       # Only add groups that exist on the system
       ifGroupExist = groups: builtins.filter (group: builtins.hasAttr group config.users.groups) groups;
     in
     {
-      users.users.leo = {
-        isNormalUser = true;
-        description = "Leo";
-        initialPassword = "leo";
-        extraGroups = ifGroupExist [
-          "audio"
-          "docker"
-          "gamemode"
-          "input"
-          "libvirtd"
-          "lpadmin"
-          "lxd"
-          "network"
-          "networkmanager"
-          "pipewire"
-          "plugdev"
-          "podman"
-          "video"
-          "wheel"
-        ];
-      };
-
       users.users.bbtux = {
         isNormalUser = true;
-        description = "Leo";
-        initialPassword = "leo";
+        description = "Julio Guti";
+        initialPassword = "bbtux";
         extraGroups = ifGroupExist [
           "audio"
           "docker"
@@ -79,11 +57,8 @@
         ];
       };
 
-      home-manager.users.leo = {
-        imports = [ self.homeModules.user-leo ];
-      };
       home-manager.users.bbtux = {
-        imports = [ self.homeModules.user-leo ];
+        imports = [ self.homeModules.user-bbtux ];
       };
     };
 }

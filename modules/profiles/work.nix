@@ -124,12 +124,12 @@
             isReadOnly = false;
           };
           "home" = {
-            hostPath = "/home/leo/work";
+            hostPath = "/home/bbtux/work";
             mountPoint = "/home/juliogm";
             isReadOnly = false;
           };
           "host_home" = {
-            hostPath = "/home/leo";
+            hostPath = "/home/bbtux";
             mountPoint = "/host_home";
             isReadOnly = false;
           };
