@@ -10,6 +10,7 @@
     modules = with self.nixosModules; [
       profile-laptop
       profile-gaming
+      profile-work
       dell-precision-5680
       sway
       vpn

@@ -24,6 +24,7 @@ in
       startup = import ./_startup.nix pkgs;
     in
     {
+      imports = [ self.homeModules.foot ];
       wayland.windowManager.sway = {
         enable = true;
         systemd.enable = true;

@@ -20,7 +20,6 @@
       # User packages
       home.packages = with pkgs; [
         # Utilities
-        ouch # compression/decompression
         xarchiver # GUI archive manager
 
         # Creative
