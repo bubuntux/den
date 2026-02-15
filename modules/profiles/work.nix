@@ -128,11 +128,6 @@
             mountPoint = "/home/juliogm";
             isReadOnly = false;
           };
-          "host_home" = {
-            hostPath = "/home/bbtux";
-            mountPoint = "/host_home";
-            isReadOnly = false;
-          };
         };
 
         config =
@@ -167,13 +162,7 @@
             environment.systemPackages = with pkgs; [
               cloudflare-warp
               jetbrains.gateway
-              (symlinkJoin {
-                name = "google-chrome";
-                paths = [ google-chrome ];
-                postBuild = ''
-                  ln -s $out/bin/google-chrome-stable $out/bin/google-chrome
-                '';
-              })
+              google-chrome
               slack
               zoom-us
 

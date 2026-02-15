@@ -10,7 +10,7 @@
     modules = with self.nixosModules; [
       profile-laptop
       profile-gaming
-      # profile-work
+      profile-work
       profile-developer
       dell-precision-5680
       sway
