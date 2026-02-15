@@ -54,6 +54,6 @@ pkgs: {
   rofi = {
     enable = true;
     theme = "Arc-Dark";
-    package = pkgs.rofi-wayland;
+    package = pkgs.rofi;
   };
 }

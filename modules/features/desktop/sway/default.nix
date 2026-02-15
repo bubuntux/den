@@ -59,7 +59,7 @@ in
 
           floating.modifier = "${mod} normal";
 
-          focus.followsMouse = "always";
+          focus.followMouse = "always";
           focus.mouseWarping = "output";
 
           gaps = {

@@ -11,6 +11,7 @@
       profile-laptop
       dell-precision-5680
       sway
+      user-leo
       (
         {
           config,
