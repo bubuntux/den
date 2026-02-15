@@ -334,13 +334,14 @@
               format-paused = "{status_icon} {title} - {artist}";
               max-length = 40;
               player-icons = {
-                default = "▶";
-                mpv = "🎵";
+                default = "󰐊";
+                mpv = "󰎁";
+                tidal-hifi = "󰎆";
                 firefox = "󰈹";
                 chromium = "󰊯";
               };
               status-icons = {
-                paused = "⏸";
+                paused = "󰏤";
               };
               on-click = "${pkgs.playerctl}/bin/playerctl play-pause";
               on-click-middle = "${pkgs.playerctl}/bin/playerctl previous";
