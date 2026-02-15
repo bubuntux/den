@@ -8,7 +8,7 @@
         enable = true;
         settings = {
           # Prefer the most advanced model
-          model = "claude-opus-4-5-20251101";
+          model = "opus";
 
           # Allow non-destructive operations by default
           permissions = {
