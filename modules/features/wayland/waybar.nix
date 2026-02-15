@@ -91,12 +91,12 @@
             ];
 
             modules-right = [
-              "power-profiles-daemon"
               "group/hardware"
               "wireplumber"
               "backlight"
               "battery"
               "idle_inhibitor"
+              "power-profiles-daemon"
               "systemd-failed-units"
               "privacy"
               "gamemode"
