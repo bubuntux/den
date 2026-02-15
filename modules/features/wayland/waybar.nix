@@ -15,16 +15,17 @@
 
           # Try nvidia-smi first, fall back to empty
           if command -v nvidia-smi &>/dev/null; then
-            data=$(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total,name --format=csv,noheader,nounits 2>/dev/null || true)
+            data=$(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total,name,power.draw --format=csv,noheader,nounits 2>/dev/null || true)
             if [ -n "$data" ]; then
               usage=$(echo "$data" | cut -d',' -f1 | tr -d ' ')
               temp=$(echo "$data" | cut -d',' -f2 | tr -d ' ')
               mem_used=$(echo "$data" | cut -d',' -f3 | tr -d ' ')
               mem_total=$(echo "$data" | cut -d',' -f4 | tr -d ' ')
               name=$(echo "$data" | cut -d',' -f5 | sed 's/^ //')
+              power=$(echo "$data" | cut -d',' -f6 | tr -d ' ')
 
-              text="󰍹 ''${usage}%"
-              tooltip="$name"$'\n'"󰍹 ''${usage}%  󰔏 ''${temp}°C"$'\n'"󰍛 ''${mem_used}MiB / ''${mem_total}MiB"
+              text="󰢮 ''${usage}%"
+              tooltip="$name"$'\n'"󰢮 ''${usage}%  󰔏 ''${temp}°C"$'\n'"󰍛 ''${mem_used}MiB / ''${mem_total}MiB"$'\n'"󱐋 ''${power} W"
 
               class=""
               if [ "$usage" -ge 90 ]; then
@@ -41,6 +42,71 @@
 
           # No GPU data available
           echo '{"text": "", "tooltip": ""}'
+        '';
+      };
+
+      intel-gpu-script = pkgs.writeShellApplication {
+        name = "waybar-intel-gpu";
+        runtimeInputs = with pkgs; [
+          coreutils
+          gnugrep
+          gnused
+          jq
+        ];
+        text = ''
+          fallback='{"text": "", "tooltip": ""}'
+
+          # Use the system setcap wrapper which has CAP_PERFMON
+          export PATH="/run/wrappers/bin:$PATH"
+
+          if ! command -v intel_gpu_top &>/dev/null; then
+            echo "$fallback"
+            exit 0
+          fi
+
+          # Get GPU name from device listing (e.g. "Intel Alderlake_p (Gen12)")
+          gpu_name=$(intel_gpu_top -L 2>/dev/null | grep -i intel | sed 's/^[^ ]* *\([^ ].*[^ ]\) *pci:.*/\1/' | head -n1)
+          gpu_name="''${gpu_name:-Intel iGPU}"
+
+          # intel_gpu_top -J streams an incomplete JSON array; capture to a temp
+          # file so we preserve the exact bytes, then close the array with ']'.
+          tmpfile=$(mktemp)
+          trap 'rm -f "$tmpfile"' EXIT
+          timeout 2 intel_gpu_top -J -s 500 > "$tmpfile" 2>/dev/null || true
+
+          if [ ! -s "$tmpfile" ]; then
+            echo "$fallback"
+            exit 0
+          fi
+
+          # Extract the last complete JSON object from the array
+          sample=$( (cat "$tmpfile"; echo ']') | jq -e 'last(.[])' 2>/dev/null) || true
+          if [ -z "$sample" ]; then
+            echo "$fallback"
+            exit 0
+          fi
+
+          # Max busy % across all engines (Render/3D, Video, VideoEnhance, etc.)
+          busy=$(echo "$sample" | jq '[.engines[]?.busy] | map(select(. != null)) | if length > 0 then max | round else 0 end')
+          freq=$(echo "$sample" | jq '.frequency.actual // 0 | round')
+          power=$(echo "$sample" | jq '.power.GPU // empty' 2>/dev/null || echo "")
+
+          text="󰢮 ''${busy}%"
+          tooltip="$gpu_name"$'\n'"󰢮 ''${busy}%  󰾆 ''${freq} MHz"
+          if [ -n "$power" ]; then
+            power_fmt=$(printf "%.1f" "$power")
+            tooltip="$tooltip"$'\n'"󱐋 ''${power_fmt} W"
+          fi
+
+          class=""
+          if [ "$busy" -ge 90 ]; then
+            class="critical"
+          elif [ "$busy" -ge 70 ]; then
+            class="warning"
+          fi
+
+          jq -nc --arg text "$text" --arg tooltip "$tooltip" --arg class "$class" \
+            '{text: $text, tooltip: $tooltip, class: $class}'
         '';
       };
 
@@ -156,7 +222,8 @@
               "cpu"
               "memory"
               "temperature"
-              "custom/gpu"
+              "custom/intel-gpu"
+              "custom/nvidia-gpu"
               "wireplumber"
               "backlight"
               "battery"
@@ -312,7 +379,14 @@
               warning-threshold = 60;
             };
 
-            "custom/gpu" = {
+            "custom/intel-gpu" = {
+              format = "{}";
+              return-type = "json";
+              exec = "${intel-gpu-script}/bin/waybar-intel-gpu";
+              interval = 5;
+            };
+
+            "custom/nvidia-gpu" = {
               format = "{}";
               return-type = "json";
               exec = "${gpu-script}/bin/waybar-gpu";
@@ -413,7 +487,8 @@
           #gamemode,
           #custom-weather,
           #custom-weather-c,
-          #custom-gpu,
+          #custom-intel-gpu,
+          #custom-nvidia-gpu,
           #idle_inhibitor,
           #power-profiles-daemon,
           #cpu,
@@ -442,7 +517,8 @@
           #idle_inhibitor:hover,
           #custom-weather:hover,
           #custom-weather-c:hover,
-          #custom-gpu:hover,
+          #custom-intel-gpu:hover,
+          #custom-nvidia-gpu:hover,
           #mpris:hover,
           #tray:hover {
             background-color: @surface0;
@@ -553,16 +629,29 @@
             color: @red;
           }
 
-          /* --- GPU --- */
-          #custom-gpu {
-            color: @green;
+          /* --- Intel GPU --- */
+          #custom-intel-gpu {
+            color: @blue;
           }
 
-          #custom-gpu.warning {
+          #custom-intel-gpu.warning {
             color: @yellow;
           }
 
-          #custom-gpu.critical {
+          #custom-intel-gpu.critical {
+            color: @red;
+          }
+
+          /* --- NVIDIA GPU --- */
+          #custom-nvidia-gpu {
+            color: @green;
+          }
+
+          #custom-nvidia-gpu.warning {
+            color: @yellow;
+          }
+
+          #custom-nvidia-gpu.critical {
             color: @red;
           }
 
