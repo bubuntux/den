@@ -31,9 +31,16 @@
         protontricks.enable = true;
         # Enable extest for Steam Input on Wayland
         extest.enable = true;
-        # Add gamescope to Steam's extra packages
+        # Add gamescope and nvidia-offload to Steam's FHS environment
         extraPackages = with pkgs; [
           gamescope
+          (writeShellScriptBin "nvidia-offload" ''
+            export __NV_PRIME_RENDER_OFFLOAD=1
+            export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
+            export __GLX_VENDOR_LIBRARY_NAME=nvidia
+            export __VK_LAYER_NV_optimus=NVIDIA_only
+            exec "$@"
+          '')
         ];
       };
 

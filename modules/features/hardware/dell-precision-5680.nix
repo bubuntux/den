@@ -42,6 +42,10 @@
           };
 
           prime = {
+            offload = {
+              enable = lib.mkDefault true;
+              enableOffloadCmd = lib.mkDefault true;
+            };
             intelBusId = lib.mkDefault "PCI:0:2:0";
             nvidiaBusId = lib.mkDefault "PCI:1:0:0";
           };
