@@ -49,5 +49,8 @@ pkgs: {
     enable = true;
     theme = "Arc-Dark";
     package = pkgs.rofi;
+    extraConfig = {
+      show-icons = true;
+    };
   };
 }
