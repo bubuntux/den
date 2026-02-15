@@ -251,6 +251,10 @@
               tooltip-format = "{app}: {title}";
             };
 
+            "sway/window" = {
+              max-length = 40;
+            };
+
             idle_inhibitor = {
               format = "{icon}";
               format-icons = {
@@ -328,6 +332,7 @@
             mpris = {
               format = "{player_icon} {title} - {artist}";
               format-paused = "{status_icon} {title} - {artist}";
+              max-length = 40;
               player-icons = {
                 default = "▶";
                 mpv = "🎵";
