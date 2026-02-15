@@ -6,6 +6,67 @@
   # Home Manager module for waybar configuration
   flake.homeModules.waybar =
     { pkgs, ... }:
+    let
+      weather-script = pkgs.writeShellApplication {
+        name = "waybar-weather";
+        runtimeInputs = with pkgs; [
+          curl
+          jq
+        ];
+        text = ''
+          fallback='{"text": "󰖐 N/A", "tooltip": "Weather unavailable"}'
+
+          location=$(curl -sf --max-time 5 "http://ip-api.com/json/?fields=lat,lon,city" || true)
+          if [ -z "$location" ]; then
+            echo "$fallback"
+            exit 0
+          fi
+
+          lat=$(echo "$location" | jq -r '.lat')
+          lon=$(echo "$location" | jq -r '.lon')
+          city=$(echo "$location" | jq -r '.city')
+
+          weather=$(curl -sf --max-time 10 \
+            "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&temperature_unit=fahrenheit&wind_speed_unit=mph" || true)
+          if [ -z "$weather" ]; then
+            echo "$fallback"
+            exit 0
+          fi
+
+          temp=$(echo "$weather" | jq -r '.current.temperature_2m')
+          code=$(echo "$weather" | jq -r '.current.weather_code')
+          wind=$(echo "$weather" | jq -r '.current.wind_speed_10m')
+          humidity=$(echo "$weather" | jq -r '.current.relative_humidity_2m')
+
+          case $code in
+            0)       icon="󰖙"; desc="Clear" ;;
+            1)       icon="󰖙"; desc="Mainly clear" ;;
+            2)       icon="󰖕"; desc="Partly cloudy" ;;
+            3)       icon="󰖐"; desc="Overcast" ;;
+            45|48)   icon="󰖑"; desc="Fog" ;;
+            51|53|55) icon="󰖗"; desc="Drizzle" ;;
+            56|57)   icon="󰖗"; desc="Freezing drizzle" ;;
+            61|63|65) icon="󰖖"; desc="Rain" ;;
+            66|67)   icon="󰖖"; desc="Freezing rain" ;;
+            71|73|75) icon="󰖘"; desc="Snow" ;;
+            77)      icon="󰖘"; desc="Snow grains" ;;
+            80|81|82) icon="󰖖"; desc="Rain showers" ;;
+            85|86)   icon="󰖘"; desc="Snow showers" ;;
+            95)      icon="󰖓"; desc="Thunderstorm" ;;
+            96|99)   icon="󰖓"; desc="Thunderstorm with hail" ;;
+            *)       icon="󰖐"; desc="Unknown" ;;
+          esac
+
+          temp_int=$(printf "%.0f" "$temp")
+          wind_int=$(printf "%.0f" "$wind")
+
+          text="$icon ''${temp_int}°F"
+          tooltip="$desc\n$city\n󰖙 ''${temp_int}°F  󰖝 ''${wind_int} mph  󰖎 ''${humidity}%"
+
+          jq -nc --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}'
+        '';
+      };
+    in
     {
       programs.waybar = {
         enable = true;
@@ -200,9 +261,9 @@
             "custom/weather" = {
               format = "{}";
               return-type = "json";
-              exec = "${pkgs.coreutils}/bin/timeout 10 ${pkgs.wttrbar}/bin/wttrbar --location auto --fahrenheit --main-indicator temp_F || echo '{\"text\": \"󰖐 N/A\", \"tooltip\": \"Weather unavailable\"}'";
+              exec = "${weather-script}/bin/waybar-weather";
               interval = 900;
-              on-click = "${pkgs.coreutils}/bin/timeout 10 ${pkgs.wttrbar}/bin/wttrbar --location auto --fahrenheit --main-indicator temp_F || echo '{\"text\": \"󰖐 N/A\", \"tooltip\": \"Weather unavailable\"}'";
+              on-click = "${weather-script}/bin/waybar-weather";
             };
 
             battery = {
