@@ -1,7 +1,22 @@
 { self, ... }:
 {
   flake.nixosModules.profile-gaming =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
+    let
+      # Desktop entry for Steam with gamemode
+      steam-gamemode-desktop = pkgs.makeDesktopItem {
+        name = "steam-gamemode";
+        desktopName = "Steam (GameMode)";
+        comment = "Launch Steam with GameMode enabled";
+        exec = "gamemoderun steam %U";
+        icon = "steam";
+        categories = [ "Game" ];
+        mimeTypes = [
+          "x-scheme-handler/steam"
+          "x-scheme-handler/steamlink"
+        ];
+      };
+    in
     {
       # Steam with recommended options
       programs.steam = {
@@ -16,6 +31,10 @@
         protontricks.enable = true;
         # Enable extest for Steam Input on Wayland
         extest.enable = true;
+        # Add gamescope to Steam's extra packages
+        extraPackages = with pkgs; [
+          gamescope
+        ];
       };
 
       # Steam hardware udev rules (controllers, VR headsets)
@@ -46,10 +65,14 @@
         capSysNice = true;
       };
 
-      # Communication packages
+      # Packages
       environment.systemPackages = with pkgs; [
-        discord # voice/text chat for gamers
-        mumble # low-latency voice chat
+        # Communication
+        discord
+        mumble
+
+        # Desktop entry for Steam with gamemode
+        steam-gamemode-desktop
       ];
 
       # Ensure 32-bit support for games
