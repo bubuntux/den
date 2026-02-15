@@ -12,6 +12,7 @@
     {
       imports = with self.nixosModules; [
         bundle-base
+        theme
       ];
 
       # Enable networking

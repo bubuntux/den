@@ -204,6 +204,8 @@ in
     {
       imports = with self.nixosModules; [
         bundle-desktop
+        waybar
+        kanshi
       ];
 
       # Enable sway compositor
