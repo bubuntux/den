@@ -145,6 +145,21 @@
             ];
           };
 
+          # Auto-approve MCP servers from project .mcp.json
+          enableAllProjectMcpServers = true;
+
+          # Auto-delete inactive sessions after 90 days
+          cleanupPeriodDays = 90;
+
+          # Show progress bar for long operations
+          terminalProgressBarEnabled = true;
+
+          # Hide spinner tips for less noise
+          spinnerTipsEnabled = false;
+
+          # Maximum reasoning depth
+          effortLevel = "high";
+
           # Show turn duration for performance awareness
           showTurnDuration = true;
         };
