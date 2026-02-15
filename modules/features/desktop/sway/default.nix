@@ -73,6 +73,7 @@ in
           # Style
           window = {
             border = 3;
+            titlebar = false;
             commands = rules;
           };
 
@@ -111,7 +112,7 @@ in
       # Rofi launcher
       programs.rofi = startup.rofi;
 
-      # Waybar (started by sway)
+      # Waybar (started via systemd service)
       programs.waybar.enable = true;
 
       # Gammastep for screen color temperature (night light)

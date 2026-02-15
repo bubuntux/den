@@ -9,6 +9,7 @@
     {
       programs.waybar = {
         enable = true;
+        systemd.enable = true;
         settings = {
           main = {
             layer = "top";
@@ -30,7 +31,6 @@
             modules-right = [
               "idle_inhibitor"
               "power-profiles-daemon"
-              "pulseaudio"
               "backlight"
               "wireplumber"
               "clock"
@@ -94,26 +94,6 @@
                 balanced = "󰾅";
                 power-saver = "󰾆";
               };
-            };
-
-            pulseaudio = {
-              format = "{volume}% {icon}";
-              format-bluetooth = "{volume}% {icon}󰂯";
-              format-muted = "󰝟";
-              format-icons = {
-                headphone = "󰋋";
-                hands-free = "󰋎";
-                headset = "󰋎";
-                phone = "";
-                portable = "";
-                car = "";
-                default = [
-                  "󰕿"
-                  "󰖀"
-                  "󰕾"
-                ];
-              };
-              on-click = "${pkgs.pwvucontrol}/bin/pwvucontrol";
             };
 
             wireplumber = {

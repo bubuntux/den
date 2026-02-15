@@ -38,6 +38,29 @@
       users.users.leo = {
         isNormalUser = true;
         description = "Leo";
+        initialPassword = "leo";
+        extraGroups = ifGroupExist [
+          "audio"
+          "docker"
+          "gamemode"
+          "input"
+          "libvirtd"
+          "lpadmin"
+          "lxd"
+          "network"
+          "networkmanager"
+          "pipewire"
+          "plugdev"
+          "podman"
+          "video"
+          "wheel"
+        ];
+      };
+
+      users.users.bbtux = {
+        isNormalUser = true;
+        description = "Leo";
+        initialPassword = "leo";
         extraGroups = ifGroupExist [
           "audio"
           "docker"
@@ -57,6 +80,9 @@
       };
 
       home-manager.users.leo = {
+        imports = [ self.homeModules.user-leo ];
+      };
+      home-manager.users.bbtux = {
         imports = [ self.homeModules.user-leo ];
       };
     };
