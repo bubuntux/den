@@ -114,6 +114,16 @@ in
       # Waybar (started by sway)
       programs.waybar.enable = true;
 
+      # Gammastep for screen color temperature (night light)
+      services.gammastep = {
+        enable = true;
+        provider = "geoclue2";
+        temperature = {
+          day = 6500;
+          night = 4000;
+        };
+      };
+
       # XDG portal configuration
       xdg.portal = {
         enable = true;
@@ -203,6 +213,9 @@ in
 
       # Keyring for secrets
       services.gnome.gnome-keyring.enable = true;
+
+      # Geoclue2 for gammastep location provider
+      services.geoclue2.enable = true;
 
       # Enable greetd with tuigreet
       services.greetd = {

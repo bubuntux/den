@@ -8,10 +8,6 @@
         git = {
           enable = true;
           settings = {
-            user = {
-              name = "Julio Gutierrez";
-              email = "413330+bubuntux@users.noreply.github.com";
-            };
             alias = {
               p = "pull --ff-only";
               ff = "merge --ff-only";

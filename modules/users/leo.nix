@@ -7,14 +7,10 @@
   flake.homeModules.user-leo =
     { pkgs, ... }:
     {
-      # Gammastep for screen color temperature (night light)
-      services.gammastep = {
-        enable = true;
-        provider = "geoclue2";
-        temperature = {
-          day = 6500;
-          night = 4000;
-        };
+      # Git user configuration
+      programs.git.settings.user = {
+        name = "Julio Gutierrez";
+        email = "413330+bubuntux@users.noreply.github.com";
       };
 
       # User packages
@@ -39,9 +35,6 @@
       ifGroupExist = groups: builtins.filter (group: builtins.hasAttr group config.users.groups) groups;
     in
     {
-      # Enable geoclue2 for gammastep location provider
-      services.geoclue2.enable = true;
-
       users.users.leo = {
         isNormalUser = true;
         description = "Leo";
