@@ -21,16 +21,10 @@ pkgs: {
   # Swayidle configuration
   swayidle = {
     enable = true;
-    events = [
-      {
-        event = "before-sleep";
-        command = "${pkgs.swaylock}/bin/swaylock -f";
-      }
-      {
-        event = "lock";
-        command = "${pkgs.swaylock}/bin/swaylock -f";
-      }
-    ];
+    events = {
+      before-sleep = "${pkgs.swaylock}/bin/swaylock -f";
+      lock = "${pkgs.swaylock}/bin/swaylock -f";
+    };
     timeouts = [
       {
         timeout = 300;

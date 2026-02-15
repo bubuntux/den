@@ -6,7 +6,7 @@
       services.tumbler.enable = true; # Thumbnail support for images
       programs.thunar = {
         enable = true;
-        plugins = with pkgs.xfce; [
+        plugins = with pkgs; [
           thunar-media-tags-plugin
           thunar-archive-plugin
           thunar-volman
