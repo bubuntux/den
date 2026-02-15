@@ -9,6 +9,7 @@
     system = "x86_64-linux";
     modules = with self.nixosModules; [
       profile-laptop
+      profile-gaming
       dell-precision-5680
       sway
       user-leo
