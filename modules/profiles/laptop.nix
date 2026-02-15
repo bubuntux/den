@@ -11,5 +11,11 @@
       inputs.nixos-hardware.nixosModules.common-pc-laptop
       inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
     ];
+
+    # Backlight control
+    programs.light.enable = true;
+
+    # Power management
+    powerManagement.enable = true;
   };
 }

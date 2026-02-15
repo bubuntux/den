@@ -206,6 +206,7 @@ in
         bundle-desktop
         waybar
         kanshi
+        thunar
       ];
 
       # Enable sway compositor

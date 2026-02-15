@@ -2,6 +2,7 @@
 {
   # Home Manager module for desktop environments
   flake.homeModules.bundle-desktop = {
+    imports = [ self.homeModules.mpv ];
     targets.genericLinux.enable = true;
     services.network-manager-applet.enable = true;
   };

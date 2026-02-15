@@ -12,6 +12,7 @@
       profile-gaming
       dell-precision-5680
       sway
+      vpn
       user-leo
       (
         {
