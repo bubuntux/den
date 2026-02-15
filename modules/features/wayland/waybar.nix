@@ -24,14 +24,19 @@
             ];
 
             modules-center = [
+              "systemd-failed-units"
+              "mpris"
               "privacy"
               "gamemode"
             ];
 
             modules-right = [
+              "custom/weather"
               "idle_inhibitor"
               "power-profiles-daemon"
+              "group/hardware"
               "backlight"
+
               "wireplumber"
               "clock"
               "battery"
@@ -69,15 +74,9 @@
             backlight = {
               format = "{percent}% {icon}";
               format-icons = [
-                ""
-                ""
-                ""
-                ""
-                ""
-                ""
-                ""
-                ""
-                ""
+                "󰃞"
+                "󰃟"
+                "󰃠"
               ];
               on-click = "${pkgs.brightnessctl}/bin/brightnessctl set 100%";
               on-click-middle = "${pkgs.brightnessctl}/bin/brightnessctl set 50%";
@@ -134,14 +133,89 @@
               };
             };
 
+            mpris = {
+              format = "{player_icon} {title} - {artist}";
+              format-paused = "{status_icon} {title} - {artist}";
+              player-icons = {
+                default = "▶";
+                mpv = "🎵";
+                firefox = "󰈹";
+                chromium = "󰊯";
+              };
+              status-icons = {
+                paused = "⏸";
+              };
+              on-click = "${pkgs.playerctl}/bin/playerctl play-pause";
+              on-click-middle = "${pkgs.playerctl}/bin/playerctl previous";
+              on-click-right = "${pkgs.playerctl}/bin/playerctl next";
+              on-scroll-up = "${pkgs.playerctl}/bin/playerctl volume 0.05+";
+              on-scroll-down = "${pkgs.playerctl}/bin/playerctl volume 0.05-";
+            };
+
+            systemd-failed-units = {
+              hide-on-ok = true;
+              format = "󰒏 {nr_failed}";
+              format-ok = "";
+              system = true;
+              user = true;
+            };
+
+            "group/hardware" = {
+              orientation = "inherit";
+              drawer = {
+                transition-duration = 300;
+                transition-left-to-right = false;
+              };
+              modules = [
+                "cpu"
+                "memory"
+                "temperature"
+              ];
+            };
+
+            cpu = {
+              format = "󰻠 {usage}%";
+              tooltip = true;
+              states = {
+                warning = 70;
+                critical = 90;
+              };
+            };
+
+            memory = {
+              format = "󰍛 {percentage}%";
+              tooltip-format = "{used:0.1f}GiB / {total:0.1f}GiB";
+              states = {
+                warning = 70;
+                critical = 90;
+              };
+            };
+
+            temperature = {
+              format = "󰔏 {temperatureC}°C";
+              tooltip = true;
+              critical-threshold = 80;
+              warning-threshold = 60;
+            };
+
+            "custom/weather" = {
+              format = "{}";
+              return-type = "json";
+              exec = "${pkgs.wttrbar}/bin/wttrbar --location auto --fahrenheit --main-indicator temp_F";
+              interval = 900;
+              on-click = "${pkgs.wttrbar}/bin/wttrbar --location auto --fahrenheit --main-indicator temp_F";
+            };
+
             battery = {
               states = {
                 warning = 30;
                 critical = 15;
               };
-              format = "{capacity}% {icon}";
-              format-charging = "{capacity}% 󰂄";
+              format = "{capacity}% ({time}) {icon}";
+              format-time = "{H}h {M}m";
+              format-charging = "{capacity}% ({time}) 󰂄";
               format-plugged = "{capacity}% 󰚥";
+              format-full = "100% 󰁹";
               format-icons = [
                 "󰂎"
                 "󰁺"
