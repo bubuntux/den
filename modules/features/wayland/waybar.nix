@@ -47,8 +47,8 @@
               format = "{icon} {count}";
               show-empty = false;
               format-icons = [
-                ""
-                ""
+                "󰖲"
+                "󰖯"
               ];
               tooltip = true;
               tooltip-format = "{app}: {title}";
@@ -57,8 +57,8 @@
             idle_inhibitor = {
               format = "{icon}";
               format-icons = {
-                activated = "";
-                deactivated = "";
+                activated = "󰛊";
+                deactivated = "󰾫";
               };
             };
 
@@ -89,20 +89,47 @@
               tooltip-format = "Power profile: {profile}\nDriver: {driver}";
               tooltip = true;
               format-icons = {
-                default = "";
-                performance = "";
-                balanced = "";
-                power-saver = "";
+                default = "󰾅";
+                performance = "󰓅";
+                balanced = "󰾅";
+                power-saver = "󰾆";
               };
             };
 
             pulseaudio = {
+              format = "{volume}% {icon}";
+              format-bluetooth = "{volume}% {icon}󰂯";
+              format-muted = "󰝟";
+              format-icons = {
+                headphone = "󰋋";
+                hands-free = "󰋎";
+                headset = "󰋎";
+                phone = "";
+                portable = "";
+                car = "";
+                default = [
+                  "󰕿"
+                  "󰖀"
+                  "󰕾"
+                ];
+              };
+              on-click = "${pkgs.pwvucontrol}/bin/pwvucontrol";
+            };
+
+            wireplumber = {
+              format = "{volume}% {icon}";
+              format-muted = "󰝟";
+              format-icons = [
+                "󰕿"
+                "󰖀"
+                "󰕾"
+              ];
               on-click = "${pkgs.pwvucontrol}/bin/pwvucontrol";
             };
 
             clock = {
-              format = "{:%I:%M %p}";
-              format-alt = "{:%A, %B %d, %Y (%r)}";
+              format = "󰥔 {:%I:%M %p}";
+              format-alt = "󰃭 {:%A, %B %d, %Y (%r)}";
               tooltip-format = "<tt><small>{calendar}</small></tt>";
               calendar = {
                 mode = "month";
@@ -133,12 +160,20 @@
                 critical = 15;
               };
               format = "{capacity}% {icon}";
+              format-charging = "{capacity}% 󰂄";
+              format-plugged = "{capacity}% 󰚥";
               format-icons = [
-                ""
-                ""
-                ""
-                ""
-                ""
+                "󰂎"
+                "󰁺"
+                "󰁻"
+                "󰁼"
+                "󰁽"
+                "󰁾"
+                "󰁿"
+                "󰂀"
+                "󰂁"
+                "󰂂"
+                "󰁹"
               ];
             };
           };
