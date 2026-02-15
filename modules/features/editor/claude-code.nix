@@ -3,12 +3,63 @@
   # Home Manager module for Claude Code
   flake.homeModules.claude-code =
     { pkgs, ... }:
+    let
+      statusline = pkgs.writeShellScript "claude-statusline" ''
+        input=$(${pkgs.coreutils}/bin/cat)
+
+        MODEL=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.model.display_name // "Claude"')
+        DIR=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.workspace.current_dir // "~"')
+        PCT=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
+        COST=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.cost.total_cost_usd // 0')
+        DURATION_MS=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.cost.total_duration_ms // 0')
+
+        # Project name from directory
+        PROJECT="''${DIR##*/}"
+
+        # Git info
+        BRANCH=$(${pkgs.git}/bin/git -C "$DIR" branch --show-current 2>/dev/null)
+        STAGED=$(${pkgs.git}/bin/git -C "$DIR" diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
+        MODIFIED=$(${pkgs.git}/bin/git -C "$DIR" diff --numstat 2>/dev/null | wc -l | tr -d ' ')
+
+        GIT_INFO=""
+        if [ -n "$BRANCH" ]; then
+          GIT_INFO="$BRANCH"
+          [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_INFO="$GIT_INFO +$STAGED"
+          [ "$MODIFIED" -gt 0 ] 2>/dev/null && GIT_INFO="$GIT_INFO ~$MODIFIED"
+        fi
+
+        # Context bar with color coding
+        FILLED=$((PCT / 10))
+        EMPTY=$((10 - FILLED))
+        BAR=$(printf "%''${FILLED}s" | tr ' ' '#')$(printf "%''${EMPTY}s" | tr ' ' '-')
+
+        if [ "$PCT" -ge 90 ]; then COLOR='\e[31m'
+        elif [ "$PCT" -ge 70 ]; then COLOR='\e[33m'
+        else COLOR='\e[32m'; fi
+        RESET='\e[0m'
+
+        # Format cost
+        COST_FMT=$(printf '$%.2f' "$COST")
+
+        # Format duration
+        MINS=$((DURATION_MS / 60000))
+        SECS=$(((DURATION_MS % 60000) / 1000))
+
+        echo -e "[$MODEL] $PROJECT | $GIT_INFO | $COLOR[$BAR] $PCT%$RESET | $COST_FMT | ''${MINS}m ''${SECS}s"
+      '';
+    in
     {
       programs.claude-code = {
         enable = true;
         settings = {
           # Prefer the most advanced model
           model = "opus";
+
+          # Status line with full dashboard
+          statusLine = {
+            type = "command";
+            command = toString statusline;
+          };
 
           # Allow non-destructive operations by default
           permissions = {
