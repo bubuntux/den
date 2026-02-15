@@ -102,6 +102,47 @@
               "Bash(nix search *)"
               "Bash(nix --version)"
             ];
+            deny = [
+              # Environment and secret files
+              "Read(.env)"
+              "Read(.env.*)"
+              "Edit(.env)"
+              "Edit(.env.*)"
+              "Read(secrets/**)"
+              "Edit(secrets/**)"
+
+              # SSH and GPG keys
+              "Read(**/.ssh/**)"
+              "Read(**/.gnupg/**)"
+
+              # Private keys and certificates
+              "Read(**/*.pem)"
+              "Read(**/*.key)"
+              "Read(**/*.p12)"
+              "Read(**/*.pfx)"
+
+              # Age/SOPS encrypted secrets (common in NixOS)
+              "Read(**/*.age)"
+              "Edit(**/*.age)"
+
+              # Credential and token files
+              "Read(**/.netrc)"
+              "Read(**/.npmrc)"
+              "Read(**/.docker/config.json)"
+              "Read(**/.aws/**)"
+              "Read(**/.kube/config)"
+
+              # Destructive bash commands
+              "Bash(rm *)"
+              "Bash(rmdir *)"
+              "Bash(chmod *)"
+              "Bash(chown *)"
+              "Bash(git push *)"
+              "Bash(git reset --hard*)"
+              "Bash(git checkout -- *)"
+              "Bash(git clean *)"
+              "Bash(nixos-rebuild *)"
+            ];
           };
 
           # Show turn duration for performance awareness
