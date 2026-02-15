@@ -82,24 +82,24 @@
               "sway/mode"
               "sway/scratchpad"
               "sway/window"
+              "mpris"
             ];
 
             modules-center = [
-              "systemd-failed-units"
-              "mpris"
-              "privacy"
-              "gamemode"
+              "custom/weather"
+              "clock"
             ];
 
             modules-right = [
-              "idle_inhibitor"
               "power-profiles-daemon"
               "group/hardware"
-              "backlight"
               "wireplumber"
+              "backlight"
               "battery"
-              "custom/weather"
-              "clock"
+              "idle_inhibitor"
+              "systemd-failed-units"
+              "privacy"
+              "gamemode"
               "tray"
             ];
 
