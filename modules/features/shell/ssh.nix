@@ -2,6 +2,7 @@
   flake.homeModules.ssh = {
     programs.ssh = {
       enable = true;
+      enableDefaultConfig = false;
       matchBlocks = {
         "bbtux" = {
           port = 31988;

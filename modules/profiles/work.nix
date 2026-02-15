@@ -228,7 +228,7 @@
               freetype
               fuse
               gdk-pixbuf
-              glew110
+              glew_1_10
               glib
               gsettings-desktop-schemas
               gtk2
@@ -299,27 +299,27 @@
               util-linux
               vulkan-loader
               wayland
-              xorg.libICE
-              xorg.libSM
-              xorg.libX11
-              xorg.libxcb
-              xorg.libXcomposite
-              xorg.libXcursor
-              xorg.libXdamage
-              xorg.libXext
-              xorg.libXfixes
-              xorg.libXft
-              xorg.libXi
-              xorg.libXinerama
-              xorg.libxkbfile
-              xorg.libXmu
-              xorg.libXrandr
-              xorg.libXrender
-              xorg.libXScrnSaver
-              xorg.libxshmfence
-              xorg.libXt
-              xorg.libXtst
-              xorg.libXxf86vm
+              libice
+              libsm
+              libx11
+              libxcb
+              libxcomposite
+              libxcursor
+              libxdamage
+              libxext
+              libxfixes
+              libxft
+              libxi
+              libxinerama
+              libxkbfile
+              libxmu
+              libxrandr
+              libxrender
+              libxscrnsaver
+              libxshmfence
+              libxt
+              libxtst
+              libxxf86vm
               xz
               zenity
               zlib
