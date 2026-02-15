@@ -34,7 +34,11 @@
 
   # NixOS module for user leo
   flake.nixosModules.user-leo =
-    { ... }:
+    { config, ... }:
+    let
+      # Only add groups that exist on the system
+      ifGroupExist = groups: builtins.filter (group: builtins.hasAttr group config.users.groups) groups;
+    in
     {
       # Enable geoclue2 for gammastep location provider
       services.geoclue2.enable = true;
@@ -42,11 +46,21 @@
       users.users.leo = {
         isNormalUser = true;
         description = "Leo";
-        extraGroups = [
+        extraGroups = ifGroupExist [
+          "audio"
+          "docker"
+          "gamemode"
+          "input"
+          "libvirtd"
+          "lpadmin"
+          "lxd"
+          "network"
           "networkmanager"
+          "pipewire"
+          "plugdev"
+          "podman"
+          "video"
           "wheel"
-          "video" # for brightness control
-          "audio" # for audio control
         ];
       };
 
