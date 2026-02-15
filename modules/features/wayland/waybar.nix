@@ -7,6 +7,43 @@
   flake.homeModules.waybar =
     { pkgs, ... }:
     let
+      gpu-script = pkgs.writeShellApplication {
+        name = "waybar-gpu";
+        runtimeInputs = [ pkgs.jq ];
+        text = ''
+          export PATH="/run/current-system/sw/bin:$PATH"
+
+          # Try nvidia-smi first, fall back to empty
+          if command -v nvidia-smi &>/dev/null; then
+            data=$(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total,name --format=csv,noheader,nounits 2>/dev/null || true)
+            if [ -n "$data" ]; then
+              usage=$(echo "$data" | cut -d',' -f1 | tr -d ' ')
+              temp=$(echo "$data" | cut -d',' -f2 | tr -d ' ')
+              mem_used=$(echo "$data" | cut -d',' -f3 | tr -d ' ')
+              mem_total=$(echo "$data" | cut -d',' -f4 | tr -d ' ')
+              name=$(echo "$data" | cut -d',' -f5 | sed 's/^ //')
+
+              text="󰍹 ''${usage}%"
+              tooltip="$name"$'\n'"󰍹 ''${usage}%  󰔏 ''${temp}°C"$'\n'"󰍛 ''${mem_used}MiB / ''${mem_total}MiB"
+
+              class=""
+              if [ "$usage" -ge 90 ]; then
+                class="critical"
+              elif [ "$usage" -ge 70 ]; then
+                class="warning"
+              fi
+
+              jq -nc --arg text "$text" --arg tooltip "$tooltip" --arg class "$class" \
+                '{text: $text, tooltip: $tooltip, class: $class}'
+              exit 0
+            fi
+          fi
+
+          # No GPU data available
+          echo '{"text": "", "tooltip": ""}'
+        '';
+      };
+
       weather-script = pkgs.writeShellApplication {
         name = "waybar-weather";
         runtimeInputs = with pkgs; [
@@ -61,7 +98,7 @@
           wind_int=$(printf "%.0f" "$wind")
 
           text="$icon ''${temp_int}°F"
-          tooltip="$desc\n$city\n󰖙 ''${temp_int}°F  󰖝 ''${wind_int} mph  󰖎 ''${humidity}%"
+          tooltip="$desc"$'\n'"$city"$'\n'"󰖙 ''${temp_int}°F  󰖝 ''${wind_int} mph  󰖎 ''${humidity}%"
 
           jq -nc --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}'
         '';
@@ -91,7 +128,10 @@
             ];
 
             modules-right = [
-              "group/hardware"
+              "cpu"
+              "memory"
+              "temperature"
+              "custom/gpu"
               "wireplumber"
               "backlight"
               "battery"
@@ -220,19 +260,6 @@
               user = true;
             };
 
-            "group/hardware" = {
-              orientation = "inherit";
-              drawer = {
-                transition-duration = 300;
-                transition-left-to-right = false;
-              };
-              modules = [
-                "cpu"
-                "memory"
-                "temperature"
-              ];
-            };
-
             cpu = {
               format = "󰻠 {usage}%";
               tooltip = true;
@@ -256,6 +283,13 @@
               tooltip = true;
               critical-threshold = 80;
               warning-threshold = 60;
+            };
+
+            "custom/gpu" = {
+              format = "{}";
+              return-type = "json";
+              exec = "${gpu-script}/bin/waybar-gpu";
+              interval = 5;
             };
 
             "custom/weather" = {
@@ -343,6 +377,7 @@
           #privacy,
           #gamemode,
           #custom-weather,
+          #custom-gpu,
           #idle_inhibitor,
           #power-profiles-daemon,
           #cpu,
@@ -370,6 +405,7 @@
           #power-profiles-daemon:hover,
           #idle_inhibitor:hover,
           #custom-weather:hover,
+          #custom-gpu:hover,
           #mpris:hover,
           #tray:hover {
             background-color: @surface0;
@@ -477,6 +513,19 @@
           }
 
           #temperature.critical {
+            color: @red;
+          }
+
+          /* --- GPU --- */
+          #custom-gpu {
+            color: @green;
+          }
+
+          #custom-gpu.warning {
+            color: @yellow;
+          }
+
+          #custom-gpu.critical {
             color: @red;
           }
 
