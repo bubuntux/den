@@ -19,6 +19,42 @@
     { pkgs, ... }:
     {
       fonts.fontconfig.enable = true;
+
+      xdg.configFile."fontconfig/conf.d/99-defaults.conf".text = ''
+        <?xml version='1.0'?>
+        <!DOCTYPE fontconfig SYSTEM 'urn:fontconfig:fonts.dtd'>
+        <fontconfig>
+          <alias>
+            <family>monospace</family>
+            <prefer>
+              <family>JetBrainsMono Nerd Font</family>
+              <family>FiraCode Nerd Font</family>
+              <family>DejaVuSansM Nerd Font</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>sans-serif</family>
+            <prefer>
+              <family>Roboto</family>
+              <family>Noto Sans</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>serif</family>
+            <prefer>
+              <family>Noto Serif</family>
+            </prefer>
+          </alias>
+          <match target="font">
+            <edit name="antialias" mode="assign"><bool>true</bool></edit>
+            <edit name="hinting" mode="assign"><bool>true</bool></edit>
+            <edit name="hintstyle" mode="assign"><const>hintslight</const></edit>
+            <edit name="rgba" mode="assign"><const>rgb</const></edit>
+            <edit name="lcdfilter" mode="assign"><const>lcddefault</const></edit>
+          </match>
+        </fontconfig>
+      '';
+
       home.packages = with pkgs; [
         font-awesome
         roboto

@@ -214,6 +214,9 @@
 
             modules-center = [
               "custom/weather-c"
+              "systemd-failed-units"
+              "privacy"
+              "gamemode"
               "clock"
               "custom/weather"
             ];
@@ -229,9 +232,6 @@
               "battery"
               "idle_inhibitor"
               "power-profiles-daemon"
-              "systemd-failed-units"
-              "privacy"
-              "gamemode"
               "tray"
             ];
 

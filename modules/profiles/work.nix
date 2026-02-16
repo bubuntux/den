@@ -51,6 +51,8 @@
         privateNetwork = true;
         hostAddress = "192.168.100.10";
         localAddress = "192.168.100.11";
+        # Needed for bwrap/bubblewrap sandboxing inside the container (used by zoom, chrome)
+        additionalCapabilities = [ "CAP_SYS_ADMIN" ];
 
         bindMounts = {
           "wayland" = {
@@ -81,31 +83,6 @@
           "dri" = {
             hostPath = "/dev/dri";
             mountPoint = "/dev/dri";
-            isReadOnly = false;
-          };
-          "nvidia0" = {
-            hostPath = "/dev/nvidia0";
-            mountPoint = "/dev/nvidia0";
-            isReadOnly = false;
-          };
-          "nvidiactl" = {
-            hostPath = "/dev/nvidiactl";
-            mountPoint = "/dev/nvidiactl";
-            isReadOnly = false;
-          };
-          "nvidia-modeset" = {
-            hostPath = "/dev/nvidia-modeset";
-            mountPoint = "/dev/nvidia-modeset";
-            isReadOnly = false;
-          };
-          "nvidia-uvm" = {
-            hostPath = "/dev/nvidia-uvm";
-            mountPoint = "/dev/nvidia-uvm";
-            isReadOnly = false;
-          };
-          "nvidia-uvm-tools" = {
-            hostPath = "/dev/nvidia-uvm-tools";
-            mountPoint = "/dev/nvidia-uvm-tools";
             isReadOnly = false;
           };
           "opengl-driver" = {
@@ -172,156 +149,55 @@
             };
 
             environment.systemPackages = with pkgs; [
-              cloudflare-warp
-              jetbrains.gateway
-              google-chrome
-              slack
-              zoom-us
+                cloudflare-warp
+                jetbrains.gateway
+                google-chrome
+                slack
+                v4l-utils
+                libv4l
+                gst_all_1.gstreamer
+                gst_all_1.gst-plugins-base
+                gst_all_1.gst-plugins-good
+                gst_all_1.gst-plugins-bad
 
-              v4l-utils
-              libv4l
-              gst_all_1.gstreamer
-              gst_all_1.gst-plugins-base
-              gst_all_1.gst-plugins-good
-              gst_all_1.gst-plugins-bad
+                pulseaudio
+                noto-fonts
+                pipewire
 
-              pulseaudio
-              noto-fonts
-              pipewire
+                qt5.qtwayland
+                qt6.qtwayland
 
-              qt5.qtwayland
-              qt6.qtwayland
-
-              xdg-desktop-portal
-              xdg-desktop-portal-wlr
-              xdg-desktop-portal-gtk
-            ];
+                xdg-desktop-portal
+                xdg-desktop-portal-wlr
+                xdg-desktop-portal-gtk
+              ];
 
             nix.settings.experimental-features = [
               "nix-command"
               "flakes"
             ];
 
+            # nix-ld for non-Nix binaries (JetBrains Gateway downloads)
             programs.nix-ld.enable = true;
             programs.nix-ld.libraries = with pkgs; [
-              acl
-              alsa-lib
-              atk
-              at-spi2-atk
-              at-spi2-core
-              attr
-              bzip2
-              cairo
-              coreutils
-              cups
-              curl
-              dbus
-              dbus-glib
-              e2fsprogs
-              expat
-              ffmpeg
-              flac
-              fontconfig
-              freeglut
-              freetype
-              fuse
-              gdk-pixbuf
-              glew_1_10
-              glib
-              gsettings-desktop-schemas
-              gtk2
-              gtk3
-              icu
-              libappindicator-gtk2
-              libcaca
-              libcanberra
-              libcap
-              libdbusmenu-gtk2
-              libdrm
-              libelf
-              libgbm
-              libgcrypt
-              libGL
-              libGLU
-              libglvnd
-              libidn
-              libidn2
-              libindicator-gtk2
-              libjpeg
-              libmikmod
-              libnotify
-              libogg
-              libpng
-              libpng12
-              librsvg
-              libsamplerate
-              libsodium
-              libssh
-              libtheora
-              libtiff
-              libudev0-shim
-              libusb1
-              libva
-              libvdpau
-              libvorbis
-              libvpx
-              libxcb
-              libxcrypt
-              libxcrypt-legacy
-              libxkbcommon
-              libxml2
-              mesa
-              networkmanager
-              nspr
-              nss
-              openssl
-              pango
-              pciutils
-              pipewire
-              pixman
-              qt5.qtwayland
-              qt6.qtwayland
-              SDL
-              SDL2
-              SDL2_image
-              SDL2_mixer
-              SDL2_ttf
-              SDL_image
-              SDL_mixer
-              SDL_ttf
-              speex
-              stdenv.cc.cc
               stdenv.cc.cc.lib
-              systemd
-              tbb
-              util-linux
-              vulkan-loader
-              wayland
-              libice
-              libsm
-              libx11
-              libxcb
-              libxcomposite
-              libxcursor
-              libxdamage
-              libxext
-              libxfixes
-              libxft
-              libxi
-              libxinerama
-              libxkbfile
-              libxmu
-              libxrandr
-              libxrender
-              libxscrnsaver
-              libxshmfence
-              libxt
-              libxtst
-              libxxf86vm
-              xz
-              zenity
               zlib
-              zstd
+              libGL
+              freetype
+              fontconfig
+              libxkbcommon
+              wayland
+              libx11
+              libxrender
+              libxext
+              glib
+              gtk3
+              nss
+              nspr
+              cups
+              dbus
+              expat
+              alsa-lib
             ];
 
             environment.variables = {
@@ -371,15 +247,20 @@
             "char-video4linux rwm"
             "char-misc rwm"
           ];
+          EnvironmentFile = lib.mkForce [ "-/run/nixos-containers/work.conf" ];
         };
         preStart = ''
-          mkdir -p /run/systemd/nspawn
-          echo "[Files]" > /run/systemd/nspawn/work.nspawn
+          VIDEO_FLAGS=""
           for dev in /dev/video*; do
             if [ -e "$dev" ]; then
-              echo "Bind=$dev" >> /run/systemd/nspawn/work.nspawn
+              VIDEO_FLAGS="$VIDEO_FLAGS --bind=$dev"
             fi
           done
+          mkdir -p /run/nixos-containers
+          cp -fL /etc/nixos-containers/work.conf /run/nixos-containers/work.conf
+          if [ -n "$VIDEO_FLAGS" ]; then
+            sed -i "s|^EXTRA_NSPAWN_FLAGS=\"|EXTRA_NSPAWN_FLAGS=\"$VIDEO_FLAGS |" /run/nixos-containers/work.conf
+          fi
         '';
       };
 
@@ -407,16 +288,6 @@
                     "Network"
                     "InstantMessaging"
                     "Chat"
-                  ];
-                })
-                (makeDesktopItem {
-                  name = "zoom-work";
-                  desktopName = "Zoom (Work)";
-                  exec = workExec "zoom";
-                  icon = "Zoom";
-                  categories = [
-                    "Network"
-                    "VideoConference"
                   ];
                 })
                 (makeDesktopItem {
