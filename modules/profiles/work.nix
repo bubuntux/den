@@ -178,9 +178,6 @@
               slack
               zoom-us
 
-              claude-code
-              git
-
               v4l-utils
               libv4l
               gst_all_1.gstreamer
