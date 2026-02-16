@@ -252,7 +252,7 @@
             };
 
             "sway/window" = {
-              max-length = 40;
+              max-length = 45;
             };
 
             idle_inhibitor = {
@@ -332,7 +332,7 @@
             mpris = {
               format = "{player_icon} {title} - {artist}";
               format-paused = "{status_icon} {title} - {artist}";
-              max-length = 40;
+              max-length = 45;
               player-icons = {
                 default = "󰐊";
                 mpv = "󰎁";
