@@ -1,8 +1,9 @@
+{ self, ... }:
 {
   flake.nixosModules.printing =
     { pkgs, ... }:
     let
-      cups-brother-hll3270cdw = pkgs.callPackage ../../../pkgs/cups-brother-hll3270cdw.nix { };
+      cups-brother-hll3270cdw = pkgs.callPackage "${self}/pkgs/cups-brother-hll3270cdw.nix" { };
     in
     {
       services = {
