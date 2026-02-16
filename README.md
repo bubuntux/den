@@ -32,6 +32,8 @@ definitions:
 
 ```
 Features  →  Bundles  →  Profiles  →  Hosts
+                                    ↗
+                              Users
 ```
 
 - **`modules/features/`** — Individual software and service
@@ -40,11 +42,33 @@ Features  →  Bundles  →  Profiles  →  Hosts
   (`base`, `desktop`)
 - **`modules/profiles/`** — High-level roles combining bundles and
   features (`laptop`, `developer`, `gaming`, `work`, `wife`)
-- **`modules/hosts/`** — Per-machine configurations that select profiles
-  and set hardware options
-- **`modules/users/`** — User accounts and Home Manager settings
+- **`modules/hosts/`** — Per-machine configurations that select
+  profiles and set hardware options
+- **`modules/users/`** — User account definitions that bridge NixOS
+  and Home Manager; imported by hosts or profiles
 - **`modules/core/`** — Infrastructure glue (dendritic wiring, Home
   Manager integration, VM helper, dev shell, formatting)
+
+Features, bundles, and profiles can define both `nixosModules` and
+`homeModules` in the same file. User modules define both a
+`nixosModule` (account, groups) and a `homeModule` (packages,
+programs), wiring them together internally via
+`home-manager.users.<name>`.
+
+### Layer Import Guidelines
+
+The recommended import direction for each layer. When a change doesn't
+follow these guidelines, consider a refactor that does (e.g., creating
+a profile to wrap features instead of importing them directly from a
+host).
+
+| Layer | Recommended Imports | Avoid Importing |
+| --- | --- | --- |
+| **Features** | Other features (sparingly) | Bundles, profiles, hosts, users |
+| **Bundles** | Features only | Other bundles, profiles, hosts, users |
+| **Profiles** | Bundles, features, and users | Other profiles, hosts |
+| **Hosts** | Profiles and users (plus hardware modules) | Features, bundles directly |
+| **Users** | Features and profiles (homeModules only) | Bundles, hosts |
 
 ## Flake Inputs
 
