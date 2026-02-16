@@ -1,6 +1,9 @@
 {
   flake.nixosModules.printing =
     { pkgs, ... }:
+    let
+      cups-brother-hll3270cdw = pkgs.callPackage ../../../pkgs/cups-brother-hll3270cdw.nix { };
+    in
     {
       services = {
         printing = {
@@ -13,7 +16,7 @@
             epson-escpr
             epson-escpr2
             brlaser
-            # TODO add brother printer
+            cups-brother-hll3270cdw
           ];
         };
 
