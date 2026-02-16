@@ -20,6 +20,7 @@
     { pkgs, ... }:
     {
       imports = with self.homeModules; [
+        home-manager
         fonts
         git
         helix

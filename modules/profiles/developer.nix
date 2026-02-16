@@ -5,6 +5,7 @@
     { pkgs, ... }:
     {
       imports = with self.homeModules; [
+        bundle-base
         claude-code
       ];
 

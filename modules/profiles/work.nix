@@ -1,4 +1,4 @@
-{ self, ... }:
+{ self, inputs, ... }:
 {
   flake.nixosModules.profile-work =
     { pkgs, lib, ... }:
@@ -133,6 +133,18 @@
         config =
           { pkgs, ... }:
           {
+            imports = [ inputs.home-manager.nixosModules.home-manager ];
+
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              backupFileExtension = "bkp";
+              users.juliogm = {
+                imports = with self.homeModules; [
+                  profile-developer
+                ];
+              };
+            };
             nixpkgs.config = {
               allowUnfree = true;
               google-chrome.commandLineArgs = "--enable-features=UseOzonePlatform,WebRTCPipeWireCapturer --ozone-platform=wayland";
