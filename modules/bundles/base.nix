@@ -2,6 +2,7 @@
 {
   flake.nixosModules.bundle-base = {
     imports = with self.nixosModules; [
+      auto-upgrade
       boot
       fonts
       home-manager
