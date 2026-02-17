@@ -83,6 +83,7 @@ The recommended import direction for each layer. When a change doesn't follow th
 
 ## Development Conventions
 
+- **Git pull first**: Always run `git pull` before making any changes, as external processes may update the repository
 - **MCP validation**: MUST use the `nixos` MCP server to verify that packages and options exist before adding them to configurations
 - **Module structure**: Modules are functions taking `{ self, inputs, ... }` and define flake outputs directly via `flake.nixosModules.my-feature = { ... };`. Modules can also define `perSystem` outputs for per-architecture tooling (formatters, dev shells, VM apps)
 - **Imports**: Use `self.nixosModules` to reference other modules: `imports = with self.nixosModules; [ bundle-host gnome ];`
