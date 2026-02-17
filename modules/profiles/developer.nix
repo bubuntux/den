@@ -12,7 +12,6 @@
       # Common development tools
       home.packages = with pkgs; [
         git
-        gh # GitHub CLI
         jq # JSON processor
         ripgrep # Fast grep
         fd # Fast find
