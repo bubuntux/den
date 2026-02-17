@@ -178,6 +178,80 @@
           '';
         };
 
+      temp-script = pkgs.writeShellApplication {
+        name = "waybar-temp";
+        runtimeInputs = with pkgs; [
+          coreutils
+          gnugrep
+          gnused
+          jq
+        ];
+        text = ''
+          hwmon="/sys/devices/platform/coretemp.0/hwmon"
+          hwmon_dir=""
+          for d in "$hwmon"/hwmon*; do
+            [ -d "$d" ] && hwmon_dir="$d" && break
+          done
+
+          if [ -z "$hwmon_dir" ]; then
+            echo '{"text": "󰔏 N/A", "tooltip": "No coretemp sensor found"}'
+            exit 0
+          fi
+
+          # Read package temp (temp1) for the bar display
+          pkg_temp=$(cat "$hwmon_dir/temp1_input" 2>/dev/null || echo "0")
+          pkg_c=$((pkg_temp / 1000))
+
+          # Build tooltip with all sensors
+          tooltip="CPU Package: ''${pkg_c}°C"
+
+          # Core temps from coretemp
+          for label_file in "$hwmon_dir"/temp*_label; do
+            [ -f "$label_file" ] || continue
+            label=$(cat "$label_file")
+            # Skip the package line (already shown as header)
+            case "$label" in Package*) continue ;; esac
+            input_file="''${label_file/_label/_input}"
+            temp=$(cat "$input_file" 2>/dev/null || echo "0")
+            temp_c=$((temp / 1000))
+            tooltip="$tooltip"$'\n'"  $label: ''${temp_c}°C"
+          done
+
+          # Other interesting thermal zones
+          for zone_dir in /sys/class/thermal/thermal_zone*; do
+            [ -d "$zone_dir" ] || continue
+            type=$(cat "$zone_dir/type" 2>/dev/null) || continue
+            temp=$(cat "$zone_dir/temp" 2>/dev/null || echo "0")
+            temp_c=$((temp / 1000))
+            # Skip coretemp (already shown) and uninteresting zones
+            case "$type" in
+              x86_pkg_temp|TCPU|TCPU_PCI|INT3400*) continue ;;
+            esac
+            # Use friendly names
+            case "$type" in
+              iwlwifi*) name="WiFi" ;;
+              TSKN)     name="Skin" ;;
+              TMEM)     name="Memory" ;;
+              CHRG)     name="Charger" ;;
+              SEN*)     continue ;;  # skip generic unnamed sensors
+              *)        name="$type" ;;
+            esac
+            tooltip="$tooltip"$'\n'"$name: ''${temp_c}°C"
+          done
+
+          # Determine warning class
+          class=""
+          if [ "$pkg_c" -ge 80 ]; then
+            class="critical"
+          elif [ "$pkg_c" -ge 60 ]; then
+            class="warning"
+          fi
+
+          jq -nc --arg text "󰔏 ''${pkg_c}°C" --arg tooltip "$tooltip" --arg class "$class" \
+            '{text: $text, tooltip: $tooltip, class: $class}'
+        '';
+      };
+
       weather-script = mkWeatherScript {
         name = "waybar-weather";
         tempUnit = "fahrenheit";
@@ -224,7 +298,7 @@
             modules-right = [
               "cpu"
               "memory"
-              "temperature"
+              "custom/temp"
               "custom/intel-gpu"
               "custom/nvidia-gpu"
               "wireplumber"
@@ -256,6 +330,7 @@
             };
 
             idle_inhibitor = {
+              start-activated = true;
               format = "{icon}";
               format-icons = {
                 activated = "󰛊";
@@ -376,13 +451,11 @@
               };
             };
 
-            temperature = {
-              hwmon-path-abs = "/sys/devices/platform/coretemp.0/hwmon";
-              input-filename = "temp1_input";
-              format = "󰔏 {temperatureC}°C";
-              tooltip = true;
-              critical-threshold = 80;
-              warning-threshold = 60;
+            "custom/temp" = {
+              format = "{}";
+              return-type = "json";
+              exec = "${temp-script}/bin/waybar-temp";
+              interval = 5;
             };
 
             "custom/intel-gpu" = {
@@ -499,7 +572,7 @@
           #power-profiles-daemon,
           #cpu,
           #memory,
-          #temperature,
+          #custom-temp,
           #backlight,
           #wireplumber,
           #clock,
@@ -514,7 +587,7 @@
           /* Hover effect */
           #cpu:hover,
           #memory:hover,
-          #temperature:hover,
+          #custom-temp:hover,
           #backlight:hover,
           #wireplumber:hover,
           #clock:hover,
@@ -627,11 +700,11 @@
           }
 
           /* --- Temperature --- */
-          #temperature {
+          #custom-temp {
             color: @peach;
           }
 
-          #temperature.critical {
+          #custom-temp.critical {
             color: @red;
           }
 
