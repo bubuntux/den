@@ -65,7 +65,7 @@ host).
 | Layer | Recommended Imports | Avoid Importing |
 | --- | --- | --- |
 | **Features** | Other features (sparingly) | Bundles, profiles, hosts, users |
-| **Bundles** | Features only | Other bundles, profiles, hosts, users |
+| **Bundles** | Features and other bundles | Profiles, hosts, users |
 | **Profiles** | Bundles, features, and users | Other profiles, hosts |
 | **Hosts** | Profiles and users (plus hardware modules) | Features, bundles directly |
 | **Users** | Features and profiles (homeModules only) | Bundles, hosts |

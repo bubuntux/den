@@ -149,28 +149,29 @@
             };
 
             environment.systemPackages = with pkgs; [
-                cloudflare-warp
-                jetbrains.gateway
-                google-chrome
-                slack
-                v4l-utils
-                libv4l
-                gst_all_1.gstreamer
-                gst_all_1.gst-plugins-base
-                gst_all_1.gst-plugins-good
-                gst_all_1.gst-plugins-bad
+              cloudflare-warp
+              jetbrains.gateway
+              google-chrome
+              slack
 
-                pulseaudio
-                noto-fonts
-                pipewire
+              v4l-utils
+              libv4l
+              gst_all_1.gstreamer
+              gst_all_1.gst-plugins-base
+              gst_all_1.gst-plugins-good
+              gst_all_1.gst-plugins-bad
 
-                qt5.qtwayland
-                qt6.qtwayland
+              pulseaudio
+              noto-fonts
+              pipewire
 
-                xdg-desktop-portal
-                xdg-desktop-portal-wlr
-                xdg-desktop-portal-gtk
-              ];
+              qt5.qtwayland
+              qt6.qtwayland
+
+              xdg-desktop-portal
+              xdg-desktop-portal-wlr
+              xdg-desktop-portal-gtk
+            ];
 
             nix.settings.experimental-features = [
               "nix-command"
@@ -278,6 +279,7 @@
               };
               packages = with pkgs; [
                 work-run
+                # TODO move slack
                 slack
                 (makeDesktopItem {
                   name = "slack-work";
