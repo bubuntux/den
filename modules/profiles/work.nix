@@ -5,7 +5,7 @@
     let
       work-run = pkgs.writeShellScriptBin "work-run" ''
         sudo systemctl start container@work.service
-        exec machinectl shell juliogm@work /bin/sh -l -c "$*"
+        exec machinectl -q shell juliogm@work /bin/sh -l -c "$*"
       '';
       workExec = cmd: "${work-run}/bin/work-run ${cmd}";
     in
@@ -243,7 +243,7 @@
           {
             home = {
               shellAliases = {
-                work = "sudo systemctl start container@work.service && machinectl shell juliogm@work";
+                work = "sudo systemctl start container@work.service && machinectl -q shell juliogm@work";
                 cvm = workExec "ssh cvm";
                 ben = workExec "ssh ben";
                 bensync = workExec "rsync -razvP juliogm@juliogm-ben.cvm.indeed.net:vllm_* benchmarks/";
