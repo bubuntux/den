@@ -32,12 +32,12 @@ definitions:
 
 ```
 Features  →  Bundles  →  Profiles  →  Hosts
-                                    ↗
-                              Users
+                                    ↗    ↑
+                              Users   Hardware
 ```
 
 - **`modules/features/`** — Individual software and service
-  configurations (audio, bluetooth, sway, neovim, printing, etc.)
+  configurations (sway, neovim, gaming, etc.)
 - **`modules/bundles/`** — Reusable aggregates of related features
   (`base`, `desktop`)
 - **`modules/profiles/`** — High-level roles combining bundles and
@@ -46,6 +46,8 @@ Features  →  Bundles  →  Profiles  →  Hosts
   profiles and set hardware options
 - **`modules/users/`** — User account definitions that bridge NixOS
   and Home Manager; imported by hosts or profiles
+- **`modules/hardware/`** — Device and hardware configurations
+  (audio, bluetooth, printing, dell-precision-5680)
 - **`modules/core/`** — Infrastructure glue (dendritic wiring, Home
   Manager integration, VM helper, dev shell, formatting)
 
@@ -67,8 +69,9 @@ host).
 | **Features** | Other features (sparingly) | Bundles, profiles, hosts, users |
 | **Bundles** | Features and other bundles | Profiles, hosts, users |
 | **Profiles** | Bundles, features, and users | Other profiles, hosts |
-| **Hosts** | Profiles and users (plus hardware modules) | Features, bundles directly |
+| **Hosts** | Profiles, hardware, and users | Features, bundles directly |
 | **Users** | Features and profiles (homeModules only) | Bundles, hosts |
+| **Hardware** | External hardware modules (nixos-hardware) | Features, bundles, profiles, hosts, users |
 
 ## Flake Inputs
 

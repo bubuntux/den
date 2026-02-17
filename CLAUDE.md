@@ -49,15 +49,16 @@ The configuration flows: **Features → Bundles → Profiles → Hosts**
 
 ```
 Features  →  Bundles  →  Profiles  →  Hosts
-                                    ↗
-                              Users
+                                    ↗    ↑
+                              Users   Hardware
 ```
 
-- **`modules/features/`**: Individual software/service configurations (gnome, neovim, bluetooth, etc.)
+- **`modules/features/`**: Individual software/service configurations (gnome, neovim, sway, etc.)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets (base.nix, desktop.nix)
 - **`modules/profiles/`**: High-level roles combining bundles and features (laptop, developer, server)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options
 - **`modules/users/`**: User account definitions that bridge NixOS and Home Manager; imported by hosts or profiles
+- **`modules/hardware/`**: Device and hardware configurations (audio, bluetooth, printing, dell-precision-5680)
 - **`modules/core/`**: Core infrastructure (dendritic.nix, home-manager.nix, host-vm.nix)
 
 Features, bundles, and profiles can define both `nixosModules` and `homeModules` in the same file. User modules define both a `nixosModule` (account, groups) and a `homeModule` (packages, programs), wiring them together internally via `home-manager.users.<name>`.
@@ -71,8 +72,9 @@ The recommended import direction for each layer. When a change doesn't follow th
 | **Features** | Other features (sparingly) | Bundles, profiles, hosts, users |
 | **Bundles** | Features and other bundles | Profiles, hosts, users |
 | **Profiles** | Bundles, features, and users | Other profiles, hosts |
-| **Hosts** | Profiles and users (plus hardware modules) | Features, bundles directly |
+| **Hosts** | Profiles, hardware, and users | Features, bundles directly |
 | **Users** | Features and profiles (homeModules only) | Bundles, hosts |
+| **Hardware** | External hardware modules (nixos-hardware) | Features, bundles, profiles, hosts, users |
 
 ### Naming Conventions
 
