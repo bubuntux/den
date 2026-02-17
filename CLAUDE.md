@@ -48,9 +48,9 @@ nix flake update
 The configuration flows: **Features → Bundles → Profiles → Hosts**
 
 ```
-Features  →  Bundles  →  Profiles  →  Hosts
-                                    ↗    ↑
-                              Users   Hardware
+Bundles  →  Profiles  →  Hosts
+  ↑       ↗    ↑     ↗   ↑
+Features    Hardware    Users
 ```
 
 - **`modules/features/`**: Individual software/service configurations (gnome, neovim, sway, etc.)
