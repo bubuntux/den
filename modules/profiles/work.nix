@@ -138,7 +138,6 @@
               gst_all_1.gst-plugins-bad
 
               pulseaudio
-              noto-fonts
               pipewire
 
               qt5.qtwayland

@@ -6,6 +6,8 @@
         fontDir.enable = true;
         # TODO bundle so it gets reused for home?
         packages = with pkgs; [
+          liberation_ttf
+          noto-fonts
           nerd-fonts.fira-code
           nerd-fonts.hack
           nerd-fonts.jetbrains-mono
