@@ -49,7 +49,7 @@ The configuration flows: **Features → Bundles → Profiles → Hosts**
 
 ```
 Bundles  →  Profiles  →  Hosts
-  ↑       ↗    ↑     ↗   ↑
+  ↑       ↗    ↑     ↗    ↑
 Features    Hardware    Users
 ```
 

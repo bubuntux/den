@@ -29,7 +29,7 @@ Hosts are named after Avatar: The Last Airbender characters.
 
 ```
 Bundles  →  Profiles  →  Hosts
-  ↑       ↗    ↑     ↗   ↑
+  ↑       ↗    ↑     ↗    ↑
 Features    Hardware    Users
 ```
 
