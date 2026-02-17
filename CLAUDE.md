@@ -49,8 +49,8 @@ The configuration flows: **Features → Bundles → Profiles → Hosts**
 
 ```
 Bundles  →  Profiles  →  Hosts
-  ↑       ↗    ↑     ↗    ↑
-Features    Hardware    Users
+   ↑     ↗     ↑      ↗    ↑
+Features    Hardware     Users
 ```
 
 - **`modules/features/`**: Individual software/service configurations (gnome, neovim, sway, etc.)
