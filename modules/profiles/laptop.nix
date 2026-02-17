@@ -8,7 +8,7 @@
       self.nixosModules.bluetooth
       self.nixosModules.printing
       self.nixosModules.power-profile-auto
-      self.nixosModules.bundle-base
+      self.nixosModules.bundle-host
       inputs.nixos-hardware.nixosModules.common-pc-laptop
       inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
     ];

@@ -110,42 +110,18 @@
         config =
           { pkgs, ... }:
           {
-            imports = [ inputs.home-manager.nixosModules.home-manager ];
+            imports = with self.nixosModules; [
+              bundle-base
+              user-juliogm
+            ];
 
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              backupFileExtension = "bkp";
-              users.juliogm = {
-                imports = with self.homeModules; [
-                  profile-developer
-                ];
-              };
-            };
-            nixpkgs.config = {
-              allowUnfree = true;
-              google-chrome.commandLineArgs = "--enable-features=UseOzonePlatform,WebRTCPipeWireCapturer --ozone-platform=wayland";
-            };
+            nixpkgs.config.google-chrome.commandLineArgs = "--enable-features=UseOzonePlatform,WebRTCPipeWireCapturer --ozone-platform=wayland";
 
             services = {
               resolved.enable = false;
               cloudflare-warp.enable = true;
               pipewire.enable = lib.mkForce false;
               pulseaudio.enable = lib.mkForce false;
-            };
-
-            users.users.juliogm = {
-              isNormalUser = true;
-              uid = 1000;
-              extraGroups = [
-                "audio"
-                "network"
-                "pipewire"
-                "video"
-                "wheel"
-              ];
-              home = "/home/juliogm";
-              createHome = true;
             };
 
             environment.systemPackages = with pkgs; [
@@ -171,11 +147,6 @@
               xdg-desktop-portal
               xdg-desktop-portal-wlr
               xdg-desktop-portal-gtk
-            ];
-
-            nix.settings.experimental-features = [
-              "nix-command"
-              "flakes"
             ];
 
             # nix-ld for non-Nix binaries (JetBrains Gateway downloads)

@@ -2,17 +2,23 @@
 {
   flake.nixosModules.bundle-base = {
     imports = with self.nixosModules; [
-      auto-upgrade
-      boot
       fonts
       home-manager
       locale
-      networking
       nix
     ];
 
     home-manager.sharedModules = with self.homeModules; [
       bundle-base
+    ];
+  };
+
+  flake.nixosModules.bundle-host = {
+    imports = with self.nixosModules; [
+      bundle-base
+      auto-upgrade
+      boot
+      networking
     ];
   };
 
