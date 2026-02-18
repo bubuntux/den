@@ -6,26 +6,18 @@
       idleInhibitInit = pkgs.writeShellScript "idle-inhibit-init" ''
         for supply in /sys/class/power_supply/*/; do
           if [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ] && [ "$(cat "$supply/online" 2>/dev/null)" = "1" ]; then
-            ${pkgs.systemd}/bin/systemctl --user start idle-inhibit-ac.service
+            ${pkgs.systemd}/bin/systemctl --user stop swayidle.service
             exit 0
           fi
         done
       '';
     in
     {
-      systemd.user.services.idle-inhibit-ac = {
-        Unit.Description = "Inhibit idle when on AC power";
-        Service = {
-          ExecStart = "${pkgs.wlinhibit}/bin/wlinhibit";
-          Restart = "on-failure";
-        };
-      };
-
-      # Check AC state on login and start idle inhibitor if on AC
+      # Stop swayidle on login when on AC
       systemd.user.services.idle-inhibit-init = {
         Unit = {
           Description = "Initialize idle inhibitor based on AC state";
-          After = [ "idle-inhibit-ac.service" ];
+          After = [ "swayidle.service" ];
         };
         Service = {
           Type = "oneshot";
@@ -58,12 +50,12 @@
           ${pkgs.brightnessctl}/bin/brightnessctl set 50%
         fi
 
-        # Toggle idle inhibitor for all logged-in users
+        # Toggle swayidle for all logged-in users (stop on AC, start on battery)
         for user in $(${pkgs.systemd}/bin/loginctl list-users --no-legend | ${pkgs.gawk}/bin/awk '{print $2}'); do
           if [ "$ac_online" = "1" ]; then
-            ${pkgs.systemd}/bin/systemctl --machine="$user@.host" --user start idle-inhibit-ac.service 2>/dev/null || true
+            ${pkgs.systemd}/bin/systemctl --machine="$user@.host" --user stop swayidle.service 2>/dev/null || true
           else
-            ${pkgs.systemd}/bin/systemctl --machine="$user@.host" --user stop idle-inhibit-ac.service 2>/dev/null || true
+            ${pkgs.systemd}/bin/systemctl --machine="$user@.host" --user start swayidle.service 2>/dev/null || true
           fi
         done
       '';

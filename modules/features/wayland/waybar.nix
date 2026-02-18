@@ -337,17 +337,17 @@
 
             "custom/idle-inhibitor" = {
               exec = pkgs.writeShellScript "waybar-idle-inhibitor" ''
-                if ${pkgs.systemd}/bin/systemctl --user is-active idle-inhibit-ac.service &>/dev/null; then
-                  echo '{"text":"󰛊","tooltip":"Idle inhibitor: active","class":"activated"}'
-                else
+                if ${pkgs.systemd}/bin/systemctl --user is-active swayidle.service &>/dev/null; then
                   echo '{"text":"󰾫","tooltip":"Idle inhibitor: inactive","class":"deactivated"}'
+                else
+                  echo '{"text":"󰛊","tooltip":"Idle inhibitor: active","class":"activated"}'
                 fi
               '';
               on-click = pkgs.writeShellScript "waybar-idle-inhibitor-toggle" ''
-                if ${pkgs.systemd}/bin/systemctl --user is-active idle-inhibit-ac.service &>/dev/null; then
-                  ${pkgs.systemd}/bin/systemctl --user stop idle-inhibit-ac.service
+                if ${pkgs.systemd}/bin/systemctl --user is-active swayidle.service &>/dev/null; then
+                  ${pkgs.systemd}/bin/systemctl --user stop swayidle.service
                 else
-                  ${pkgs.systemd}/bin/systemctl --user start idle-inhibit-ac.service
+                  ${pkgs.systemd}/bin/systemctl --user start swayidle.service
                 fi
               '';
               return-type = "json";
