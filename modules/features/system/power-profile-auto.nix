@@ -9,12 +9,14 @@
           if [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ]; then
             if [ "$(cat "$supply/online" 2>/dev/null)" = "1" ]; then
               ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced
+              ${pkgs.brightnessctl}/bin/brightnessctl set 100%
               exit 0
             fi
           fi
         done
         # No AC adapter online — switch to power-saver
         ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver
+        ${pkgs.brightnessctl}/bin/brightnessctl set 50%
       '';
     in
     {
