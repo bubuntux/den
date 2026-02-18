@@ -16,17 +16,8 @@
         # Project name from directory
         PROJECT="''${DIR##*/}"
 
-        # Git info
+        # Git branch
         BRANCH=$(${pkgs.git}/bin/git -C "$DIR" branch --show-current 2>/dev/null)
-        STAGED=$(${pkgs.git}/bin/git -C "$DIR" diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
-        MODIFIED=$(${pkgs.git}/bin/git -C "$DIR" diff --numstat 2>/dev/null | wc -l | tr -d ' ')
-
-        GIT_INFO=""
-        if [ -n "$BRANCH" ]; then
-          GIT_INFO="$BRANCH"
-          [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_INFO="$GIT_INFO +$STAGED"
-          [ "$MODIFIED" -gt 0 ] 2>/dev/null && GIT_INFO="$GIT_INFO ~$MODIFIED"
-        fi
 
         # Context bar with color coding
         FILLED=$((PCT / 10))
@@ -45,7 +36,7 @@
         MINS=$((DURATION_MS / 60000))
         SECS=$(((DURATION_MS % 60000) / 1000))
 
-        echo -e "[$MODEL] $PROJECT | $GIT_INFO | $COLOR[$BAR] $PCT%$RESET | $COST_FMT | ''${MINS}m ''${SECS}s"
+        echo -e "[$MODEL] $PROJECT | $BRANCH | $COLOR[$BAR] $PCT%$RESET | $COST_FMT | ''${MINS}m ''${SECS}s"
       '';
     in
     {
