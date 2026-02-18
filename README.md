@@ -1,5 +1,10 @@
 # den
 
+[![NixOS](https://img.shields.io/badge/NixOS-unstable-blue?logo=nixos)](https://nixos.org)
+[![Flake](https://img.shields.io/badge/Nix-Flake-informational?logo=nixos)](https://nixos.wiki/wiki/Flakes)
+[![Home Manager](https://img.shields.io/badge/Home%20Manager-enabled-blue?logo=nixos)](https://github.com/nix-community/home-manager)
+[![Check](https://img.shields.io/github/actions/workflow/status/bubuntux/den/check.yml?label=Check&logo=github)](https://github.com/bubuntux/den/actions/workflows/check.yml)
+
 Personal NixOS configuration managed as a Nix Flake, using a modular
 architecture powered by [flake-parts](https://flake.parts/) and the
 [dendritic pattern](https://github.com/mightyiam/dendritic).
@@ -57,6 +62,4 @@ nix fmt
 nix flake update
 ```
 
-## License
 
-[MIT](LICENSE)
