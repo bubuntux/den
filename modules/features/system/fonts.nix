@@ -47,6 +47,18 @@
               <family>Noto Serif</family>
             </prefer>
           </alias>
+          <match target="pattern">
+            <test qual="any" name="family"><string>sans-serif</string></test>
+            <edit name="family" mode="append"><string>Symbols Nerd Font</string></edit>
+          </match>
+          <match target="pattern">
+            <test qual="any" name="family"><string>serif</string></test>
+            <edit name="family" mode="append"><string>Symbols Nerd Font</string></edit>
+          </match>
+          <match target="pattern">
+            <test qual="any" name="family"><string>monospace</string></test>
+            <edit name="family" mode="append"><string>Symbols Nerd Font</string></edit>
+          </match>
           <match target="font">
             <edit name="antialias" mode="assign"><bool>true</bool></edit>
             <edit name="hinting" mode="assign"><bool>true</bool></edit>
@@ -62,6 +74,7 @@
         roboto
         source-sans
         source-sans-pro
+        nerd-fonts.symbols-only
         nerd-fonts.roboto-mono
         nerd-fonts.fira-code
         nerd-fonts.meslo-lg

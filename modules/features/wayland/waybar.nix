@@ -24,6 +24,12 @@
               name=$(echo "$data" | cut -d',' -f5 | sed 's/^ //')
               power=$(echo "$data" | cut -d',' -f6 | tr -d ' ')
 
+              # Hide when idle (0% usage)
+              if [ "$usage" -eq 0 ]; then
+                echo '{"text": "", "tooltip": ""}'
+                exit 0
+              fi
+
               text="󰢮 ''${usage}%"
               tooltip="$name"$'\n'"󰢮 ''${usage}%  󰔏 ''${temp}°C"$'\n'"󰍛 ''${mem_used}MiB / ''${mem_total}MiB"$'\n'"󱐋 ''${power} W"
 
@@ -292,7 +298,7 @@
               "privacy"
               "gamemode"
               "clock"
-              "custom/weather"
+              "custom/weather-f"
             ];
 
             modules-right = [
@@ -473,7 +479,7 @@
               interval = 5;
             };
 
-            "custom/weather" = {
+            "custom/weather-f" = {
               format = "{}";
               return-type = "json";
               exec = "${weather-script}/bin/waybar-weather";
@@ -566,7 +572,7 @@
           #systemd-failed-units,
           #privacy,
           #gamemode,
-          #custom-weather,
+          #custom-weather-f,
           #custom-weather-c,
           #custom-intel-gpu,
           #custom-nvidia-gpu,
@@ -596,7 +602,7 @@
           #battery:hover,
           #power-profiles-daemon:hover,
           #idle_inhibitor:hover,
-          #custom-weather:hover,
+          #custom-weather-f:hover,
           #custom-weather-c:hover,
           #custom-intel-gpu:hover,
           #custom-nvidia-gpu:hover,
@@ -766,7 +772,7 @@
           }
 
           /* --- Weather --- */
-          #custom-weather,
+          #custom-weather-f,
           #custom-weather-c {
             color: @teal;
           }
