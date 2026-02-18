@@ -83,7 +83,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add flake.lock
-          git commit -m "chore: update flake inputs"
+          git commit -m "$(printf 'flake.lock: update flake inputs\n\nFlake lock file updates:\n\n%s' "$(cat update-output.log)")"
           git push
 
       - name: Build PR body
