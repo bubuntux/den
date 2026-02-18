@@ -374,6 +374,7 @@
             };
 
             wireplumber = {
+              max-volume = 125;
               format = "{volume}% {icon}";
               format-muted = "󰝟";
               format-icons = [
@@ -383,7 +384,7 @@
               ];
               on-click = "${pkgs.pwvucontrol}/bin/pwvucontrol";
               on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
-              on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
+              on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume -l 1.25 @DEFAULT_AUDIO_SINK@ 5%+";
               on-scroll-down = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
             };
 
