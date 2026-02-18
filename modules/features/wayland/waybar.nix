@@ -369,6 +369,16 @@
               on-click = "${pkgs.brightnessctl}/bin/brightnessctl set 100%";
               on-click-middle = "${pkgs.brightnessctl}/bin/brightnessctl set 50%";
               on-click-right = "${pkgs.brightnessctl}/bin/brightnessctl set 10%";
+              on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl set 5%+";
+              on-scroll-down = pkgs.writeShellScript "backlight-down" ''
+                ${pkgs.brightnessctl}/bin/brightnessctl set 5%-
+                max=$(${pkgs.brightnessctl}/bin/brightnessctl max)
+                min=$((max * 5 / 100))
+                current=$(${pkgs.brightnessctl}/bin/brightnessctl get)
+                if [ "$current" -lt "$min" ]; then
+                  ${pkgs.brightnessctl}/bin/brightnessctl set "$min"
+                fi
+              '';
             };
 
             power-profiles-daemon = {
