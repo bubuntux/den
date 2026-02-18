@@ -19,7 +19,7 @@
       home-manager.sharedModules = [ self.homeModules.firefox ];
     };
 
-  flake.homeModules.firefox = {
+  flake.homeModules.firefox = _: {
     xdg.mimeApps.defaultApplications = {
       "text/html" = "firefox.desktop";
       "x-scheme-handler/http" = "firefox.desktop";

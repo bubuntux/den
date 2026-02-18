@@ -1,7 +1,7 @@
 { self, ... }:
 {
   # Home Manager module for bluetooth
-  flake.homeModules.bluetooth = {
+  flake.homeModules.bluetooth = _: {
     services.blueman-applet.enable = true;
   };
 

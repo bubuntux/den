@@ -7,7 +7,7 @@
     inputs.home-manager.flakeModules.home-manager
   ];
 
-  flake.nixosModules.home-manager = {
+  flake.nixosModules.home-manager = _: {
     imports = [ inputs.home-manager.nixosModules.home-manager ];
     home-manager = {
       useGlobalPkgs = true;
@@ -17,7 +17,7 @@
     };
   };
 
-  flake.homeModules.home-manager = {
+  flake.homeModules.home-manager = _: {
     home.stateVersion = "25.11";
     programs.home-manager.enable = true;
     services.home-manager.autoExpire = {

@@ -20,7 +20,7 @@
     };
 
   # NixOS module for developer profile
-  flake.nixosModules.profile-developer = {
+  flake.nixosModules.profile-developer = _: {
     imports = with self.nixosModules; [
       claude-code
     ];

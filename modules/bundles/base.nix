@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.bundle-base = {
+  flake.nixosModules.bundle-base = _: {
     imports = with self.nixosModules; [
       fonts
       home-manager
@@ -13,7 +13,7 @@
     ];
   };
 
-  flake.nixosModules.bundle-host = {
+  flake.nixosModules.bundle-host = _: {
     imports = with self.nixosModules; [
       bundle-base
       auto-upgrade

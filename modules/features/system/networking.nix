@@ -1,6 +1,6 @@
 { lib, ... }:
 {
-  flake.nixosModules.networking = {
+  flake.nixosModules.networking = _: {
     networking = {
       # hostName = "${host}"; TODO
       nftables.enable = true;

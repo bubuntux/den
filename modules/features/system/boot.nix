@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.boot = {
+  flake.nixosModules.boot = _: {
     boot = {
       loader = {
         timeout = 3;

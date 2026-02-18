@@ -2,7 +2,7 @@
 {
   flake-file.inputs.nixos-hardware.url = "github:nixos/nixos-hardware";
 
-  flake.nixosModules.profile-laptop = {
+  flake.nixosModules.profile-laptop = _: {
     imports = [
       self.nixosModules.audio
       self.nixosModules.bluetooth

@@ -1,5 +1,5 @@
 {
-  flake.homeModules.foot = {
+  flake.homeModules.foot = _: {
     programs.foot = {
       enable = true;
       settings = {

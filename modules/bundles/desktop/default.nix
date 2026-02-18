@@ -25,7 +25,7 @@
     };
 
   # NixOS module for desktop environments
-  flake.nixosModules.bundle-desktop = {
+  flake.nixosModules.bundle-desktop = _: {
     imports = with self.nixosModules; [
       bundle-host
       theme

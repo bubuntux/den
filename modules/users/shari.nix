@@ -5,7 +5,7 @@
   #   # home.stateVersion = "25.11";
   # };
 
-  flake.nixosModules.user-shari = {
+  flake.nixosModules.user-shari = _: {
     services.displayManager.autoLogin.user = "shari";
     users.users.shari = {
       isNormalUser = true;

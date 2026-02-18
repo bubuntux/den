@@ -4,14 +4,14 @@
 }:
 {
   # Home Manager module for user juliogm
-  flake.homeModules.user-juliogm = {
+  flake.homeModules.user-juliogm = _: {
     imports = with self.homeModules; [
       profile-developer
     ];
   };
 
   # NixOS module for user juliogm (used inside the work container)
-  flake.nixosModules.user-juliogm = {
+  flake.nixosModules.user-juliogm = _: {
     users.users.juliogm = {
       isNormalUser = true;
       uid = 1000;

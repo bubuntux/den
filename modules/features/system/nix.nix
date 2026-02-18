@@ -5,7 +5,7 @@ let
   ];
 in
 {
-  flake.nixosModules.nix = {
+  flake.nixosModules.nix = _: {
     nixpkgs.config.allowUnfree = true;
     nix = {
       settings = {
