@@ -1,25 +1,57 @@
 { self, ... }:
 {
+  flake.homeModules.power-profile-auto =
+    { pkgs, ... }:
+    {
+      systemd.user.services.idle-inhibit-ac = {
+        Unit = {
+          Description = "Inhibit idle when on AC power";
+          ConditionACPower = true;
+        };
+        Service = {
+          ExecStart = "${pkgs.wlinhibit}/bin/wlinhibit";
+          Restart = "on-failure";
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
+    };
+
   flake.nixosModules.power-profile-auto =
     { pkgs, ... }:
     let
       powerProfileSwitch = pkgs.writeShellScript "power-profile-switch" ''
         # Check all power supplies for an online AC adapter
+        ac_online=0
         for supply in /sys/class/power_supply/*/; do
           if [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ]; then
             if [ "$(cat "$supply/online" 2>/dev/null)" = "1" ]; then
-              ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced
-              ${pkgs.brightnessctl}/bin/brightnessctl set 100%
-              exit 0
+              ac_online=1
+              break
             fi
           fi
         done
-        # No AC adapter online — switch to power-saver
-        ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver
-        ${pkgs.brightnessctl}/bin/brightnessctl set 50%
+
+        if [ "$ac_online" = "1" ]; then
+          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced
+          ${pkgs.brightnessctl}/bin/brightnessctl set 100%
+        else
+          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver
+          ${pkgs.brightnessctl}/bin/brightnessctl set 50%
+        fi
+
+        # Toggle idle inhibitor for all logged-in users
+        for user in $(${pkgs.systemd}/bin/loginctl list-users --no-legend | ${pkgs.gawk}/bin/awk '{print $2}'); do
+          if [ "$ac_online" = "1" ]; then
+            ${pkgs.systemd}/bin/systemctl --machine="$user@.host" --user start idle-inhibit-ac.service 2>/dev/null || true
+          else
+            ${pkgs.systemd}/bin/systemctl --machine="$user@.host" --user stop idle-inhibit-ac.service 2>/dev/null || true
+          fi
+        done
       '';
     in
     {
+      home-manager.sharedModules = [ self.homeModules.power-profile-auto ];
+
       # Run at boot to set the initial profile and on every AC state change
       systemd.services.power-profile-auto = {
         description = "Switch power profile based on AC adapter state";
