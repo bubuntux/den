@@ -310,7 +310,7 @@
               "wireplumber"
               "battery"
               "backlight"
-              "idle_inhibitor"
+              "custom/idle-inhibitor"
               "power-profiles-daemon"
               "tray"
             ];
@@ -335,13 +335,23 @@
               max-length = 45;
             };
 
-            idle_inhibitor = {
-              start-activated = false;
-              format = "{icon}";
-              format-icons = {
-                activated = "󰛊";
-                deactivated = "󰾫";
-              };
+            "custom/idle-inhibitor" = {
+              exec = pkgs.writeShellScript "waybar-idle-inhibitor" ''
+                if ${pkgs.systemd}/bin/systemctl --user is-active idle-inhibit-ac.service &>/dev/null; then
+                  echo '{"text":"󰛊","tooltip":"Idle inhibitor: active","class":"activated"}'
+                else
+                  echo '{"text":"󰾫","tooltip":"Idle inhibitor: inactive","class":"deactivated"}'
+                fi
+              '';
+              on-click = pkgs.writeShellScript "waybar-idle-inhibitor-toggle" ''
+                if ${pkgs.systemd}/bin/systemctl --user is-active idle-inhibit-ac.service &>/dev/null; then
+                  ${pkgs.systemd}/bin/systemctl --user stop idle-inhibit-ac.service
+                else
+                  ${pkgs.systemd}/bin/systemctl --user start idle-inhibit-ac.service
+                fi
+              '';
+              return-type = "json";
+              interval = 5;
             };
 
             tray = {
@@ -580,7 +590,7 @@
           #custom-weather-c,
           #custom-intel-gpu,
           #custom-nvidia-gpu,
-          #idle_inhibitor,
+          #custom-idle-inhibitor,
           #power-profiles-daemon,
           #cpu,
           #memory,
@@ -605,7 +615,7 @@
           #clock:hover,
           #battery:hover,
           #power-profiles-daemon:hover,
-          #idle_inhibitor:hover,
+          #custom-idle-inhibitor:hover,
           #custom-weather-f:hover,
           #custom-weather-c:hover,
           #custom-intel-gpu:hover,
@@ -668,11 +678,11 @@
           }
 
           /* --- Idle inhibitor --- */
-          #idle_inhibitor.activated {
+          #custom-idle-inhibitor.activated {
             color: @lavender;
           }
 
-          #idle_inhibitor.deactivated {
+          #custom-idle-inhibitor.deactivated {
             color: @subtext0;
           }
 

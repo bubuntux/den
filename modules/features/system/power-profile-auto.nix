@@ -2,15 +2,31 @@
 {
   flake.homeModules.power-profile-auto =
     { pkgs, ... }:
+    let
+      idleInhibitInit = pkgs.writeShellScript "idle-inhibit-init" ''
+        for supply in /sys/class/power_supply/*/; do
+          if [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ] && [ "$(cat "$supply/online" 2>/dev/null)" = "1" ]; then
+            ${pkgs.systemd}/bin/systemctl --user start idle-inhibit-ac.service
+            exit 0
+          fi
+        done
+      '';
+    in
     {
       systemd.user.services.idle-inhibit-ac = {
-        Unit = {
-          Description = "Inhibit idle when on AC power";
-          ConditionACPower = true;
-        };
+        Unit.Description = "Inhibit idle when on AC power";
         Service = {
           ExecStart = "${pkgs.wlinhibit}/bin/wlinhibit";
           Restart = "on-failure";
+        };
+      };
+
+      # Check AC state on login and start idle inhibitor if on AC
+      systemd.user.services.idle-inhibit-init = {
+        Unit.Description = "Initialize idle inhibitor based on AC state";
+        Service = {
+          Type = "oneshot";
+          ExecStart = idleInhibitInit;
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
