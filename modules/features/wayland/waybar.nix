@@ -309,7 +309,7 @@
               "custom/nvidia-gpu"
               "wireplumber"
               "battery"
-              "backlight"
+              "custom/backlight"
               "custom/idle-inhibitor"
               "power-profiles-daemon"
               "tray"
@@ -358,14 +358,38 @@
               spacing = 5;
             };
 
-            backlight = {
-              format = "{icon}";
-              tooltip-format = "{percent}%";
-              format-icons = [
-                "󰃞"
-                "󰃟"
-                "󰃠"
-              ];
+            "custom/backlight" = {
+              exec = pkgs.writeShellScript "waybar-backlight" ''
+                # Only show on battery
+                on_battery=false
+                for ps in /sys/class/power_supply/BAT*; do
+                  [ -d "$ps" ] || continue
+                  status=$(cat "$ps/status" 2>/dev/null)
+                  if [ "$status" = "Discharging" ]; then
+                    on_battery=true
+                    break
+                  fi
+                done
+
+                if [ "$on_battery" = false ]; then
+                  echo '{"text": "", "tooltip": ""}'
+                  exit 0
+                fi
+
+                percent=$(${pkgs.brightnessctl}/bin/brightnessctl -m | cut -d',' -f4 | tr -d '%')
+                if [ "$percent" -lt 34 ]; then
+                  icon="󰃞"
+                elif [ "$percent" -lt 67 ]; then
+                  icon="󰃟"
+                else
+                  icon="󰃠"
+                fi
+
+                ${pkgs.jq}/bin/jq -nc --arg text "$icon" --arg tooltip "''${percent}%" \
+                  '{text: $text, tooltip: $tooltip}'
+              '';
+              return-type = "json";
+              interval = 5;
               on-click = "${pkgs.brightnessctl}/bin/brightnessctl set 100%";
               on-click-middle = "${pkgs.brightnessctl}/bin/brightnessctl set 50%";
               on-click-right = "${pkgs.brightnessctl}/bin/brightnessctl set 10%";
@@ -607,7 +631,7 @@
           #cpu,
           #memory,
           #custom-temp,
-          #backlight,
+          #custom-backlight,
           #wireplumber,
           #clock,
           #battery,
@@ -622,7 +646,7 @@
           #cpu:hover,
           #memory:hover,
           #custom-temp:hover,
-          #backlight:hover,
+          #custom-backlight:hover,
           #wireplumber:hover,
           #clock:hover,
           #battery:hover,
@@ -769,7 +793,7 @@
           }
 
           /* --- Backlight --- */
-          #backlight {
+          #custom-backlight {
             color: @sky;
           }
 
