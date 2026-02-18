@@ -494,11 +494,12 @@
                 warning = 30;
                 critical = 15;
               };
-              format = "{capacity}% ({time}) {icon}";
+              format = "{icon}";
               format-time = "{H}h {M}m";
               format-charging = "";
               format-plugged = "";
               format-full = "";
+              tooltip-format = "{capacity}% — {timeTo}";
               format-icons = [
                 "󰂎"
                 "󰁺"
