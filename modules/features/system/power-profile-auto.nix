@@ -23,7 +23,10 @@
 
       # Check AC state on login and start idle inhibitor if on AC
       systemd.user.services.idle-inhibit-init = {
-        Unit.Description = "Initialize idle inhibitor based on AC state";
+        Unit = {
+          Description = "Initialize idle inhibitor based on AC state";
+          After = [ "idle-inhibit-ac.service" ];
+        };
         Service = {
           Type = "oneshot";
           ExecStart = idleInhibitInit;
