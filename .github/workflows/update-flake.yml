@@ -49,8 +49,8 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         id: after
         run: |
-          git add flake.lock
-          nix flake check 2> check-after.log
+          nix flake check 2> check-after-raw.log
+          grep -iv 'has uncommitted changes' check-after-raw.log > check-after.log || true
           count=$(grep -ci 'warning:' check-after.log || echo 0)
           echo "warnings=$count" >> "$GITHUB_OUTPUT"
           echo "Warnings after update: $count (before: ${{ steps.before.outputs.warnings }})"
