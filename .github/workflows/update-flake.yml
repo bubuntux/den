@@ -66,6 +66,16 @@ jobs:
             echo "action=commit" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Close stale update PR
+        if: steps.decide.outputs.action == 'commit'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --head auto/flake-update --json number --jq '.[0].number')
+          if [ -n "$pr" ]; then
+            gh pr close "$pr" --delete-branch --comment "Superseded by direct commit to main (no new warnings)."
+          fi
+
       - name: Commit directly to main
         if: steps.decide.outputs.action == 'commit'
         run: |
