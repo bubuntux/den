@@ -49,6 +49,7 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         id: after
         run: |
+          git add flake.lock
           nix flake check 2> check-after.log
           count=$(grep -ci 'warning:' check-after.log || echo 0)
           echo "warnings=$count" >> "$GITHUB_OUTPUT"
