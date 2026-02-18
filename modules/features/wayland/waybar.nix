@@ -382,6 +382,9 @@
                 "󰕾"
               ];
               on-click = "${pkgs.pwvucontrol}/bin/pwvucontrol";
+              on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+              on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
+              on-scroll-down = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
             };
 
             clock = {
