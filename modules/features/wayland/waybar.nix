@@ -344,6 +344,7 @@
 
             backlight = {
               format = "{icon}";
+              tooltip-format = "{percent}%";
               format-icons = [
                 "󰃞"
                 "󰃟"
