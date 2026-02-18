@@ -49,15 +49,15 @@
           </alias>
           <match target="pattern">
             <test qual="any" name="family"><string>sans-serif</string></test>
-            <edit name="family" mode="append"><string>Symbols Nerd Font</string></edit>
+            <edit name="family" mode="append"><string>FiraCode Nerd Font Propo</string></edit>
           </match>
           <match target="pattern">
             <test qual="any" name="family"><string>serif</string></test>
-            <edit name="family" mode="append"><string>Symbols Nerd Font</string></edit>
+            <edit name="family" mode="append"><string>FiraCode Nerd Font Propo</string></edit>
           </match>
           <match target="pattern">
             <test qual="any" name="family"><string>monospace</string></test>
-            <edit name="family" mode="append"><string>Symbols Nerd Font</string></edit>
+            <edit name="family" mode="append"><string>FiraCode Nerd Font</string></edit>
           </match>
           <match target="font">
             <edit name="antialias" mode="assign"><bool>true</bool></edit>

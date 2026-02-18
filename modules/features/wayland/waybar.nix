@@ -371,13 +371,15 @@
               on-click-right = "${pkgs.brightnessctl}/bin/brightnessctl set 10%";
               on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl set 5%+";
               on-scroll-down = pkgs.writeShellScript "backlight-down" ''
-                ${pkgs.brightnessctl}/bin/brightnessctl set 5%-
                 max=$(${pkgs.brightnessctl}/bin/brightnessctl max)
                 min=$((max * 5 / 100))
                 current=$(${pkgs.brightnessctl}/bin/brightnessctl get)
-                if [ "$current" -lt "$min" ]; then
-                  ${pkgs.brightnessctl}/bin/brightnessctl set "$min"
+                step=$((max * 5 / 100))
+                target=$((current - step))
+                if [ "$target" -lt "$min" ]; then
+                  target=$min
                 fi
+                ${pkgs.brightnessctl}/bin/brightnessctl set "$target"
               '';
             };
 
