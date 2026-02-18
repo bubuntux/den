@@ -302,8 +302,8 @@
               "custom/intel-gpu"
               "custom/nvidia-gpu"
               "wireplumber"
-              "backlight"
               "battery"
+              "backlight"
               "idle_inhibitor"
               "power-profiles-daemon"
               "tray"
@@ -343,7 +343,7 @@
             };
 
             backlight = {
-              format = "{percent}% {icon}";
+              format = "{icon}";
               format-icons = [
                 "󰃞"
                 "󰃟"
@@ -495,9 +495,9 @@
               };
               format = "{capacity}% ({time}) {icon}";
               format-time = "{H}h {M}m";
-              format-charging = "{capacity}% ({time}) 󰂄";
-              format-plugged = "{capacity}% 󰚥";
-              format-full = "100% 󰁹";
+              format-charging = "";
+              format-plugged = "";
+              format-full = "";
               format-icons = [
                 "󰂎"
                 "󰁺"
