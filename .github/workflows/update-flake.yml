@@ -36,15 +36,22 @@ jobs:
           echo "Warnings before update: $count"
 
       - name: Update flake inputs
-        run: nix flake update 2>&1 | tee update-output.log
+        run: |
+          nix flake update 2>&1 | tee update-output.log
+          echo '### Flake update' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat update-output.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Check for changes
         id: changes
         run: |
           if git diff --quiet flake.lock; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo ':white_check_mark: No changes to flake.lock' >> "$GITHUB_STEP_SUMMARY"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo ':arrow_up: flake.lock has been updated' >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Check warnings after update
@@ -110,7 +117,19 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
           sudo docker image prune --all --force
       - name: Build NixOS configuration
-        run: nix build ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel" 2>&1 | tee build.log
+        run: |
+          echo "### NixOS: \`${{ matrix.host }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if nix build ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel" 2>&1 | tee build.log; then
+            echo ':white_check_mark: Build succeeded' >> "$GITHUB_STEP_SUMMARY"
+            store_path=$(readlink -f result)
+            echo "- **Store path:** \`$store_path\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo ':x: Build failed' >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -30 build.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Upload error log
         if: failure()
         uses: actions/upload-artifact@v4
@@ -140,7 +159,19 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
           sudo docker image prune --all --force
       - name: Build Home Manager configuration
-        run: nix build ".#homeConfigurations.${{ matrix.home }}.activationPackage" 2>&1 | tee build.log
+        run: |
+          echo "### Home Manager: \`${{ matrix.home }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if nix build ".#homeConfigurations.${{ matrix.home }}.activationPackage" 2>&1 | tee build.log; then
+            echo ':white_check_mark: Build succeeded' >> "$GITHUB_STEP_SUMMARY"
+            store_path=$(readlink -f result)
+            echo "- **Store path:** \`$store_path\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo ':x: Build failed' >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -30 build.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Upload error log
         if: failure()
         uses: actions/upload-artifact@v4
@@ -170,17 +201,21 @@ jobs:
       - name: Decide outcome
         id: decide
         run: |
+          echo '### Finalize' >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ needs.build-nixos.result }}" = "failure" ] || [ "${{ needs.build-hm.result }}" = "failure" ]; then
             echo "action=pr" >> "$GITHUB_OUTPUT"
             echo "reason=build-failure" >> "$GITHUB_OUTPUT"
+            echo ':x: Build failures detected — creating PR for review' >> "$GITHUB_STEP_SUMMARY"
           else
             before=${{ needs.update.outputs.warnings-before }}
             after=${{ needs.update.outputs.warnings-after }}
             if [ "$after" -gt "$before" ]; then
               echo "action=pr" >> "$GITHUB_OUTPUT"
               echo "reason=new-warnings" >> "$GITHUB_OUTPUT"
+              echo ":warning: New warnings ($before → $after) — creating PR for review" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "action=commit" >> "$GITHUB_OUTPUT"
+              echo ':white_check_mark: All builds passed — committing directly to main' >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
 

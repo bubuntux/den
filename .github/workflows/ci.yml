@@ -14,7 +14,12 @@ jobs:
         with:
           use-flakehub: false
       - name: Flake check
-        run: nix flake check
+        run: |
+          nix flake check 2>&1 | tee check.log
+          echo '### Flake check :white_check_mark:' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -20 check.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
   discover:
     runs-on: ubuntu-latest
@@ -50,7 +55,19 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
           sudo docker image prune --all --force
       - name: Build NixOS configuration
-        run: nix build ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel"
+        run: |
+          echo "### NixOS: \`${{ matrix.host }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if nix build ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel" 2>&1 | tee build.log; then
+            echo ':white_check_mark: Build succeeded' >> "$GITHUB_STEP_SUMMARY"
+            store_path=$(readlink -f result)
+            echo "- **Store path:** \`$store_path\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo ':x: Build failed' >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -30 build.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
   homes:
     runs-on: ubuntu-latest
@@ -70,4 +87,16 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
           sudo docker image prune --all --force
       - name: Build Home Manager configuration
-        run: nix build ".#homeConfigurations.${{ matrix.home }}.activationPackage"
+        run: |
+          echo "### Home Manager: \`${{ matrix.home }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if nix build ".#homeConfigurations.${{ matrix.home }}.activationPackage" 2>&1 | tee build.log; then
+            echo ':white_check_mark: Build succeeded' >> "$GITHUB_STEP_SUMMARY"
+            store_path=$(readlink -f result)
+            echo "- **Store path:** \`$store_path\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo ':x: Build failed' >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -30 build.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
