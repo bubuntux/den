@@ -15,13 +15,14 @@
     {
       # Stop swayidle on login when on AC
       systemd.user.services.idle-inhibit-init = {
-        Unit = {
-          Description = "Initialize idle inhibitor based on AC state";
-          After = [ "swayidle.service" ];
-        };
+        Unit.Description = "Initialize idle inhibitor based on AC state";
         Service = {
           Type = "oneshot";
+          ExecStartPre = "${pkgs.systemd}/bin/systemctl --user is-active swayidle.service";
           ExecStart = idleInhibitInit;
+          Restart = "on-failure";
+          RestartSec = 1;
+          RestartMaxDelaySec = 5;
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
