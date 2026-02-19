@@ -16,11 +16,13 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+      warnings-before: ${{ steps.before.outputs.warnings }}
+      warnings-after: ${{ steps.after.outputs.warnings }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: DeterminateSystems/nix-installer-action@main
-
       - uses: DeterminateSystems/magic-nix-cache-action@main
         with:
           use-flakehub: false
@@ -55,66 +57,126 @@ jobs:
           echo "warnings=$count" >> "$GITHUB_OUTPUT"
           echo "Warnings after update: $count (before: ${{ steps.before.outputs.warnings }})"
 
-      - name: Build NixOS configurations
+      - name: Upload update artifacts
         if: steps.changes.outputs.changed == 'true'
-        id: build-nixos
-        run: |
-          set +e
-          errors=""
-          for host in $(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json | jq -r '.[]'); do
-            echo "Building $host..."
-            if ! output=$(nix build ".#nixosConfigurations.$host.config.system.build.toplevel" 2>&1); then
-              errors="${errors}\n### $host\n\`\`\`\n${output}\n\`\`\`\n"
-            fi
-          done
-          set -e
-          if [ -n "$errors" ]; then
-            {
-              echo 'errors<<EOF'
-              echo -e "$errors"
-              echo 'EOF'
-            } >> "$GITHUB_OUTPUT"
-            echo "failed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "failed=false" >> "$GITHUB_OUTPUT"
-          fi
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-data
+          path: |
+            flake.lock
+            update-output.log
+            check-before.log
+            check-after.log
 
-      - name: Build Home Manager configurations
-        if: steps.changes.outputs.changed == 'true'
-        id: build-hm
+  discover:
+    runs-on: ubuntu-latest
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    outputs:
+      hosts: ${{ steps.hosts.outputs.hosts }}
+      homes: ${{ steps.homes.outputs.homes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: update-data
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
+      - id: hosts
+        run: echo "hosts=$(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json)" >> "$GITHUB_OUTPUT"
+      - id: homes
         run: |
-          set +e
-          errors=""
-          pairs=$(nix eval .#nixosConfigurations --apply 'builtins.mapAttrs (_: c: builtins.attrNames c.config.home-manager.users)' --json \
-            | jq -r 'to_entries[] | .key as $host | .value[] | "\($host) \(.)"')
-          while read -r host user; do
-            echo "Building home-manager for $user@$host..."
-            if ! output=$(nix build ".#nixosConfigurations.$host.config.home-manager.users.$user.home.activationPackage" 2>&1); then
-              errors="${errors}\n### $user@$host\n\`\`\`\n${output}\n\`\`\`\n"
-            fi
-          done <<< "$pairs"
-          set -e
-          if [ -n "$errors" ]; then
-            {
-              echo 'errors<<EOF'
-              echo -e "$errors"
-              echo 'EOF'
-            } >> "$GITHUB_OUTPUT"
-            echo "failed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "failed=false" >> "$GITHUB_OUTPUT"
-          fi
+          echo "homes=$(nix eval .#nixosConfigurations --apply 'builtins.mapAttrs (_: c: builtins.attrNames c.config.home-manager.users)' --json \
+            | jq -c '[to_entries[] | .key as $host | .value[] | {host: $host, user: .}]')" >> "$GITHUB_OUTPUT"
+
+  build-nixos:
+    runs-on: ubuntu-latest
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix:
+        host: ${{ fromJSON(needs.discover.outputs.hosts) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: update-data
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
+          sudo docker image prune --all --force
+      - name: Build NixOS configuration
+        run: nix build ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel" 2>&1 | tee build.log
+      - name: Upload error log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-nixos-${{ matrix.host }}
+          path: build.log
+
+  build-hm:
+    runs-on: ubuntu-latest
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.homes) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: update-data
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
+          sudo docker image prune --all --force
+      - name: Build Home Manager configuration
+        run: nix build ".#nixosConfigurations.${{ matrix.host }}.config.home-manager.users.${{ matrix.user }}.home.activationPackage" 2>&1 | tee build.log
+      - name: Upload error log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-hm-${{ matrix.host }}-${{ matrix.user }}
+          path: build.log
+
+  finalize:
+    runs-on: ubuntu-latest
+    needs: [update, discover, build-nixos, build-hm]
+    if: >-
+      always() &&
+      needs.update.outputs.changed == 'true' &&
+      needs.discover.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: update-data
+      - name: Download error logs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: error-*
+          path: errors
+        continue-on-error: true
 
       - name: Decide outcome
-        if: steps.changes.outputs.changed == 'true'
         id: decide
         run: |
-          if [ "${{ steps.build-nixos.outputs.failed }}" = "true" ] || [ "${{ steps.build-hm.outputs.failed }}" = "true" ]; then
+          if [ "${{ needs.build-nixos.result }}" = "failure" ] || [ "${{ needs.build-hm.result }}" = "failure" ]; then
             echo "action=pr" >> "$GITHUB_OUTPUT"
             echo "reason=build-failure" >> "$GITHUB_OUTPUT"
           else
-            before=${{ steps.before.outputs.warnings }}
-            after=${{ steps.after.outputs.warnings }}
+            before=${{ needs.update.outputs.warnings-before }}
+            after=${{ needs.update.outputs.warnings-after }}
             if [ "$after" -gt "$before" ]; then
               echo "action=pr" >> "$GITHUB_OUTPUT"
               echo "reason=new-warnings" >> "$GITHUB_OUTPUT"
@@ -159,15 +221,16 @@ jobs:
               echo ''
               echo '### Build failures'
               echo 'The following configurations **failed to build** after updating inputs.'
-              if [ "${{ steps.build-nixos.outputs.failed }}" = "true" ]; then
-                echo ''
-                echo '#### NixOS configurations'
-                echo -e '${{ steps.build-nixos.outputs.errors }}'
-              fi
-              if [ "${{ steps.build-hm.outputs.failed }}" = "true" ]; then
-                echo ''
-                echo '#### Home Manager configurations'
-                echo -e '${{ steps.build-hm.outputs.errors }}'
+              if [ -d errors ]; then
+                for dir in errors/error-*/; do
+                  [ -d "$dir" ] || continue
+                  name=$(basename "$dir" | sed 's/^error-//')
+                  echo ''
+                  echo "#### $name"
+                  echo '```'
+                  cat "$dir/build.log"
+                  echo '```'
+                done
               fi
             fi
 
@@ -176,12 +239,12 @@ jobs:
               echo '### New warnings'
               echo '`nix flake check` passed but introduced **new warnings**.'
               echo ''
-              echo '#### Before (${{ steps.before.outputs.warnings }})'
+              echo "#### Before (${{ needs.update.outputs.warnings-before }})"
               echo '```'
               grep -i 'warning:' check-before.log || echo 'No warnings'
               echo '```'
               echo ''
-              echo '#### After (${{ steps.after.outputs.warnings }})'
+              echo "#### After (${{ needs.update.outputs.warnings-after }})"
               echo '```'
               grep -i 'warning:' check-after.log || echo 'No warnings'
               echo '```'

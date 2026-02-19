@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  check-and-build:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,18 +16,59 @@ jobs:
       - name: Flake check
         run: nix flake check
 
-      - name: Build NixOS configurations
+  discover:
+    runs-on: ubuntu-latest
+    needs: check
+    outputs:
+      hosts: ${{ steps.hosts.outputs.hosts }}
+      homes: ${{ steps.homes.outputs.homes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
+      - id: hosts
+        run: echo "hosts=$(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json)" >> "$GITHUB_OUTPUT"
+      - id: homes
         run: |
-          for host in $(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json | jq -r '.[]'); do
-            echo "Building $host..."
-            nix build ".#nixosConfigurations.$host.config.system.build.toplevel"
-          done
+          echo "homes=$(nix eval .#nixosConfigurations --apply 'builtins.mapAttrs (_: c: builtins.attrNames c.config.home-manager.users)' --json \
+            | jq -c '[to_entries[] | .key as $host | .value[] | {host: $host, user: .}]')" >> "$GITHUB_OUTPUT"
 
-      - name: Build Home Manager configurations
+  hosts:
+    runs-on: ubuntu-latest
+    needs: discover
+    strategy:
+      matrix:
+        host: ${{ fromJSON(needs.discover.outputs.hosts) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
+      - name: Free disk space
         run: |
-          pairs=$(nix eval .#nixosConfigurations --apply 'builtins.mapAttrs (_: c: builtins.attrNames c.config.home-manager.users)' --json \
-            | jq -r 'to_entries[] | .key as $host | .value[] | "\($host) \(.)"')
-          while read -r host user; do
-            echo "Building home-manager for $user@$host..."
-            nix build ".#nixosConfigurations.$host.config.home-manager.users.$user.home.activationPackage"
-          done <<< "$pairs"
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
+          sudo docker image prune --all --force
+      - name: Build NixOS configuration
+        run: nix build ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel"
+
+  homes:
+    runs-on: ubuntu-latest
+    needs: discover
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.homes) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
+          sudo docker image prune --all --force
+      - name: Build Home Manager configuration
+        run: nix build ".#nixosConfigurations.${{ matrix.host }}.config.home-manager.users.${{ matrix.user }}.home.activationPackage"
