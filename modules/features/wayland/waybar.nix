@@ -3,6 +3,10 @@
   ...
 }:
 {
+  # TODO: Consider replacing Waybar with Ironbar or similar bar that shares
+  # module state across monitors. Currently each module (scripts, polling, etc.)
+  # runs independently per monitor, tripling resource usage on a 3-monitor setup.
+
   # Home Manager module for waybar configuration
   flake.homeModules.waybar =
     { pkgs, ... }:
