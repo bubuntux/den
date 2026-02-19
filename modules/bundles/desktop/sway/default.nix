@@ -168,6 +168,7 @@ in
     {
       imports = with self.nixosModules; [
         bundle-desktop
+        power-profile-auto
         waybar
         kanshi
         thunar
