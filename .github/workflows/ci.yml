@@ -31,9 +31,7 @@ jobs:
       - id: hosts
         run: echo "hosts=$(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json)" >> "$GITHUB_OUTPUT"
       - id: homes
-        run: |
-          echo "homes=$(nix eval .#nixosConfigurations --apply 'builtins.mapAttrs (_: c: builtins.attrNames c.config.home-manager.users)' --json \
-            | jq -c '[to_entries[] | .key as $host | .value[] | {host: $host, user: .}]')" >> "$GITHUB_OUTPUT"
+        run: echo "homes=$(nix eval .#homeConfigurations --apply 'builtins.attrNames' --json)" >> "$GITHUB_OUTPUT"
 
   hosts:
     runs-on: ubuntu-latest
@@ -57,9 +55,10 @@ jobs:
   homes:
     runs-on: ubuntu-latest
     needs: discover
+    if: ${{ fromJSON(needs.discover.outputs.homes)[0] != null }}
     strategy:
       matrix:
-        include: ${{ fromJSON(needs.discover.outputs.homes) }}
+        home: ${{ fromJSON(needs.discover.outputs.homes) }}
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
@@ -71,4 +70,4 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
           sudo docker image prune --all --force
       - name: Build Home Manager configuration
-        run: nix build ".#nixosConfigurations.${{ matrix.host }}.config.home-manager.users.${{ matrix.user }}.home.activationPackage"
+        run: nix build ".#homeConfigurations.${{ matrix.home }}.activationPackage"
