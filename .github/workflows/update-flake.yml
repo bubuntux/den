@@ -55,16 +55,72 @@ jobs:
           echo "warnings=$count" >> "$GITHUB_OUTPUT"
           echo "Warnings after update: $count (before: ${{ steps.before.outputs.warnings }})"
 
+      - name: Build NixOS configurations
+        if: steps.changes.outputs.changed == 'true'
+        id: build-nixos
+        run: |
+          set +e
+          errors=""
+          for host in $(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json | jq -r '.[]'); do
+            echo "Building $host..."
+            if ! output=$(nix build ".#nixosConfigurations.$host.config.system.build.toplevel" 2>&1); then
+              errors="${errors}\n### $host\n\`\`\`\n${output}\n\`\`\`\n"
+            fi
+          done
+          set -e
+          if [ -n "$errors" ]; then
+            {
+              echo 'errors<<EOF'
+              echo -e "$errors"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "failed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Home Manager configurations
+        if: steps.changes.outputs.changed == 'true'
+        id: build-hm
+        run: |
+          set +e
+          errors=""
+          pairs=$(nix eval .#nixosConfigurations --apply 'builtins.mapAttrs (_: c: builtins.attrNames c.config.home-manager.users)' --json \
+            | jq -r 'to_entries[] | .key as $host | .value[] | "\($host) \(.)"')
+          while read -r host user; do
+            echo "Building home-manager for $user@$host..."
+            if ! output=$(nix build ".#nixosConfigurations.$host.config.home-manager.users.$user.home.activationPackage" 2>&1); then
+              errors="${errors}\n### $user@$host\n\`\`\`\n${output}\n\`\`\`\n"
+            fi
+          done <<< "$pairs"
+          set -e
+          if [ -n "$errors" ]; then
+            {
+              echo 'errors<<EOF'
+              echo -e "$errors"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "failed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Decide outcome
         if: steps.changes.outputs.changed == 'true'
         id: decide
         run: |
-          before=${{ steps.before.outputs.warnings }}
-          after=${{ steps.after.outputs.warnings }}
-          if [ "$after" -gt "$before" ]; then
+          if [ "${{ steps.build-nixos.outputs.failed }}" = "true" ] || [ "${{ steps.build-hm.outputs.failed }}" = "true" ]; then
             echo "action=pr" >> "$GITHUB_OUTPUT"
+            echo "reason=build-failure" >> "$GITHUB_OUTPUT"
           else
-            echo "action=commit" >> "$GITHUB_OUTPUT"
+            before=${{ steps.before.outputs.warnings }}
+            after=${{ steps.after.outputs.warnings }}
+            if [ "$after" -gt "$before" ]; then
+              echo "action=pr" >> "$GITHUB_OUTPUT"
+              echo "reason=new-warnings" >> "$GITHUB_OUTPUT"
+            else
+              echo "action=commit" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
       - name: Close stale update PR
@@ -98,21 +154,41 @@ jobs:
             echo '```'
             cat update-output.log
             echo '```'
+
+            if [ "${{ steps.decide.outputs.reason }}" = "build-failure" ]; then
+              echo ''
+              echo '### Build failures'
+              echo 'The following configurations **failed to build** after updating inputs.'
+              if [ "${{ steps.build-nixos.outputs.failed }}" = "true" ]; then
+                echo ''
+                echo '#### NixOS configurations'
+                echo -e '${{ steps.build-nixos.outputs.errors }}'
+              fi
+              if [ "${{ steps.build-hm.outputs.failed }}" = "true" ]; then
+                echo ''
+                echo '#### Home Manager configurations'
+                echo -e '${{ steps.build-hm.outputs.errors }}'
+              fi
+            fi
+
+            if [ "${{ steps.decide.outputs.reason }}" = "new-warnings" ]; then
+              echo ''
+              echo '### New warnings'
+              echo '`nix flake check` passed but introduced **new warnings**.'
+              echo ''
+              echo '#### Before (${{ steps.before.outputs.warnings }})'
+              echo '```'
+              grep -i 'warning:' check-before.log || echo 'No warnings'
+              echo '```'
+              echo ''
+              echo '#### After (${{ steps.after.outputs.warnings }})'
+              echo '```'
+              grep -i 'warning:' check-after.log || echo 'No warnings'
+              echo '```'
+            fi
+
             echo ''
-            echo '### New warnings'
-            echo '`nix flake check` passed but introduced **new warnings**.'
-            echo ''
-            echo '#### Before (${{ steps.before.outputs.warnings }})'
-            echo '```'
-            grep -i 'warning:' check-before.log || echo 'No warnings'
-            echo '```'
-            echo ''
-            echo '#### After (${{ steps.after.outputs.warnings }})'
-            echo '```'
-            grep -i 'warning:' check-after.log || echo 'No warnings'
-            echo '```'
-            echo ''
-            echo 'Review the new warnings before merging.'
+            echo 'Review before merging.'
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
@@ -121,7 +197,9 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore: update flake inputs"
-          title: "chore: update flake inputs (new warnings)"
+          title: >-
+            chore: update flake inputs
+            (${{ steps.decide.outputs.reason == 'build-failure' && 'build failure' || 'new warnings' }})
           branch: auto/flake-update
           delete-branch: true
           body: ${{ steps.pr-body.outputs.body }}

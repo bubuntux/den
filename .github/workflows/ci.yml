@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
+      - name: Flake check
+        run: nix flake check
+
+      - name: Build NixOS configurations
+        run: |
+          for host in $(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json | jq -r '.[]'); do
+            echo "Building $host..."
+            nix build ".#nixosConfigurations.$host.config.system.build.toplevel"
+          done
+
+      - name: Build Home Manager configurations
+        run: |
+          pairs=$(nix eval .#nixosConfigurations --apply 'builtins.mapAttrs (_: c: builtins.attrNames c.config.home-manager.users)' --json \
+            | jq -r 'to_entries[] | .key as $host | .value[] | "\($host) \(.)"')
+          while read -r host user; do
+            echo "Building home-manager for $user@$host..."
+            nix build ".#nixosConfigurations.$host.config.home-manager.users.$user.home.activationPackage"
+          done <<< "$pairs"
