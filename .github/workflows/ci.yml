@@ -34,9 +34,20 @@ jobs:
         with:
           use-flakehub: false
       - id: hosts
-        run: echo "hosts=$(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json)" >> "$GITHUB_OUTPUT"
+        run: |
+          hosts=$(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json)
+          echo "hosts=$hosts" >> "$GITHUB_OUTPUT"
+          echo '### Discovered configurations' >> "$GITHUB_STEP_SUMMARY"
+          echo "**NixOS hosts:** $(echo "$hosts" | jq -r 'map("`\(.)`") | join(", ")')" >> "$GITHUB_STEP_SUMMARY"
       - id: homes
-        run: echo "homes=$(nix eval .#homeConfigurations --apply 'builtins.attrNames' --json)" >> "$GITHUB_OUTPUT"
+        run: |
+          homes=$(nix eval .#homeConfigurations --apply 'builtins.attrNames' --json)
+          echo "homes=$homes" >> "$GITHUB_OUTPUT"
+          if [ "$(echo "$homes" | jq 'length')" -gt 0 ]; then
+            echo "**Home Manager:** $(echo "$homes" | jq -r 'map("`\(.)`") | join(", ")')" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '**Home Manager:** none' >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   hosts:
     runs-on: ubuntu-latest
