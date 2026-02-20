@@ -45,6 +45,7 @@
         settings = {
           # Prefer the most advanced model
           model = "opus";
+          effortLevel = "high";
 
           # Status line with full dashboard
           statusLine = {
@@ -122,17 +123,6 @@
               "Read(**/.docker/config.json)"
               "Read(**/.aws/**)"
               "Read(**/.kube/config)"
-
-              # Destructive bash commands
-              "Bash(rm *)"
-              "Bash(rmdir *)"
-              "Bash(chmod *)"
-              "Bash(chown *)"
-              "Bash(git push *)"
-              "Bash(git reset --hard*)"
-              "Bash(git checkout -- *)"
-              "Bash(git clean *)"
-              "Bash(nixos-rebuild *)"
             ];
           };
 
@@ -144,12 +134,6 @@
 
           # Show progress bar for long operations
           terminalProgressBarEnabled = true;
-
-          # Hide spinner tips for less noise
-          spinnerTipsEnabled = false;
-
-          # Maximum reasoning depth
-          effortLevel = "high";
 
           # Show turn duration for performance awareness
           showTurnDuration = true;

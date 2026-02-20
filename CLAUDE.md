@@ -53,7 +53,7 @@ Bundles  →  Profiles  →  Hosts
 Features    Hardware     Users
 ```
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox, librewolf), `editor/` (neovim, helix, claude-code), `wayland/` (waybar, foot, kanshi, theme), `shell/` (git, ssh), `system/` (boot, networking, fonts, locale, nix), `network/` (vpn), `media/` (mpv), `virtualisation/` (podman), `desktop/` (thunar)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox, librewolf), `editor/` (neovim, helix, claude-code), `wayland/` (waybar, foot, kanshi, theme), `shell/` (git, ssh), `system/` (boot, networking, fonts, locale, nix, sops), `network/` (vpn, wifi-home), `media/` (mpv), `virtualisation/` (podman), `desktop/` (thunar)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines both `bundle-base` (container-safe foundation: fonts, home-manager, locale, nix) and `bundle-host` (extends base with auto-upgrade, boot, networking). `desktop/` is a directory with `default.nix` (bundle-desktop), `gnome.nix`, and `sway/`
 - **`modules/profiles/`**: High-level roles combining bundles and features (laptop, developer, server)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options
@@ -81,6 +81,18 @@ The recommended import direction for each layer. When a change doesn't follow th
 
 - **Hosts**: Avatar: The Last Airbender characters (katara, zuko, appa, momo)
 
+### Secrets Management (sops-nix)
+
+Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encrypted using age keys derived from host SSH keys.
+
+- **`.sops.yaml`**: Defines which age keys can decrypt which secret files. Creation rules match by filename pattern
+- **`secrets/common.yaml`**: Secrets shared across all hosts
+- **`secrets/<hostname>.yaml`**: Host-specific secrets (e.g., `secrets/zuko.yaml`)
+- **Encryption**: Secrets are encrypted at rest in git; decrypted at activation time to `/run/secrets/` (NixOS) or user-level paths (Home Manager)
+- **Referencing secrets in modules**: Use `sopsFile = "${self}/secrets/common.yaml";` (not relative paths) and `config.sops.secrets.<name>.path` for the decrypted file path
+- **Limitation**: Sops secrets decrypt to files, so they can only be used with NixOS options that accept a **file path** (e.g., `passwordFile`, `secretFile`, `environmentFile`), not inline string values
+- **Dev shell**: The `shellHook` in `shell.nix` auto-converts `~/.ssh/id_ed25519` to an age key via `SOPS_AGE_KEY` for editing secrets with `sops`
+
 ## Development Conventions
 
 - **Git pull first**: Always run `git pull` before making any changes, as external processes may update the repository
@@ -94,5 +106,5 @@ The recommended import direction for each layer. When a change doesn't follow th
 - **Pre-commit workflow** (MUST follow this order before every commit):
   1. Run `nix fmt` to ensure consistent code style
   1. Stage files with `git add` (the flake only sees tracked files)
-  1. Run `nix flake check` to validate — do NOT commit if checks fail
+- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing
 - **Committing**: Always present changes and proposed commit message to the user for explicit approval before committing
