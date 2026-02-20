@@ -71,14 +71,15 @@
               "mcp__nixos__nix_versions"
 
               # Read-only git
-              "Bash(git log *)"
-              "Bash(git show *)"
-              "Bash(git status *)"
-              "Bash(git diff *)"
-              "Bash(git branch *)"
-              "Bash(git tag *)"
-              "Bash(git remote *)"
-              "Bash(git rev-parse *)"
+              "Bash(git *log*)"
+              "Bash(git *show*)"
+              "Bash(git *status*)"
+              "Bash(git *diff*)"
+              "Bash(git *branch*)"
+              "Bash(git *tag*)"
+              "Bash(git *remote*)"
+              "Bash(git *rev-parse*)"
+              "Bash(git *ls-files*)"
 
               # Read-only filesystem
               "Bash(ls *)"
