@@ -1,5 +1,6 @@
 {
   self,
+  inputs,
   ...
 }:
 {
@@ -14,6 +15,37 @@
 
     # SSH host configuration (decrypted from sops secret via bind mount)
     programs.ssh.includes = [ "/run/secrets-host/ssh_config" ];
+  };
+
+  # Standalone Home Manager configuration for non-NixOS systems
+  flake.homeConfigurations.juliogm = inputs.home-manager.lib.homeManagerConfiguration {
+    pkgs = import inputs.nixpkgs {
+      system = "x86_64-linux";
+      config.allowUnfree = true;
+    };
+    modules = [
+      self.homeModules.user-juliogm
+      self.homeModules.nix
+      self.homeModules.sops
+      (
+        { config, lib, ... }:
+        {
+          home.username = "juliogm";
+          home.homeDirectory = "/home/juliogm";
+          targets.genericLinux.enable = true;
+
+          sops.secrets.git_config.sopsFile = "${self}/secrets/juliogm.yaml";
+          sops.secrets.ssh_config.sopsFile = "${self}/secrets/juliogm.yaml";
+
+          programs.git.includes = lib.mkForce [
+            { path = config.sops.secrets.git_config.path; }
+          ];
+          programs.ssh.includes = lib.mkForce [
+            config.sops.secrets.ssh_config.path
+          ];
+        }
+      )
+    ];
   };
 
   # NixOS module for user juliogm (used inside the work container)
