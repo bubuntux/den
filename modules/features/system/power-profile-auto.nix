@@ -68,12 +68,12 @@
       systemd.services.power-profile-auto = {
         description = "Switch power profile based on AC adapter state";
         after = [ "power-profiles-daemon.service" ];
-        requires = [ "power-profiles-daemon.service" ];
+        wants = [ "power-profiles-daemon.service" ];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = powerProfileSwitch;
         };
-        wantedBy = [ "multi-user.target" ];
+        wantedBy = [ "graphical.target" ];
       };
 
       # Trigger the service whenever the AC adapter is plugged/unplugged

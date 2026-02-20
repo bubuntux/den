@@ -188,6 +188,44 @@
           '';
         };
 
+      backlight-script = pkgs.writeShellApplication {
+        name = "waybar-backlight";
+        runtimeInputs = with pkgs; [
+          coreutils
+          brightnessctl
+          jq
+        ];
+        text = ''
+          # Only show on battery
+          on_battery=false
+          for ps in /sys/class/power_supply/BAT*; do
+            [ -d "$ps" ] || continue
+            status=$(cat "$ps/status" 2>/dev/null)
+            if [ "$status" = "Discharging" ]; then
+              on_battery=true
+              break
+            fi
+          done
+
+          if [ "$on_battery" = false ]; then
+            echo '{"text": "", "tooltip": ""}'
+            exit 0
+          fi
+
+          percent=$(brightnessctl -m | cut -d',' -f4 | tr -d '%')
+          if [ "$percent" -lt 34 ]; then
+            icon="󰃞"
+          elif [ "$percent" -lt 67 ]; then
+            icon="󰃟"
+          else
+            icon="󰃠"
+          fi
+
+          jq -nc --arg text "$icon" --arg tooltip "''${percent}%" \
+            '{text: $text, tooltip: $tooltip}'
+        '';
+      };
+
       temp-script = pkgs.writeShellApplication {
         name = "waybar-temp";
         runtimeInputs = with pkgs; [
@@ -363,35 +401,8 @@
             };
 
             "custom/backlight" = {
-              exec = pkgs.writeShellScript "waybar-backlight" ''
-                # Only show on battery
-                on_battery=false
-                for ps in /sys/class/power_supply/BAT*; do
-                  [ -d "$ps" ] || continue
-                  status=$(cat "$ps/status" 2>/dev/null)
-                  if [ "$status" = "Discharging" ]; then
-                    on_battery=true
-                    break
-                  fi
-                done
-
-                if [ "$on_battery" = false ]; then
-                  echo '{"text": "", "tooltip": ""}'
-                  exit 0
-                fi
-
-                percent=$(${pkgs.brightnessctl}/bin/brightnessctl -m | cut -d',' -f4 | tr -d '%')
-                if [ "$percent" -lt 34 ]; then
-                  icon="󰃞"
-                elif [ "$percent" -lt 67 ]; then
-                  icon="󰃟"
-                else
-                  icon="󰃠"
-                fi
-
-                ${pkgs.jq}/bin/jq -nc --arg text "$icon" --arg tooltip "''${percent}%" \
-                  '{text: $text, tooltip: $tooltip}'
-              '';
+              exec = "${backlight-script}/bin/waybar-backlight";
+              format = "{}";
               return-type = "json";
               interval = 5;
               on-click = "${pkgs.brightnessctl}/bin/brightnessctl set 100%";
