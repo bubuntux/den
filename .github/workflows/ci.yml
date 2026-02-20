@@ -73,6 +73,7 @@ jobs:
         with:
           name: den
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          useDaemon: false
       - name: Free disk space
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
@@ -109,6 +110,7 @@ jobs:
         with:
           name: den
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          useDaemon: false
       - name: Free disk space
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
