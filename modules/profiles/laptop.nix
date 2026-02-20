@@ -7,6 +7,7 @@
       self.nixosModules.audio
       self.nixosModules.bluetooth
       self.nixosModules.printing
+      self.nixosModules.wifi-home
       self.nixosModules.bundle-host
       inputs.nixos-hardware.nixosModules.common-pc-laptop
       inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd

@@ -1,0 +1,21 @@
+keys:
+  - &bbtux age17zy4zw0qw5xhr00yjfaxffmnznkle28aplvqtfu8yh7tfxcv0pvq5zg70v
+  - &zuko age1u6kfrscrx9qvk2mymm2ur5nwxge3punvmdszwcyg4mcmw4kvnv9ss4mfay
+  # - &katara age1...
+creation_rules:
+  - path_regex: secrets/zuko/.*\.yaml$
+    key_groups:
+      - age:
+          - *bbtux
+          - *zuko
+  - path_regex: secrets/katara/.*\.yaml$
+    key_groups:
+      - age:
+          - *bbtux
+          # - *katara
+  - path_regex: secrets/common/.*\.yaml$
+    key_groups:
+      - age:
+          - *bbtux
+          - *zuko
+          # - *katara

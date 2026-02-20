@@ -9,10 +9,13 @@
           home-manager
           nix
 
-          agenix-cli
+          sops
           age
           ssh-to-age
         ];
+        shellHook = ''
+          export SOPS_AGE_KEY=$(ssh-to-age -private-key -i ~/.ssh/id_ed25519 2>/dev/null)
+        '';
       };
     };
 }

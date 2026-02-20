@@ -19,6 +19,7 @@
       auto-upgrade
       boot
       networking
+      sops
     ];
   };
 
