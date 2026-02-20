@@ -26,6 +26,10 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
         with:
           use-flakehub: false
+      - uses: cachix/cachix-action@v16
+        with:
+          name: den
+          skipPush: true
 
       - name: Check warnings before update
         id: before
@@ -91,6 +95,10 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
         with:
           use-flakehub: false
+      - uses: cachix/cachix-action@v16
+        with:
+          name: den
+          skipPush: true
       - id: hosts
         run: |
           hosts=$(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json)
