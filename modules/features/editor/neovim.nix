@@ -9,7 +9,7 @@
         withNodeJs = true;
         withPython3 = true;
         vimdiffAlias = true;
-        defaultEditor = true;
+        defaultEditor = false;
         extraPackages = with pkgs; [
           # Astronvim
           ripgrep

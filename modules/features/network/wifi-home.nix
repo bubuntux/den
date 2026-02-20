@@ -6,7 +6,7 @@
       imports = [ self.nixosModules.sops ];
 
       sops.secrets.wifi_home_psk = {
-        sopsFile = "${self}/secrets/common/wifi.yaml";
+        sopsFile = "${self}/secrets/common.yaml";
       };
 
       networking.networkmanager.ensureProfiles = {
