@@ -238,8 +238,8 @@
             systemd.tmpfiles.rules = [
               "d /run/user/1000 0700 juliogm users -"
               "d /home/juliogm/.ssh 0700 juliogm users -"
-              "L /home/juliogm/.ssh/id_rsa - - - - /run/secrets-host/ssh_private_key"
-              "L /home/juliogm/.ssh/id_rsa.pub - - - - /run/secrets-host/ssh_public_key"
+              "L+ /home/juliogm/.ssh/id_rsa - - - - /run/secrets-host/ssh_private_key"
+              "L+ /home/juliogm/.ssh/id_rsa.pub - - - - /run/secrets-host/ssh_public_key"
             ];
 
             networking = {
