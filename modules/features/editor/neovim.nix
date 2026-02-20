@@ -1,6 +1,6 @@
 {
   flake.homeModules.neovim =
-    { pkgs, ... }:
+    { config, pkgs, ... }:
     {
       programs.neovim = {
         enable = true;
@@ -9,7 +9,7 @@
         withNodeJs = true;
         withPython3 = true;
         vimdiffAlias = true;
-        defaultEditor = false;
+        defaultEditor = !config.programs.helix.defaultEditor;
         extraPackages = with pkgs; [
           # Astronvim
           ripgrep

@@ -4,7 +4,7 @@
     {
       programs.helix = {
         enable = true;
-        defaultEditor = true;
+        defaultEditor = lib.mkDefault true;
         settings = {
           theme = "onedark";
           editor = {
