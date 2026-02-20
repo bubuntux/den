@@ -24,6 +24,7 @@
             };
 
             lsp.display-messages = true;
+            file-picker.hidden = false;
           };
           keys = {
             normal = {
