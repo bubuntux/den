@@ -1,7 +1,12 @@
 { self, inputs, ... }:
 {
   flake.nixosModules.profile-work =
-    { pkgs, lib, ... }:
+    {
+      pkgs,
+      lib,
+      config,
+      ...
+    }:
     let
       work-run = pkgs.writeShellScriptBin "work-run" ''
         sudo systemctl start container@work.service
@@ -32,6 +37,18 @@
           groups = [ "wheel" ];
         }
       ];
+
+      # Sops secrets for juliogm (decrypted on host, bind-mounted into container)
+      sops.secrets.ssh_config_juliogm = {
+        sopsFile = "${self}/secrets/juliogm.yaml";
+        key = "ssh_config";
+        owner = "bbtux";
+      };
+      sops.secrets.git_config_juliogm = {
+        sopsFile = "${self}/secrets/juliogm.yaml";
+        key = "git_config";
+        owner = "bbtux";
+      };
 
       # Network configuration for container
       boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
@@ -104,6 +121,16 @@
             hostPath = "/home/bbtux/work";
             mountPoint = "/home/juliogm";
             isReadOnly = false;
+          };
+          "ssh-config" = {
+            hostPath = config.sops.secrets.ssh_config_juliogm.path;
+            mountPoint = "/run/secrets-host/ssh_config_juliogm";
+            isReadOnly = true;
+          };
+          "git-config" = {
+            hostPath = config.sops.secrets.git_config_juliogm.path;
+            mountPoint = "/run/secrets-host/git_config_juliogm";
+            isReadOnly = true;
           };
         };
 

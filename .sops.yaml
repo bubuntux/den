@@ -13,6 +13,11 @@ creation_rules:
       - age:
           - *bbtux
           # - *katara
+  - path_regex: secrets/juliogm\.yaml$
+    key_groups:
+      - age:
+          - *bbtux
+          - *zuko
   - path_regex: secrets/common\.yaml$
     key_groups:
       - age:
