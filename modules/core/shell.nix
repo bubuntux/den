@@ -9,9 +9,8 @@
           home-manager
           nix
 
+          agenix-cli
           age
-          gnupg
-          sops
           ssh-to-age
         ];
       };
