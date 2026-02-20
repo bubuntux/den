@@ -34,6 +34,7 @@
           home.homeDirectory = "/home/juliogm";
           targets.genericLinux.enable = true;
 
+          sops.age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
           sops.secrets.git_config.sopsFile = "${self}/secrets/juliogm.yaml";
           sops.secrets.ssh_config.sopsFile = "${self}/secrets/juliogm.yaml";
 
