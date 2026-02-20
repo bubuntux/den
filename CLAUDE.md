@@ -88,9 +88,12 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
 - **`.sops.yaml`**: Defines which age keys can decrypt which secret files. Creation rules match by filename pattern
 - **`secrets/common.yaml`**: Secrets shared across all hosts
 - **`secrets/<hostname>.yaml`**: Host-specific secrets (e.g., `secrets/zuko.yaml`)
+- **`secrets/<username>.yaml`**: User-specific secrets (e.g., `secrets/juliogm.yaml`)
 - **Encryption**: Secrets are encrypted at rest in git; decrypted at activation time to `/run/secrets/` (NixOS) or user-level paths (Home Manager)
 - **Referencing secrets in modules**: Use `sopsFile = "${self}/secrets/common.yaml";` (not relative paths) and `config.sops.secrets.<name>.path` for the decrypted file path
-- **Limitation**: Sops secrets decrypt to files, so they can only be used with NixOS options that accept a **file path** (e.g., `passwordFile`, `secretFile`, `environmentFile`), not inline string values
+- **Naming convention**: `sops.secrets` attribute names MUST match the YAML key in the secrets file 1-to-1 (no `key` attribute needed). Use descriptive key names within each file (e.g., `wifi_home_psk` in `common.yaml`, `ssh_config` in `juliogm.yaml`)
+- **Limitation**: Sops secrets decrypt to files, so they can only be used with NixOS options that accept a **file path** (e.g., `passwordFile`, `secretFile`, `environmentFile`), not inline string values. For inline config (e.g., SSH matchBlocks, git user settings), store the config snippet as a sops secret and use the corresponding `includes` option (e.g., `programs.ssh.includes`, `programs.git.includes`) to reference the decrypted file path
+- **Container secrets**: Secrets needed inside NixOS containers are decrypted on the host and bind-mounted in. Use `owner` to set the host user whose UID matches the container user (e.g., `owner = "bbtux"` for uid 1000 = juliogm inside the container). Mount points use `/run/secrets-host/` inside the container
 - **Dev shell**: The `shellHook` in `shell.nix` auto-converts `~/.ssh/id_ed25519` to an age key via `SOPS_AGE_KEY` for editing secrets with `sops`
 
 ## Development Conventions

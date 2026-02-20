@@ -39,14 +39,20 @@
       ];
 
       # Sops secrets for juliogm (decrypted on host, bind-mounted into container)
-      sops.secrets.ssh_config_juliogm = {
+      sops.secrets.ssh_config = {
         sopsFile = "${self}/secrets/juliogm.yaml";
-        key = "ssh_config";
         owner = "bbtux";
       };
-      sops.secrets.git_config_juliogm = {
+      sops.secrets.git_config = {
         sopsFile = "${self}/secrets/juliogm.yaml";
-        key = "git_config";
+        owner = "bbtux";
+      };
+      sops.secrets.ssh_private_key = {
+        sopsFile = "${self}/secrets/juliogm.yaml";
+        owner = "bbtux";
+      };
+      sops.secrets.ssh_public_key = {
+        sopsFile = "${self}/secrets/juliogm.yaml";
         owner = "bbtux";
       };
 
@@ -123,13 +129,23 @@
             isReadOnly = false;
           };
           "ssh-config" = {
-            hostPath = config.sops.secrets.ssh_config_juliogm.path;
-            mountPoint = "/run/secrets-host/ssh_config_juliogm";
+            hostPath = config.sops.secrets.ssh_config.path;
+            mountPoint = "/run/secrets-host/ssh_config";
             isReadOnly = true;
           };
           "git-config" = {
-            hostPath = config.sops.secrets.git_config_juliogm.path;
-            mountPoint = "/run/secrets-host/git_config_juliogm";
+            hostPath = config.sops.secrets.git_config.path;
+            mountPoint = "/run/secrets-host/git_config";
+            isReadOnly = true;
+          };
+          "ssh-private-key" = {
+            hostPath = config.sops.secrets.ssh_private_key.path;
+            mountPoint = "/run/secrets-host/ssh_private_key";
+            isReadOnly = true;
+          };
+          "ssh-public-key" = {
+            hostPath = config.sops.secrets.ssh_public_key.path;
+            mountPoint = "/run/secrets-host/ssh_public_key";
             isReadOnly = true;
           };
         };
@@ -221,6 +237,9 @@
 
             systemd.tmpfiles.rules = [
               "d /run/user/1000 0700 juliogm users -"
+              "d /home/juliogm/.ssh 0700 juliogm users -"
+              "L /home/juliogm/.ssh/id_rsa - - - - /run/secrets-host/ssh_private_key"
+              "L /home/juliogm/.ssh/id_rsa.pub - - - - /run/secrets-host/ssh_public_key"
             ];
 
             networking = {
