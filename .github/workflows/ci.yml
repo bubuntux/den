@@ -74,7 +74,6 @@ jobs:
       - name: Free disk space
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
-          sudo docker image prune --all --force
       - name: Build NixOS configuration
         run: |
           echo "### NixOS: \`${{ matrix.host }}\`" >> "$GITHUB_STEP_SUMMARY"
@@ -110,7 +109,6 @@ jobs:
       - name: Free disk space
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghcrunner /usr/local/share/boost
-          sudo docker image prune --all --force
       - name: Build Home Manager configuration
         run: |
           echo "### Home Manager: \`${{ matrix.home }}\`" >> "$GITHUB_STEP_SUMMARY"
