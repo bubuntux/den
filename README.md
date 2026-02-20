@@ -49,10 +49,45 @@ Features    Hardware     Users
 
 ## Usage
 
-```bash
-# Apply configuration to the current machine
-sudo nixos-rebuild switch --flake .
+### NixOS Host (fresh install)
 
+```bash
+# From a NixOS live ISO or existing install
+sudo nixos-rebuild switch --flake github:bubuntux/den#<hostname>
+
+# Or from a local clone
+sudo nixos-rebuild switch --flake .
+```
+
+### Home Manager (non-NixOS)
+
+Install the developer environment on any Linux distro with Nix installed.
+
+```bash
+# 1. Install Nix (if not already)
+curl -L https://nixos.org/nix/install | sh -s -- --daemon
+
+# 2. Enable flakes
+mkdir -p ~/.config/nix
+echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+
+# 3. Add yourself to trusted-users (needed for custom substituters)
+echo "trusted-users = root $(whoami)" | sudo tee -a /etc/nix/nix.conf
+sudo systemctl restart nix-daemon
+
+# 4. Apply the home configuration
+nix run home-manager/master -- switch -b bkp --flake github:bubuntux/den#<user>
+```
+
+Subsequent updates:
+
+```bash
+home-manager switch --flake github:bubuntux/den#<user> --refresh
+```
+
+### Development
+
+```bash
 # Test a host in a QEMU VM
 nix run .#<hostname>-vm
 

@@ -27,6 +27,7 @@
       self.homeModules.user-juliogm
       self.homeModules.nix
       self.homeModules.sops
+      self.homeModules.auto-upgrade
       (
         { config, lib, ... }:
         {
@@ -44,6 +45,7 @@
           programs.ssh.includes = lib.mkForce [
             config.sops.secrets.ssh_config.path
           ];
+
         }
       )
     ];
