@@ -17,6 +17,7 @@
           };
           ignores = [
             ".direnv"
+            ".claude/settings.local.json"
             "result"
           ];
         };
