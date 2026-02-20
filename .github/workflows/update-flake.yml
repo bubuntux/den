@@ -134,9 +134,6 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
         with:
           summarize: false
-      - uses: DeterminateSystems/magic-nix-cache-action@main
-        with:
-          use-flakehub: false
       - uses: cachix/cachix-action@v16
         continue-on-error: true
         with:
@@ -184,9 +181,6 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
         with:
           summarize: false
-      - uses: DeterminateSystems/magic-nix-cache-action@main
-        with:
-          use-flakehub: false
       - uses: cachix/cachix-action@v16
         continue-on-error: true
         with:
