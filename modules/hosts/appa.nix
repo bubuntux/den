@@ -10,6 +10,7 @@
     modules = with self.nixosModules; [
       bundle-host
       profile-nas
+      user-bbtux
       (
         { modulesPath, ... }:
         {
