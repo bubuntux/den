@@ -15,6 +15,8 @@
       workExec = cmd: "${work-run}/bin/work-run ${cmd}";
     in
     {
+      imports = [ self.nixosModules.wifi-work ];
+
       # Polkit rules for container management
       security.polkit.extraConfig = ''
         polkit.addRule(function(action, subject) {
