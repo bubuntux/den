@@ -2,7 +2,7 @@
 {
 
   flake.nixosModules.user-shari =
-    { config, ... }:
+    { config, pkgs, ... }:
     {
       sops.secrets.shari_password_hash = {
         sopsFile = "${self}/secrets/shari.yaml";
@@ -22,6 +22,7 @@
         ];
       };
       home-manager.users.shari = {
+        home.packages = [ pkgs.google-chrome ];
       };
     };
 
