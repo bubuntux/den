@@ -53,9 +53,9 @@ Bundles  →  Profiles  →  Hosts
 Features    Hardware     Users
 ```
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox, librewolf), `editor/` (neovim, helix, claude-code), `wayland/` (waybar, foot, kanshi, theme), `shell/` (git, ssh), `system/` (boot, networking, fonts, locale, nix, sops), `network/` (vpn, wifi-home), `media/` (mpv), `virtualisation/` (podman), `desktop/` (thunar)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox, librewolf), `editor/` (neovim, helix, claude-code), `wayland/` (waybar, foot, kanshi, theme), `shell/` (git, ssh), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, openssh, vpn, vpn-media, wifi-home, wifi-work), `media/` (mpv, jellyfin, bazarr, radarr, sonarr), `virtualisation/` (podman), `desktop/` (thunar)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines both `bundle-base` (container-safe foundation: fonts, home-manager, locale, nix) and `bundle-host` (extends base with auto-upgrade, boot, networking). `desktop/` is a directory with `default.nix` (bundle-desktop), `gnome.nix`, and `sway/`
-- **`modules/profiles/`**: High-level roles combining bundles and features (laptop, developer, server)
+- **`modules/profiles/`**: High-level roles combining bundles and features (laptop, developer, gaming, nas, wife, work)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options
 - **`modules/users/`**: User account definitions that bridge NixOS and Home Manager; imported by hosts or profiles
 - **`modules/hardware/`**: Device and hardware configurations (audio, bluetooth, printing, dell-precision-5680)
@@ -79,7 +79,7 @@ The recommended import direction for each layer. When a change doesn't follow th
 
 ### Naming Conventions
 
-- **Hosts**: Avatar: The Last Airbender characters (katara, zuko, appa, momo)
+- **Hosts**: Avatar: The Last Airbender characters (katara, zuko, appa)
 
 ### Secrets Management (sops-nix)
 
