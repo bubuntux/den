@@ -21,7 +21,12 @@ creation_rules:
       - age:
           - *bbtux
           - *zuko
-  - path_regex: secrets/wife\.yaml$
+  - path_regex: secrets/bbtux\.yaml$
+    key_groups:
+      - age:
+          - *bbtux
+          - *zuko
+  - path_regex: secrets/shari\.yaml$
     key_groups:
       - age:
           - *bbtux

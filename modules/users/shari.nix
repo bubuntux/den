@@ -5,7 +5,7 @@
     { config, ... }:
     {
       sops.secrets.shari_password_hash = {
-        sopsFile = "${self}/secrets/wife.yaml";
+        sopsFile = "${self}/secrets/shari.yaml";
         neededForUsers = true;
       };
       services.displayManager.autoLogin.user = "shari";
