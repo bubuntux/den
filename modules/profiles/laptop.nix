@@ -6,6 +6,7 @@
     imports = [
       self.nixosModules.audio
       self.nixosModules.bluetooth
+      self.nixosModules.avahi
       self.nixosModules.printing
       self.nixosModules.wifi-home
       self.nixosModules.bundle-host
