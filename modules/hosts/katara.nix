@@ -26,8 +26,6 @@
 
           # Enable firmware updates
           services.fwupd.enable = true;
-          # Enable fingerprint reader
-          services.fprintd.enable = true;
 
           imports = [
             (modulesPath + "/installer/scan/not-detected.nix")

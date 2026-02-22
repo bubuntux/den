@@ -15,6 +15,9 @@
         "networkmanager"
         "wheel"
       ];
+      openssh.authorizedKeys.keys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEfnT06gNHha8xJzYX7aFrszzdKraUp2Dv7iJvCNuBOE"
+      ];
     };
     home-manager.users.shari = {
       # imports = [ self.homeModules.user-shari ];

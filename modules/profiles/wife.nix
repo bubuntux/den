@@ -5,6 +5,7 @@
       user-shari
       gnome
       firefox
+      openssh
     ];
   };
 }
