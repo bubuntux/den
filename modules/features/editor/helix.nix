@@ -97,23 +97,51 @@
         ];
         languages.language = [
           {
+            name = "bash";
+            auto-format = true;
+            formatter.command = lib.getExe pkgs.shfmt;
+          }
+          {
+            name = "json";
+            auto-format = true;
+            formatter.command = lib.getExe pkgs.biome;
+            formatter.args = [
+              "format"
+              "--stdin-file-path"
+              "file.json"
+            ];
+          }
+          {
+            name = "markdown";
+            auto-format = true;
+            formatter.command = lib.getExe pkgs.mdformat;
+            formatter.args = [ "-" ];
+          }
+          {
             name = "nix";
             auto-format = true;
             formatter.command = lib.getExe pkgs.nixfmt;
+          }
+          {
+            name = "toml";
+            auto-format = true;
+            formatter.command = lib.getExe pkgs.taplo;
+            formatter.args = [
+              "fmt"
+              "-"
+            ];
           }
           {
             name = "typst";
             auto-format = true;
             formatter.command = lib.getExe pkgs.typstyle;
           }
-          # {
-          #   name = "java";
-          #   auto-format = false;
-          #   formatter = {
-          #     command = lib.getExe pkgs.google-java-format;
-          #     args = [ "-" ];
-          #   };
-          # }
+          {
+            name = "yaml";
+            auto-format = true;
+            formatter.command = lib.getExe pkgs.yamlfmt;
+            formatter.args = [ "-" ];
+          }
         ];
         ignores = [
           ".build/"
