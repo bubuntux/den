@@ -18,9 +18,7 @@ jobs:
       warnings-after: ${{ steps.after.outputs.warnings }}
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          summarize: false
+      - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v16
         with:
           name: den

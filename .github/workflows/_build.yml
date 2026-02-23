@@ -29,9 +29,7 @@ jobs:
         if: inputs.artifact-name != ''
         with:
           name: ${{ inputs.artifact-name }}
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          summarize: false
+      - uses: cachix/install-nix-action@v31
       - id: hosts
         run: |
           hosts=$(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json)
@@ -60,9 +58,7 @@ jobs:
         if: inputs.artifact-name != ''
         with:
           name: ${{ inputs.artifact-name }}
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          summarize: false
+      - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v16
         continue-on-error: true
         with:
@@ -105,9 +101,7 @@ jobs:
         if: inputs.artifact-name != ''
         with:
           name: ${{ inputs.artifact-name }}
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          summarize: false
+      - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v16
         continue-on-error: true
         with:
