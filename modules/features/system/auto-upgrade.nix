@@ -20,19 +20,27 @@
       pkgs,
       ...
     }:
+    let
+      upgradeScript = pkgs.writeShellApplication {
+        name = "hm-auto-upgrade";
+        runtimeInputs = [
+          config.programs.home-manager.package
+          pkgs.nix
+        ];
+        text = ''
+          home-manager switch \
+            -b bkp \
+            --flake github:bubuntux/den#${config.home.username} \
+            --refresh
+        '';
+      };
+    in
     {
       systemd.user.services.home-manager-auto-upgrade = {
         Unit.Description = "Home Manager auto upgrade";
         Service = {
           Type = "oneshot";
-          ExecStart = toString (
-            pkgs.writeShellScript "hm-auto-upgrade" ''
-              ${lib.getExe config.programs.home-manager.package} switch \
-                -b bkp \
-                --flake github:bubuntux/den#${config.home.username} \
-                --refresh
-            ''
-          );
+          ExecStart = lib.getExe upgradeScript;
         };
       };
       systemd.user.timers.home-manager-auto-upgrade = {
