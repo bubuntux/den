@@ -5,18 +5,23 @@
     { pkgs, ... }:
     let
       statusline = pkgs.writeShellScript "claude-statusline" ''
-        input=$(${pkgs.coreutils}/bin/cat)
+        # Single jq call to extract and format all fields
+        IFS=$'\t' read -r MODEL PROJECT DIR PCT COST DURATION < <(
+          ${pkgs.jq}/bin/jq -r '
+            (.cost.total_duration_ms // 0 | . / 1000 | floor) as $secs |
+            [
+              .model.display_name // "Claude",
+              (.workspace.current_dir // "~" | split("/") | last),
+              .workspace.current_dir // "~",
+              (.context_window.used_percentage // 0 | floor),
+              (.cost.total_cost_usd // 0 | if . > 0 then "$\(. * 100 | round | . / 100)" else "" end),
+              (if $secs >= 3600 then "\($secs / 3600 | floor)h \($secs % 3600 / 60 | floor)m \($secs % 60)s"
+               elif $secs > 0 then "\($secs / 60 | floor)m \($secs % 60)s"
+               else "" end)
+            ] | @tsv'
+        )
 
-        MODEL=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.model.display_name // "Claude"')
-        DIR=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.workspace.current_dir // "~"')
-        PCT=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
-        COST=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.cost.total_cost_usd // 0')
-        DURATION_MS=$(echo "$input" | ${pkgs.jq}/bin/jq -r '.cost.total_duration_ms // 0')
-
-        # Project name from directory
-        PROJECT="''${DIR##*/}"
-
-        # Git branch
+        # Git branch (only if in a git repo)
         BRANCH=$(${pkgs.git}/bin/git -C "$DIR" branch --show-current 2>/dev/null)
 
         # Context bar with color coding
@@ -29,14 +34,14 @@
         else COLOR='\e[32m'; fi
         RESET='\e[0m'
 
-        # Format cost
-        COST_FMT=$(printf '$%.2f' "$COST")
+        # Build output with conditional sections
+        OUT="[$MODEL] $PROJECT"
+        [ -n "$BRANCH" ] && OUT="$OUT | $BRANCH"
+        OUT="$OUT | $COLOR[$BAR] $PCT%$RESET"
+        [ -n "$COST" ] && OUT="$OUT | $COST"
+        [ -n "$DURATION" ] && OUT="$OUT | $DURATION"
 
-        # Format duration
-        MINS=$((DURATION_MS / 60000))
-        SECS=$(((DURATION_MS % 60000) / 1000))
-
-        echo -e "[$MODEL] $PROJECT | $BRANCH | $COLOR[$BAR] $PCT%$RESET | $COST_FMT | ''${MINS}m ''${SECS}s"
+        echo -e "$OUT"
       '';
     in
     {
