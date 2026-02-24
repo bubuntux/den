@@ -37,7 +37,10 @@
     in
     {
       systemd.user.services.home-manager-auto-upgrade = {
-        Unit.Description = "Home Manager auto upgrade";
+        Unit = {
+          Description = "Home Manager auto upgrade";
+          X-SwitchMethod = "keep-old";
+        };
         Service = {
           Type = "oneshot";
           ExecStart = lib.getExe upgradeScript;
