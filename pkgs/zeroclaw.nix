@@ -2,7 +2,8 @@
   lib,
   stdenv,
   fetchurl,
-  autoPatchelfHook,
+  installShellFiles,
+  patchelf,
 }:
 
 let
@@ -30,13 +31,28 @@ stdenv.mkDerivation {
 
   sourceRoot = ".";
 
-  nativeBuildInputs = [ autoPatchelfHook ];
+  nativeBuildInputs = [
+    installShellFiles
+    patchelf
+  ];
 
-  buildInputs = [ stdenv.cc.cc.lib ];
+  dontAutoPatchelf = true;
 
   installPhase = ''
     runHook preInstall
+
+    patchelf \
+      --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
+      --set-rpath "${lib.makeLibraryPath [ stdenv.cc.cc.lib ]}" \
+      zeroclaw
+
     install -Dm755 zeroclaw $out/bin/zeroclaw
+
+    installShellCompletion --cmd zeroclaw \
+      --bash <($out/bin/zeroclaw completions bash) \
+      --zsh <($out/bin/zeroclaw completions zsh) \
+      --fish <($out/bin/zeroclaw completions fish)
+
     runHook postInstall
   '';
 
