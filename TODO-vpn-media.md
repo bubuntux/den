@@ -12,24 +12,20 @@ ProtonVPN → Downloads → WireGuard configuration:
 
 ## Secrets
 
-- [ ] Edit `secrets/appa.yaml` with `sops secrets/appa.yaml` and set the real `wireguard_private_key`
-
-## .sops.yaml
-
-- [ ] Get appa's age key: run `ssh-to-age -i /etc/ssh/ssh_host_ed25519_key.pub` on appa
-- [ ] Add the key as `&appa` in `.sops.yaml` and uncomment `# - *appa` in the appa creation rule
-- [ ] Re-encrypt appa secrets: `sops updatekeys secrets/appa.yaml`
+- [ ] Create a sops secrets file for the NAS host and add the `wireguard_private_key`
+- [ ] Add the host's age key to `.sops.yaml` and create a creation rule for its secrets file
+- [ ] Uncomment `sops.secrets.wireguard_private_key` and `wgPrivateKeyFile` in `modules/profiles/nas.nix`
 
 ## Validation
 
 After filling in real values:
 
 - [ ] `nix flake check`
-- [ ] Deploy to appa: `sudo nixos-rebuild switch --flake .`
+- [ ] Deploy to NAS host: `sudo nixos-rebuild switch --flake .`
 - [ ] `sudo machinectl list` → shows `vpn-media`
 - [ ] `sudo nixos-container run vpn-media -- wg show` → WG interface active
 - [ ] `ping 10.200.200.2` → container reachable
 - [ ] `sudo nixos-container run vpn-media -- curl https://ifconfig.me` → ProtonVPN IP
-- [ ] `curl http://<appa-ip>:8080` → qBittorrent web UI
-- [ ] `curl http://<appa-ip>:9696` → Prowlarr web UI
+- [ ] `curl http://<nas-ip>:8080` → qBittorrent web UI
+- [ ] `curl http://<nas-ip>:9696` → Prowlarr web UI
 - [ ] Stop WG inside container → verify no internet (kill switch works)

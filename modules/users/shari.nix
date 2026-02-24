@@ -21,9 +21,11 @@
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEfnT06gNHha8xJzYX7aFrszzdKraUp2Dv7iJvCNuBOE"
         ];
       };
-      home-manager.users.shari = {
-        home.packages = [ pkgs.google-chrome ];
-      };
+      home-manager.users.shari =
+        { pkgs, ... }:
+        {
+          home.packages = [ pkgs.google-chrome ];
+        };
     };
 
 }

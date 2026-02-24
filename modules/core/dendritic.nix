@@ -7,4 +7,7 @@
   ];
 
   flake-file.description = "NixOS configuration flake using the dendritic pattern";
+
+  # Use stable NixOS channel for system packages
+  flake-file.inputs.nixpkgs.url = "https://channels.nixos.org/nixos-25.11/nixexprs.tar.xz";
 }
