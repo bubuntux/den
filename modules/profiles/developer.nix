@@ -21,9 +21,6 @@
 
   # NixOS module for developer profile
   flake.nixosModules.profile-developer = _: {
-    imports = with self.nixosModules; [
-      claude-code
-    ];
 
     # Add home-manager profile-developer module to shared modules
     home-manager.sharedModules = [ self.homeModules.profile-developer ];
