@@ -5,17 +5,23 @@
 }:
 {
   # Home Manager module for user juliogm
-  flake.homeModules.user-juliogm = _: {
-    imports = with self.homeModules; [
-      profile-developer
-    ];
+  flake.homeModules.user-juliogm =
+    { pkgs, ... }:
+    {
+      imports = with self.homeModules; [
+        profile-developer
+      ];
 
-    # Git user configuration (decrypted from sops secret via bind mount)
-    programs.git.includes = [ { path = "/run/secrets-host/git_config"; } ];
+      home.packages = [
+        (pkgs.callPackage "${self}/pkgs/zeroclaw.nix" { })
+      ];
 
-    # SSH host configuration (decrypted from sops secret via bind mount)
-    programs.ssh.includes = [ "/run/secrets-host/ssh_config" ];
-  };
+      # Git user configuration (decrypted from sops secret via bind mount)
+      programs.git.includes = [ { path = "/run/secrets-host/git_config"; } ];
+
+      # SSH host configuration (decrypted from sops secret via bind mount)
+      programs.ssh.includes = [ "/run/secrets-host/ssh_config" ];
+    };
 
   # Standalone Home Manager configuration for non-NixOS systems
   flake.homeConfigurations.juliogm = inputs.home-manager.lib.homeManagerConfiguration {
