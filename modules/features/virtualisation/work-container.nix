@@ -290,9 +290,6 @@
               shellAliases = {
                 work = "sudo systemctl start container@work.service && machinectl -q shell juliogm@work";
                 cvm = workExec "ssh cvm";
-                bot = workExec "ssh bot";
-                ben = workExec "ssh ben";
-                bensync = workExec "rsync -razvP juliogm@juliogm-ben.cvm.indeed.net:vllm_* benchmarks/";
               };
               packages = with pkgs; [
                 work-run
