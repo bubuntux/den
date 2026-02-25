@@ -7,6 +7,7 @@
       imports = with self.homeModules; [
         bundle-base
         claude-code
+        go
       ];
 
       # Common development tools
