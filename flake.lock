@@ -2,11 +2,11 @@
   "nodes": {
     "flake-file": {
       "locked": {
-        "lastModified": 1771968394,
-        "narHash": "sha256-YhWlYe71OfOgi3zuykqYxw5O3dVkPH6QcgLiAA/V/R8=",
+        "lastModified": 1772050225,
+        "narHash": "sha256-2bo3dPzU+BhlG30H3oOq7xXmnkCHmI8vEegwO7my+yg=",
         "owner": "vic",
         "repo": "flake-file",
-        "rev": "6772f79cc48ab78c30970050fe2cb17b523fb640",
+        "rev": "8f44bbcbd3bffb79d9d5e0f8fa834de5dbbac00b",
         "type": "github"
       },
       "original": {
