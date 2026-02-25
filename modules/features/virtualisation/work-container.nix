@@ -240,6 +240,10 @@
               "d /home/juliogm/.ssh 0700 juliogm users -"
               "L+ /home/juliogm/.ssh/id_rsa - - - - /run/secrets-host/ssh_private_key"
               "L+ /home/juliogm/.ssh/id_rsa.pub - - - - /run/secrets-host/ssh_public_key"
+              # Symlink so host portal FileChooser paths resolve inside the container
+              # (host portal returns /home/bbtux/work/... but container has /home/juliogm/...)
+              "d /home/bbtux 0755 juliogm users -"
+              "L+ /home/bbtux/work - - - - /home/juliogm"
             ];
 
             networking = {
