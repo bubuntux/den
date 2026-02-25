@@ -4,6 +4,7 @@
   flake.homeModules.claude-code =
     { pkgs, ... }:
     let
+      claudeModel = "opus";
       statusline = pkgs.writeShellScript "claude-statusline" ''
         # Single jq call to extract and format all fields
         IFS=$'\t' read -r MODEL PROJECT DIR PCT COST DURATION < <(
@@ -142,7 +143,7 @@
 
         settings = {
           # Prefer the most advanced model
-          model = "opus";
+          model = claudeModel;
           effortLevel = "high";
 
           # Status line with full dashboard
@@ -236,6 +237,12 @@
 
           # Show turn duration for performance awareness
           showTurnDuration = true;
+
+          # Force subagents to use the same model as the main thread
+          env.CLAUDE_CODE_SUBAGENT_MODEL = claudeModel;
+
+          # Always show extended thinking for visibility into reasoning
+          alwaysThinkingEnabled = true;
         };
       };
     };
