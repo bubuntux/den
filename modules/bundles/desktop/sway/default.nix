@@ -128,7 +128,7 @@ in
       # XDG portal configuration
       xdg.portal = {
         enable = true;
-        xdgOpenUsePortal = true;
+        xdgOpenUsePortal = false;
         config = {
           common.default = "gtk";
           sway = {

@@ -16,6 +16,11 @@
           "gfx.font_rendering.fontconfig.max_generic_substitutions" = 127;
         };
       };
+      xdg.mime.defaultApplications = {
+        "text/html" = "firefox.desktop";
+        "x-scheme-handler/http" = "firefox.desktop";
+        "x-scheme-handler/https" = "firefox.desktop";
+      };
       home-manager.sharedModules = [ self.homeModules.firefox ];
     };
 
