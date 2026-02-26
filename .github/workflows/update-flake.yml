@@ -52,7 +52,7 @@ jobs:
         id: after
         run: |
           nix flake check 2> check-after-raw.log
-          grep -iv 'has uncommitted changes' check-after-raw.log > check-after.log || true
+          grep -iv -e 'has uncommitted changes' -e 'Git tree.*is dirty' check-after-raw.log > check-after.log || true
           count=$(grep -ci 'warning:' check-after.log || echo 0)
           echo "warnings=$count" >> "$GITHUB_OUTPUT"
           echo "Warnings after update: $count (before: ${{ steps.before.outputs.warnings }})"
