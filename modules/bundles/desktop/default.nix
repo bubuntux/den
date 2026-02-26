@@ -4,7 +4,7 @@
   flake.homeModules.bundle-desktop =
     { pkgs, ... }:
     {
-      # imports = [ self.homeModules.mpv ];
+      imports = [ self.homeModules.mpv ];
 
       targets.genericLinux.enable = true;
       services.network-manager-applet.enable = true;
