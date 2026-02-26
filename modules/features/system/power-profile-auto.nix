@@ -4,6 +4,7 @@
     { pkgs, ... }:
     let
       idleInhibitInit = pkgs.writeShellScript "idle-inhibit-init" ''
+        # Stop swayidle if on AC power
         for supply in /sys/class/power_supply/*/; do
           if [ "$(cat "$supply/type" 2>/dev/null)" = "Mains" ] && [ "$(cat "$supply/online" 2>/dev/null)" = "1" ]; then
             ${pkgs.systemd}/bin/systemctl --user stop swayidle.service
@@ -17,15 +18,12 @@
       systemd.user.services.idle-inhibit-init = {
         Unit = {
           Description = "Initialize idle inhibitor based on AC state";
+          Requires = [ "swayidle.service" ];
           After = [ "swayidle.service" ];
         };
         Service = {
           Type = "oneshot";
-          ExecStartPre = "${pkgs.systemd}/bin/systemctl --user is-active swayidle.service";
           ExecStart = idleInhibitInit;
-          Restart = "on-failure";
-          RestartSec = 1;
-          RestartMaxDelaySec = 5;
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
