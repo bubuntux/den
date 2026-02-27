@@ -9,6 +9,7 @@
       self.nixosModules.avahi
       self.nixosModules.printing
       self.nixosModules.wifi-home
+      self.nixosModules.kdeconnect
       self.nixosModules.bundle-host
       inputs.nixos-hardware.nixosModules.common-pc-laptop
       inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
