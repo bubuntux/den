@@ -4,6 +4,7 @@
     imports = with self.nixosModules; [
       bazarr
       jellyfin
+      openssh
       radarr
       sonarr
       vpn-media
