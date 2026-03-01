@@ -13,6 +13,10 @@
     programs.yamlfmt = {
       enable = true;
       excludes = [ "secrets/*.yaml" ];
+      settings.formatter = {
+        type = "basic";
+        force_array_style = "block";
+      };
     };
   };
 
