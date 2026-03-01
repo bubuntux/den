@@ -21,6 +21,12 @@
 
       # SSH host configuration (decrypted from sops secret via bind mount)
       programs.ssh.includes = [ "/run/secrets-host/ssh_config" ];
+
+      programs.bash.initExtra = ''
+        for f in "$HOME"/.*-kube-profile; do
+          [ -f "$f" ] && . "$f"
+        done
+      '';
     };
 
   # Standalone Home Manager configuration for non-NixOS systems
