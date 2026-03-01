@@ -136,16 +136,6 @@
             auto-format = true;
             formatter.command = lib.getExe pkgs.typstyle;
           }
-          {
-            name = "yaml";
-            auto-format = true;
-            formatter.command = lib.getExe pkgs.yamlfmt;
-            formatter.args = [
-              "-formatter"
-              "type=basic,force_array_style=block"
-              "-"
-            ];
-          }
         ];
         ignores = [
           ".build/"

@@ -10,14 +10,6 @@
     programs.nixfmt.enable = true;
     programs.shfmt.enable = true;
     programs.taplo.enable = true;
-    programs.yamlfmt = {
-      enable = true;
-      excludes = [ "secrets/*.yaml" ];
-      settings.formatter = {
-        type = "basic";
-        force_array_style = "block";
-      };
-    };
   };
 
 }
