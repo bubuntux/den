@@ -67,6 +67,9 @@ in
           terminal = "foot";
           menu = "rofi -terminal foot -show combi -combi-modes drun#run -modes combi";
 
+          # Enable Num Lock by default
+          input."type:keyboard".xkb_numlock = "enabled";
+
           # Wallpaper
           output."*".bg = "${wallpaper} fill";
 

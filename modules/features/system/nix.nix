@@ -55,5 +55,8 @@ in
         settings = commonSettings;
         gc = commonGc;
       };
+
+      # Allow unfree packages for ad-hoc nix commands (nix-shell, nix-env, etc.)
+      xdg.configFile."nixpkgs/config.nix".text = "{ allowUnfree = true; }";
     };
 }
