@@ -1,8 +1,14 @@
 { self, ... }:
 {
 
+  flake.homeModules.user-shari =
+    { pkgs, ... }:
+    {
+      home.packages = [ pkgs.google-chrome ];
+    };
+
   flake.nixosModules.user-shari =
-    { config, pkgs, ... }:
+    { config, ... }:
     {
       sops.secrets.shari_password_hash = {
         sopsFile = "${self}/secrets/shari.yaml";
@@ -21,11 +27,9 @@
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEfnT06gNHha8xJzYX7aFrszzdKraUp2Dv7iJvCNuBOE"
         ];
       };
-      home-manager.users.shari =
-        { pkgs, ... }:
-        {
-          home.packages = [ pkgs.google-chrome ];
-        };
+      home-manager.users.shari = {
+        imports = [ self.homeModules.user-shari ];
+      };
     };
 
 }

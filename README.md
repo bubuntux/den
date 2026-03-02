@@ -27,8 +27,7 @@ Hosts are named after Avatar: The Last Airbender characters.
 | --- | --- | --- |
 | **zuko** | Dell Precision 5680 (Intel/NVIDIA) | Primary dev laptop — Sway, gaming, work container, development |
 | **katara** | AMD laptop | Family laptop — GNOME desktop |
-| **appa** | — | Placeholder |
-| **momo** | — | Placeholder |
+| **appa** | Intel Pentium Silver J5040 | NAS — media server |
 
 ## Module Hierarchy
 
