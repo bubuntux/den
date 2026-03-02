@@ -20,8 +20,14 @@
     nixpkgs.url = "https://channels.nixos.org/nixos-25.11/nixexprs.tar.xz";
     nixpkgs-lib.follows = "nixpkgs";
     nixpkgs-unstable.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.xz";
-    sops-nix.url = "github:Mic92/sops-nix";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
+    sops-nix = {
+      inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:Mic92/sops-nix";
+    };
+    treefmt-nix = {
+      inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:numtide/treefmt-nix";
+    };
   };
 
 }
