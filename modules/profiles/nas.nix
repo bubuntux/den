@@ -5,6 +5,7 @@
       bazarr
       jellyfin
       openssh
+      plex
       radarr
       sonarr
       vpn-media
