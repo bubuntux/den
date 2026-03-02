@@ -1,6 +1,7 @@
+{ self, ... }:
 {
   flake.nixosModules.gnome =
-    { self, pkgs, ... }:
+    { pkgs, ... }:
     {
       imports = with self.nixosModules; [
         bundle-desktop

@@ -1,12 +1,7 @@
 { self, ... }:
 {
-  flake.nixosModules.work-container =
-    {
-      pkgs,
-      lib,
-      config,
-      ...
-    }:
+  flake.homeModules.work-container =
+    { pkgs, ... }:
     let
       work-run = pkgs.writeShellScriptBin "work-run" ''
         sudo systemctl start container@work.service
@@ -14,6 +9,74 @@
       '';
       workExec = cmd: "${work-run}/bin/work-run ${cmd}";
     in
+    {
+      home = {
+        shellAliases = {
+          work = "sudo systemctl start container@work.service && machinectl -q shell juliogm@work";
+          cvm = workExec "ssh cvm";
+        };
+        packages = with pkgs; [
+          work-run
+          # TODO move slack
+          slack
+          (makeDesktopItem {
+            name = "slack-work";
+            desktopName = "Slack (Work)";
+            exec = workExec "slack";
+            icon = "slack";
+            categories = [
+              "Network"
+              "InstantMessaging"
+              "Chat"
+            ];
+          })
+          (makeDesktopItem {
+            name = "google-chrome-work";
+            desktopName = "Google Chrome (Work)";
+            exec = workExec "google-chrome-stable";
+            icon = "google-chrome";
+            categories = [
+              "Network"
+              "WebBrowser"
+            ];
+          })
+          (makeDesktopItem {
+            name = "Cloud VM";
+            desktopName = "Cloud VM (Work)";
+            exec = workExec "google-chrome-stable --profile-directory=Default --app-id=dpapjfbeplbjjimcnklbjoibkcaocjhg";
+            categories = [
+              "Network"
+            ];
+          })
+          (makeDesktopItem {
+            name = "gateway-work";
+            desktopName = "Gateway (Work)";
+            exec = workExec "gateway";
+            icon = "jetbrains-gateway";
+            categories = [
+              "Development"
+              "IDE"
+            ];
+          })
+          (makeDesktopItem {
+            name = "stop-work";
+            desktopName = "Stop Work";
+            exec = "machinectl stop work";
+            icon = "process-stop";
+            categories = [
+              "System"
+            ];
+          })
+        ];
+      };
+    };
+
+  flake.nixosModules.work-container =
+    {
+      lib,
+      config,
+      ...
+    }:
     {
       # Polkit rules for container management
       security.polkit.extraConfig = ''
@@ -286,71 +349,6 @@
       };
 
       # Home Manager configuration for work aliases and desktop entries
-      home-manager.sharedModules = [
-        (
-          { pkgs, ... }:
-          {
-            home = {
-              shellAliases = {
-                work = "sudo systemctl start container@work.service && machinectl -q shell juliogm@work";
-                cvm = workExec "ssh cvm";
-              };
-              packages = with pkgs; [
-                work-run
-                # TODO move slack
-                slack
-                (makeDesktopItem {
-                  name = "slack-work";
-                  desktopName = "Slack (Work)";
-                  exec = workExec "slack";
-                  icon = "slack";
-                  categories = [
-                    "Network"
-                    "InstantMessaging"
-                    "Chat"
-                  ];
-                })
-                (makeDesktopItem {
-                  name = "google-chrome-work";
-                  desktopName = "Google Chrome (Work)";
-                  exec = workExec "google-chrome-stable";
-                  icon = "google-chrome";
-                  categories = [
-                    "Network"
-                    "WebBrowser"
-                  ];
-                })
-                (makeDesktopItem {
-                  name = "Cloud VM";
-                  desktopName = "Cloud VM (Work)";
-                  exec = workExec "google-chrome-stable --profile-directory=Default --app-id=dpapjfbeplbjjimcnklbjoibkcaocjhg";
-                  categories = [
-                    "Network"
-                  ];
-                })
-                (makeDesktopItem {
-                  name = "gateway-work";
-                  desktopName = "Gateway (Work)";
-                  exec = workExec "gateway";
-                  icon = "jetbrains-gateway";
-                  categories = [
-                    "Development"
-                    "IDE"
-                  ];
-                })
-                (makeDesktopItem {
-                  name = "stop-work";
-                  desktopName = "Stop Work";
-                  exec = "machinectl stop work";
-                  icon = "process-stop";
-                  categories = [
-                    "System"
-                  ];
-                })
-              ];
-            };
-          }
-        )
-      ];
+      home-manager.sharedModules = [ self.homeModules.work-container ];
     };
 }
