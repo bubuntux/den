@@ -3,6 +3,7 @@
   flake.nixosModules.profile-nas = _: {
     imports = with self.nixosModules; [
       bazarr
+      cloudflare-ddns
       jellyfin
       openssh
       plex
