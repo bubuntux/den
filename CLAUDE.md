@@ -53,7 +53,7 @@ Bundles  →  Profiles  →  Hosts
 Features    Hardware     Users
 ```
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox, librewolf), `editor/` (neovim, helix, claude-code), `wayland/` (waybar, foot, kanshi, theme), `shell/` (git, ssh), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, openssh, vpn, vpn-media, wifi-home, wifi-work), `media/` (mpv, jellyfin, bazarr, radarr, sonarr), `virtualisation/` (podman), `desktop/` (thunar)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox, librewolf), `dev-tools/` (claude-code, go), `editor/` (neovim, helix), `desktop/` (kdeconnect, thunar, `wayland/`: foot, kanshi, monitors, theme, waybar), `shell/` (git, ssh), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, vpn, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr, vpn-media), `media/` (jellyfin, mpv, plex), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines both `bundle-base` (container-safe foundation: fonts, home-manager, locale, nix) and `bundle-host` (extends base with auto-upgrade, boot, networking). `desktop/` is a directory with `default.nix` (bundle-desktop), `gnome.nix`, and `sway/`
 - **`modules/profiles/`**: High-level roles combining bundles and features (laptop, developer, gaming, nas, wife, work)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options
