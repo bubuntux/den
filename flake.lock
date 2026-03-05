@@ -2,11 +2,11 @@
   "nodes": {
     "flake-file": {
       "locked": {
-        "lastModified": 1772343585,
-        "narHash": "sha256-7jADySzWscA2822JzNbfRdC+R+B7tzDoWavG8DMY1tU=",
+        "lastModified": 1772677111,
+        "narHash": "sha256-tFVzJ+A39OrBPK1lYlM5giUu6yl9pwjUGf6VR3b8Yho=",
         "owner": "vic",
         "repo": "flake-file",
-        "rev": "0f5c1039860127fa5673d362d68f8b7df29a44bc",
+        "rev": "f18f9bad86481621b9c378842987b172e91ca82c",
         "type": "github"
       },
       "original": {
@@ -100,11 +100,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1772615108,
-        "narHash": "sha256-VXvCiKWLOlRyTpTL6EBN3fxPHoArhDMMcHlchk/EmFU=",
-        "rev": "0c39f3b5a9a234421d4ad43ab9c7cf64840172d0",
+        "lastModified": 1772643971,
+        "narHash": "sha256-bxJZa7mwdOOL9ReglQiC4ZGuhPtNiaYiLNV+AYWDJUU=",
+        "rev": "400de68cd101e8cfebffea121397683caf7f5a34",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.05pre958153.0c39f3b5a9a2/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.05pre958387.400de68cd101/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
