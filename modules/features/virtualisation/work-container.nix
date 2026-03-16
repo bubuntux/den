@@ -211,6 +211,11 @@
             mountPoint = "/run/secrets-host/ssh_public_key";
             isReadOnly = true;
           };
+          "localtime" = {
+            hostPath = "/etc/localtime";
+            mountPoint = "/etc/localtime";
+            isReadOnly = true;
+          };
         };
 
         config =

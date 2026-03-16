@@ -219,9 +219,6 @@ in
       # Keyring for secrets
       services.gnome.gnome-keyring.enable = true;
 
-      # Geoclue2 for gammastep location provider
-      services.geoclue2.enable = true;
-
       # Enable greetd with tuigreet
       services.greetd = {
         enable = true;
