@@ -8,12 +8,12 @@
   inputs = {
     flake-file.url = "github:vic/flake-file";
     flake-parts = {
-      inputs.nixpkgs-lib.follows = "nixpkgs-lib";
       url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs-lib";
     };
     home-manager = {
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
       url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
     import-tree.url = "github:vic/import-tree";
     nixos-hardware.url = "github:nixos/nixos-hardware";
@@ -21,13 +21,12 @@
     nixpkgs-lib.follows = "nixpkgs";
     nixpkgs-unstable.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.xz";
     sops-nix = {
-      inputs.nixpkgs.follows = "nixpkgs";
       url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     treefmt-nix = {
-      inputs.nixpkgs.follows = "nixpkgs";
       url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-
 }
