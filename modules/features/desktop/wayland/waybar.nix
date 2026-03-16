@@ -120,73 +120,95 @@
         '';
       };
 
-      mkWeatherScript =
-        {
-          name,
-          tempUnit,
-          windUnit,
-          tempSuffix,
-          windSuffix,
-        }:
-        pkgs.writeShellApplication {
-          inherit name;
-          runtimeInputs = with pkgs; [
-            curl
-            jq
-          ];
-          text = ''
-            fallback='{"text": "", "tooltip": ""}'
+      weather-script = pkgs.writeShellApplication {
+        name = "waybar-weather";
+        runtimeInputs = with pkgs; [
+          curl
+          jq
+          coreutils
+          util-linux
+        ];
+        text = ''
+          unit="''${1:-f}"
+          cache="/tmp/waybar-weather-cache.json"
+          max_age=840  # 14 minutes (just under the 15min interval)
+          fallback='{"text": "", "tooltip": ""}'
 
-            location=$(curl -sf --max-time 5 "http://ip-api.com/json/?fields=lat,lon,city" || true)
-            if [ -z "$location" ]; then
-              echo "$fallback"
-              exit 0
-            fi
+          # Fetch if cache is missing or stale, using flock to avoid duplicate fetches
+          needs_fetch=false
+          if [ ! -f "$cache" ]; then
+            needs_fetch=true
+          else
+            age=$(( $(date +%s) - $(stat -c %Y "$cache") ))
+            [ "$age" -gt "$max_age" ] && needs_fetch=true
+          fi
 
-            lat=$(echo "$location" | jq -r '.lat')
-            lon=$(echo "$location" | jq -r '.lon')
-            city=$(echo "$location" | jq -r '.city')
+          if [ "$needs_fetch" = true ]; then
+            (
+              flock -w 15 9 || true
+              # Re-check inside lock (another instance may have fetched)
+              if [ ! -f "$cache" ] || [ "$(( $(date +%s) - $(stat -c %Y "$cache") ))" -gt "$max_age" ]; then
+                location=$(curl -sf --max-time 5 "http://ip-api.com/json/?fields=lat,lon,city" || true)
+                if [ -n "$location" ]; then
+                  lat=$(echo "$location" | jq -r '.lat')
+                  lon=$(echo "$location" | jq -r '.lon')
+                  city=$(echo "$location" | jq -r '.city')
+                  weather=$(curl -sf --max-time 10 \
+                    "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&temperature_unit=celsius&wind_speed_unit=kmh" || true)
+                  if [ -n "$weather" ]; then
+                    echo "$weather" | jq --arg city "$city" '. + {city: $city}' > "$cache.tmp"
+                    mv "$cache.tmp" "$cache"
+                  fi
+                fi
+              fi
+            ) 9>/tmp/waybar-weather.lock
+          fi
 
-            weather=$(curl -sf --max-time 10 \
-              "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&temperature_unit=${tempUnit}&wind_speed_unit=${windUnit}" || true)
-            if [ -z "$weather" ]; then
-              echo "$fallback"
-              exit 0
-            fi
+          # Read cache
+          if [ ! -f "$cache" ]; then
+            echo "$fallback"
+            exit 0
+          fi
 
-            temp=$(echo "$weather" | jq -r '.current.temperature_2m')
-            code=$(echo "$weather" | jq -r '.current.weather_code')
-            wind=$(echo "$weather" | jq -r '.current.wind_speed_10m')
-            humidity=$(echo "$weather" | jq -r '.current.relative_humidity_2m')
+          data=$(cat "$cache")
+          code=$(echo "$data" | jq -r '.current.weather_code')
+          humidity=$(echo "$data" | jq -r '.current.relative_humidity_2m')
+          city=$(echo "$data" | jq -r '.city')
 
-            case $code in
-              0)       icon="󰖙"; desc="Clear" ;;
-              1)       icon="󰖙"; desc="Mainly clear" ;;
-              2)       icon="󰖕"; desc="Partly cloudy" ;;
-              3)       icon="󰖐"; desc="Overcast" ;;
-              45|48)   icon="󰖑"; desc="Fog" ;;
-              51|53|55) icon="󰖗"; desc="Drizzle" ;;
-              56|57)   icon="󰖗"; desc="Freezing drizzle" ;;
-              61|63|65) icon="󰖖"; desc="Rain" ;;
-              66|67)   icon="󰖖"; desc="Freezing rain" ;;
-              71|73|75) icon="󰖘"; desc="Snow" ;;
-              77)      icon="󰖘"; desc="Snow grains" ;;
-              80|81|82) icon="󰖖"; desc="Rain showers" ;;
-              85|86)   icon="󰖘"; desc="Snow showers" ;;
-              95)      icon="󰖓"; desc="Thunderstorm" ;;
-              96|99)   icon="󰖓"; desc="Thunderstorm with hail" ;;
-              *)       icon="󰖐"; desc="Unknown" ;;
-            esac
+          case $code in
+            0)       icon="󰖙"; desc="Clear" ;;
+            1)       icon="󰖙"; desc="Mainly clear" ;;
+            2)       icon="󰖕"; desc="Partly cloudy" ;;
+            3)       icon="󰖐"; desc="Overcast" ;;
+            45|48)   icon="󰖑"; desc="Fog" ;;
+            51|53|55) icon="󰖗"; desc="Drizzle" ;;
+            56|57)   icon="󰖗"; desc="Freezing drizzle" ;;
+            61|63|65) icon="󰖖"; desc="Rain" ;;
+            66|67)   icon="󰖖"; desc="Freezing rain" ;;
+            71|73|75) icon="󰖘"; desc="Snow" ;;
+            77)      icon="󰖘"; desc="Snow grains" ;;
+            80|81|82) icon="󰖖"; desc="Rain showers" ;;
+            85|86)   icon="󰖘"; desc="Snow showers" ;;
+            95)      icon="󰖓"; desc="Thunderstorm" ;;
+            96|99)   icon="󰖓"; desc="Thunderstorm with hail" ;;
+            *)       icon="󰖐"; desc="Unknown" ;;
+          esac
 
-            temp_int=$(printf "%.0f" "$temp")
-            wind_int=$(printf "%.0f" "$wind")
+          if [ "$unit" = "c" ]; then
+            temp_int=$(echo "$data" | jq -r '.current.temperature_2m | round')
+            wind_int=$(echo "$data" | jq -r '.current.wind_speed_10m | round')
+            text="$icon ''${temp_int}°C"
+            tooltip="$desc"$'\n'"$city"$'\n'"󰖙 ''${temp_int}°C  󰖝 ''${wind_int} km/h  󰖎 ''${humidity}%"
+          else
+            temp_int=$(echo "$data" | jq -r '.current.temperature_2m | . * 9 / 5 + 32 | round')
+            wind_int=$(echo "$data" | jq -r '.current.wind_speed_10m * 0.621371 | round')
+            text="$icon ''${temp_int}°F"
+            tooltip="$desc"$'\n'"$city"$'\n'"󰖙 ''${temp_int}°F  󰖝 ''${wind_int} mph  󰖎 ''${humidity}%"
+          fi
 
-            text="$icon ''${temp_int}${tempSuffix}"
-            tooltip="$desc"$'\n'"$city"$'\n'"󰖙 ''${temp_int}${tempSuffix}  󰖝 ''${wind_int} ${windSuffix}  󰖎 ''${humidity}%"
-
-            jq -nc --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}'
-          '';
-        };
+          jq -nc --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}'
+        '';
+      };
 
       backlight-script = pkgs.writeShellApplication {
         name = "waybar-backlight";
@@ -300,21 +322,6 @@
         '';
       };
 
-      weather-script = mkWeatherScript {
-        name = "waybar-weather";
-        tempUnit = "fahrenheit";
-        windUnit = "mph";
-        tempSuffix = "°F";
-        windSuffix = "mph";
-      };
-
-      weather-celsius-script = mkWeatherScript {
-        name = "waybar-weather-celsius";
-        tempUnit = "celsius";
-        windUnit = "kmh";
-        tempSuffix = "°C";
-        windSuffix = "km/h";
-      };
     in
     {
       programs.waybar = {
@@ -547,17 +554,17 @@
             "custom/weather-f" = {
               format = "{}";
               return-type = "json";
-              exec = "${weather-script}/bin/waybar-weather";
+              exec = "${weather-script}/bin/waybar-weather f";
               interval = 900;
-              on-click = "${weather-script}/bin/waybar-weather";
+              on-click = "${weather-script}/bin/waybar-weather f";
             };
 
             "custom/weather-c" = {
               format = "{}";
               return-type = "json";
-              exec = "${weather-celsius-script}/bin/waybar-weather-celsius";
+              exec = "${weather-script}/bin/waybar-weather c";
               interval = 900;
-              on-click = "${weather-celsius-script}/bin/waybar-weather-celsius";
+              on-click = "${weather-script}/bin/waybar-weather c";
             };
 
             battery = {
