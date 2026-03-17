@@ -16,21 +16,6 @@
       nvidiaPackage = config.hardware.nvidia.package;
     in
     {
-      # Workaround for nixpkgs#25.11 bug: gst_all_1.icamerasrc-ipu6ep doesn't
-      # pass the correct ipu6ep-camera-hal, so v4l2-relayd loads the wrong .so.
-      # Fixed upstream in nixos-unstable; remove this overlay after upgrading.
-      nixpkgs.overlays = [
-        (_: prev: {
-          gst_all_1 = prev.gst_all_1.overrideScope (
-            _: gstPrev: {
-              icamerasrc-ipu6ep = gstPrev.icamerasrc-ipu6ep.override {
-                ipu6-camera-hal = prev.ipu6ep-camera-hal;
-              };
-            }
-          );
-        })
-      ];
-
       imports = [
         inputs.nixos-hardware.nixosModules.common-hidpi
         inputs.nixos-hardware.nixosModules.common-pc-ssd
