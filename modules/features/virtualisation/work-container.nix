@@ -228,6 +228,11 @@
 
             nixpkgs.config.google-chrome.commandLineArgs = "--enable-features=UseOzonePlatform,WebRTCPipeWireCapturer --ozone-platform=wayland";
 
+            # Disable pam_lastlog2 for login service — it fails inside nspawn
+            # containers and causes machinectl shell sessions to exit immediately
+            # TODO: remove once fixed upstream https://github.com/NixOS/nixpkgs/issues/501050
+            security.pam.services.login.updateWtmp = lib.mkForce false;
+
             services = {
               resolved.enable = false;
               cloudflare-warp.enable = true;
