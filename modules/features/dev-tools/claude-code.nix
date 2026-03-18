@@ -4,7 +4,7 @@
   flake.homeModules.claude-code =
     { pkgs, ... }:
     let
-      claudeModel = "opus";
+      claudeModel = "opus[1m]";
       statusline = pkgs.writeShellScript "claude-statusline" ''
         # Single jq call to extract and format all fields
         IFS=$'\t' read -r MODEL PROJECT DIR PCT COST DURATION < <(
