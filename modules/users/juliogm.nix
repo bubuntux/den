@@ -10,7 +10,7 @@
     {
       imports = with self.homeModules; [
         profile-developer
-        gws
+        # gws
       ];
 
       home.packages = [
