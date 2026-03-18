@@ -8,7 +8,7 @@
           font = "Hack Nerd Font Mono:size=12";
           dpi-aware = "yes";
         };
-        colors = {
+        colors-dark = {
           alpha = 0.90;
         };
         mouse = {
