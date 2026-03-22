@@ -75,7 +75,7 @@
       # Packages
       environment.systemPackages = with pkgs; [
         # Communication
-        discord
+        vesktop
         mumble
 
         # Desktop entry for Steam with gamemode
