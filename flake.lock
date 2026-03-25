@@ -61,11 +61,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1774415265,
-        "narHash": "sha256-AH5TEVAzAtvZedLenZ2LXLmje8FOtoFrrotT42bdZ0Y=",
+        "lastModified": 1774459882,
+        "narHash": "sha256-3rSRAz34KKcXYIfMSQRWI+pua+TDXrRUXimQT7Va7Wg=",
         "owner": "googleworkspace",
         "repo": "cli",
-        "rev": "6a45832ea5b51702a44a1d57dc3a1123142dcd12",
+        "rev": "a52d297cdfafbc53dfed66a3721a9bbd1d50dc31",
         "type": "github"
       },
       "original": {
