@@ -23,6 +23,9 @@
       # SSH host configuration (decrypted from sops secret via bind mount)
       programs.ssh.includes = [ "/run/secrets-host/ssh_config" ];
 
+      # GWS OAuth credentials (decrypted from sops secret via bind mount)
+      home.sessionVariables.GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE = "/run/secrets-host/gws_credentials";
+
       programs.bash.initExtra = ''
         for f in "$HOME"/.*-kube-profile; do
           [ -f "$f" ] && . "$f"
@@ -51,6 +54,7 @@
           sops.age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
           sops.secrets.git_config.sopsFile = "${self}/secrets/juliogm.yaml";
           sops.secrets.ssh_config.sopsFile = "${self}/secrets/juliogm.yaml";
+          sops.secrets.gws_credentials.sopsFile = "${self}/secrets/juliogm.yaml";
 
           programs.git.includes = lib.mkForce [
             { path = config.sops.secrets.git_config.path; }
@@ -58,6 +62,8 @@
           programs.ssh.includes = lib.mkForce [
             config.sops.secrets.ssh_config.path
           ];
+
+          home.sessionVariables.GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE = lib.mkForce config.sops.secrets.gws_credentials.path;
 
         }
       )
