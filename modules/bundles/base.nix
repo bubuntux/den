@@ -21,6 +21,7 @@
       networking
       sops
       sudors
+      ntpdrs
     ];
   };
 
