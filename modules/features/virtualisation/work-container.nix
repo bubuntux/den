@@ -89,7 +89,7 @@
       '';
 
       # Sudo rules for starting work container without password
-      security.sudo.extraRules = [
+      security.sudo-rs.extraRules = [
         {
           commands = [
             {

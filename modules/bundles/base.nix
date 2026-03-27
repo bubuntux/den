@@ -20,6 +20,7 @@
       boot
       networking
       sops
+      sudors
     ];
   };
 
