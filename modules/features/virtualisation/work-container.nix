@@ -118,11 +118,6 @@
         sopsFile = "${self}/secrets/juliogm.yaml";
         owner = "bbtux";
       };
-      sops.secrets.gws_credentials = {
-        sopsFile = "${self}/secrets/juliogm.yaml";
-        owner = "bbtux";
-      };
-
       # Network configuration for container
       boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
       networking.firewall.trustedInterfaces = [ "ve-+" ];
@@ -213,11 +208,6 @@
           "ssh-public-key" = {
             hostPath = config.sops.secrets.ssh_public_key.path;
             mountPoint = "/run/secrets-host/ssh_public_key";
-            isReadOnly = true;
-          };
-          "gws-credentials" = {
-            hostPath = config.sops.secrets.gws_credentials.path;
-            mountPoint = "/run/secrets-host/gws_credentials";
             isReadOnly = true;
           };
           "localtime" = {
