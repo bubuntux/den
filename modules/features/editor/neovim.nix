@@ -8,6 +8,7 @@
         vimAlias = true;
         withNodeJs = true;
         withPython3 = true;
+        withRuby = false;
         vimdiffAlias = true;
         defaultEditor = !config.programs.helix.defaultEditor;
         extraPackages = with pkgs; [
