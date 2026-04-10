@@ -6,12 +6,41 @@
 {
   # Home Manager module for user juliogm
   flake.homeModules.user-juliogm =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
+    let
+      jsonFormat = pkgs.formats.json { };
+      claudeBaseSettings = import "${self}/modules/features/dev-tools/_claude-settings.nix" {
+        inherit pkgs;
+      };
+      settingsFile = jsonFormat.generate "claude-base-settings.json" (
+        claudeBaseSettings // { "$schema" = "https://json.schemastore.org/claude-code-settings.json"; }
+      );
+    in
     {
       imports = with self.homeModules; [
         profile-developer
         gws
       ];
+
+      # Prevent HM from managing settings.json as a read-only symlink,
+      # so Claude Code plugins can write to it imperatively.
+      programs.claude-code.settings = lib.mkForce { };
+
+      # Write Nix-defined settings as a mutable file, merging with any
+      # existing imperative changes (plugins, etc.) on each activation.
+      home.activation.claudeCodeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        target="$HOME/.claude/settings.json"
+        mkdir -p "$HOME/.claude"
+        if [ -f "$target" ] && [ ! -L "$target" ]; then
+          ${pkgs.jq}/bin/jq -s '.[0] * .[1]' \
+            "${settingsFile}" "$target" \
+            > "$target.tmp"
+          mv "$target.tmp" "$target"
+        else
+          cp "${settingsFile}" "$target"
+          chmod 644 "$target"
+        fi
+      '';
 
       home.packages = [
         (pkgs.callPackage "${self}/pkgs/zeroclaw.nix" { })

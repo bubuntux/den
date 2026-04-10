@@ -11,6 +11,5 @@
         pkgs.google-cloud-sdk
       ];
       programs.claude-code.skillsDir = "${inputs.gws}/skills";
-      programs.claude-code.settings.permissions.allow = [ "Bash(gws *)" ];
     };
 }
