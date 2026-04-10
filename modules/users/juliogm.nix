@@ -37,6 +37,7 @@
             > "$target.tmp"
           mv "$target.tmp" "$target"
         else
+          rm -f "$target"
           cp "${settingsFile}" "$target"
           chmod 644 "$target"
         fi
