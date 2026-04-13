@@ -10,6 +10,6 @@
         inputs.gws.packages.${pkgs.stdenv.hostPlatform.system}.default
         pkgs.google-cloud-sdk
       ];
-      programs.claude-code.skillsDir = "${inputs.gws}/skills";
+      programs.claude-code.skills = "${inputs.gws}/skills";
     };
 }

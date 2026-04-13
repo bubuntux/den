@@ -10,7 +10,7 @@
         settings = import ./_claude-settings.nix { inherit pkgs; };
 
         # Global CLAUDE.md — applies to all projects
-        memory.text = ''
+        context = ''
           # Global Instructions
 
           ## Style
