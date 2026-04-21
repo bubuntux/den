@@ -16,6 +16,7 @@ jobs:
       changed: ${{ steps.changes.outputs.changed }}
       warnings-before: ${{ steps.before.outputs.warnings }}
       warnings-after: ${{ steps.after.outputs.warnings }}
+      check-failed: ${{ steps.after.outputs.check-failed }}
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
@@ -51,7 +52,12 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         id: after
         run: |
-          nix flake check 2> check-after-raw.log
+          if nix flake check 2> check-after-raw.log; then
+            echo "check-failed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "check-failed=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::nix flake check failed after update"
+          fi
           grep -iv -e 'has uncommitted changes' -e 'Git tree.*is dirty' check-after-raw.log > check-after.log || true
           count=$(grep -ci 'warning:' check-after.log || echo 0)
           echo "warnings=$count" >> "$GITHUB_OUTPUT"
@@ -96,7 +102,11 @@ jobs:
         id: decide
         run: |
           echo '### Finalize' >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ needs.build.result }}" = "failure" ]; then
+          if [ "${{ needs.update.outputs.check-failed }}" = "true" ]; then
+            echo "action=pr" >> "$GITHUB_OUTPUT"
+            echo "reason=check-failure" >> "$GITHUB_OUTPUT"
+            echo ':x: `nix flake check` failed after update — creating PR for review' >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ needs.build.result }}" = "failure" ]; then
             echo "action=pr" >> "$GITHUB_OUTPUT"
             echo "reason=build-failure" >> "$GITHUB_OUTPUT"
             echo ':x: Build failures detected — creating PR for review' >> "$GITHUB_STEP_SUMMARY"
@@ -142,6 +152,16 @@ jobs:
             cat update-output.log
             echo '```'
 
+            if [ "${{ steps.decide.outputs.reason }}" = "check-failure" ]; then
+              echo ''
+              echo '### Flake check failure'
+              echo '`nix flake check` **failed** after updating inputs.'
+              echo ''
+              echo '```'
+              cat check-after.log 2>/dev/null || echo 'No log available'
+              echo '```'
+            fi
+
             if [ "${{ steps.decide.outputs.reason }}" = "build-failure" ]; then
               echo ''
               echo '### Build failures'
@@ -185,7 +205,7 @@ jobs:
         with:
           commit-message: "chore: update flake inputs"
           title: >-
-            chore: update flake inputs (${{ steps.decide.outputs.reason == 'build-failure' && 'build failure' || 'new warnings' }})
+            chore: update flake inputs (${{ steps.decide.outputs.reason == 'check-failure' && 'check failure' || steps.decide.outputs.reason == 'build-failure' && 'build failure' || 'new warnings' }})
           branch: auto/flake-update
           delete-branch: true
           body: ${{ steps.pr-body.outputs.body }}
