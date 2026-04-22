@@ -27,6 +27,7 @@
               "fast"
             ];
             demuxer-max-back-bytes = "256MiB";
+            ytdl-format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]";
           };
           "protocol.http" = {
             profile = "network";
