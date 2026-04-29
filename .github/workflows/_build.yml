@@ -24,8 +24,8 @@ jobs:
       hosts: ${{ steps.hosts.outputs.hosts }}
       homes: ${{ steps.homes.outputs.homes }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         if: inputs.artifact-name != ''
         with:
           name: ${{ inputs.artifact-name }}
@@ -53,13 +53,13 @@ jobs:
       matrix:
         host: ${{ fromJSON(needs.discover.outputs.hosts) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         if: inputs.artifact-name != ''
         with:
           name: ${{ inputs.artifact-name }}
       - uses: cachix/install-nix-action@v31
-      - uses: cachix/cachix-action@v16
+      - uses: cachix/cachix-action@v17
         continue-on-error: true
         with:
           name: den
@@ -91,7 +91,7 @@ jobs:
           fi
       - name: Upload error log
         if: failure() && inputs.upload-error-logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: error-nixos-${{ matrix.host }}
           path: build.log
@@ -104,13 +104,13 @@ jobs:
       matrix:
         home: ${{ fromJSON(needs.discover.outputs.homes) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         if: inputs.artifact-name != ''
         with:
           name: ${{ inputs.artifact-name }}
       - uses: cachix/install-nix-action@v31
-      - uses: cachix/cachix-action@v16
+      - uses: cachix/cachix-action@v17
         continue-on-error: true
         with:
           name: den
@@ -142,7 +142,7 @@ jobs:
           fi
       - name: Upload error log
         if: failure() && inputs.upload-error-logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: error-hm-${{ matrix.home }}
           path: build.log
