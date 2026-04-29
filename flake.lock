@@ -18,7 +18,7 @@
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
-          "nixpkgs-lib"
+          "nixpkgs"
         ]
       },
       "locked": {
@@ -146,9 +146,6 @@
         "import-tree": "import-tree",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
-        "nixpkgs-lib": [
-          "nixpkgs"
-        ],
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix"
       }
