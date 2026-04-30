@@ -47,6 +47,16 @@
         (pkgs.callPackage "${self}/pkgs/zeroclaw.nix" { })
       ];
 
+      # Language servers Helix auto-detects when their binaries are on PATH.
+      # Docker LSPs are already provided by the shared helix module.
+      programs.helix.extraPackages = with pkgs; [
+        kotlin-language-server
+        jdt-language-server
+        terraform-ls
+        pyright
+        ruff
+      ];
+
       # Git user configuration (decrypted from sops secret via bind mount)
       programs.git.includes = [ { path = "/run/secrets-host/git_config"; } ];
 
