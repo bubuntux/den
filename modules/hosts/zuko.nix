@@ -17,6 +17,7 @@
       vpn
       user-bbtux
       firefox
+      cachix-push
 
       # Monitor configuration
       {

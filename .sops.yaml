@@ -31,3 +31,8 @@ creation_rules:
           - *bbtux
           - *zuko
           - *katara
+  - path_regex: secrets/zuko\.yaml$
+    key_groups:
+      - age:
+          - *bbtux
+          - *zuko
