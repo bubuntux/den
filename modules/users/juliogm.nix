@@ -43,10 +43,6 @@
         fi
       '';
 
-      home.packages = [
-        (pkgs.callPackage "${self}/pkgs/zeroclaw.nix" { })
-      ];
-
       # Language servers Helix auto-detects when their binaries are on PATH.
       # Docker LSPs are already provided by the shared helix module.
       programs.helix.extraPackages = with pkgs; [
