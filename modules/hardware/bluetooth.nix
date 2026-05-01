@@ -1,11 +1,9 @@
-{ self, ... }:
-{
-  # Home Manager module for bluetooth
-  flake.homeModules.bluetooth = _: {
-    services.blueman-applet.enable = true;
-  };
-
-  # NixOS module for bluetooth
+_: {
+  # NixOS module for bluetooth.
+  # services.blueman.enable already provides a fully-wired user unit for
+  # blueman-applet (WantedBy=graphical-session.target), so no Home Manager
+  # side is needed — adding `services.blueman-applet.enable` there caused a
+  # duplicate ExecStart= which systemd 260+ refuses to load.
   flake.nixosModules.bluetooth =
     { lib, ... }:
     {
@@ -14,8 +12,5 @@
         enable = lib.mkDefault true;
         powerOnBoot = lib.mkDefault true;
       };
-
-      # Add home-manager bluetooth module to shared modules
-      home-manager.sharedModules = [ self.homeModules.bluetooth ];
     };
 }
