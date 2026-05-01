@@ -7,7 +7,10 @@
   flake.homeModules.user-bbtux =
     { pkgs, ... }:
     {
-      imports = [ self.homeModules.librewolf ];
+      imports = with self.homeModules; [
+        librewolf
+        taskwarrior
+      ];
       # Git user configuration
       programs.git.settings.user = {
         name = "Julio Gutierrez";
