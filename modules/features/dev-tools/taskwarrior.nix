@@ -5,6 +5,17 @@
       config,
       ...
     }:
+    let
+      # The upstream hook ships with `#!/usr/bin/env python3`, which fails
+      # when python3 isn't on the user's PATH. Pin it to the store python3.
+      timewHook = pkgs.runCommand "on-modify.timewarrior" { } ''
+        cp ${pkgs.timewarrior}/share/doc/timew/ext/on-modify.timewarrior $out
+        chmod +w $out
+        substituteInPlace $out \
+          --replace-fail '#!/usr/bin/env python3' '#!${pkgs.python3}/bin/python3'
+        chmod +x $out
+      '';
+    in
     {
       programs.taskwarrior = {
         enable = true;
@@ -20,7 +31,7 @@
       # Bridge taskwarrior <-> timewarrior: `task start`/`task stop`
       # automatically starts/stops a matching timewarrior interval.
       xdg.configFile."task/hooks/on-modify.timewarrior" = {
-        source = "${pkgs.timewarrior}/share/doc/timew/ext/on-modify.timewarrior";
+        source = timewHook;
         executable = true;
       };
     };
