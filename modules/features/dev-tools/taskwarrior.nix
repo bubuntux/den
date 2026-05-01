@@ -28,6 +28,8 @@
         taskwarrior-tui
       ];
 
+      home.shellAliases.tt = "taskwarrior-tui";
+
       # Bridge taskwarrior <-> timewarrior: `task start`/`task stop`
       # automatically starts/stops a matching timewarrior interval.
       xdg.configFile."task/hooks/on-modify.timewarrior" = {
