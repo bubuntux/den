@@ -183,6 +183,21 @@
           source = pomoHook;
           executable = true;
         };
+
+        # Stop any `+ACTIVE` tasks on logout / shutdown / reboot. ExecStop
+        # fires when the user manager terminates, which happens both on
+        # logout and as part of the system shutdown sequence. Suspend is
+        # not covered (user manager doesn't stop on suspend).
+        systemd.user.services.taskwarrior-stop-active = {
+          Unit.Description = "Stop active taskwarrior tasks on logout/shutdown";
+          Service = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = "${pkgs.coreutils}/bin/true";
+            ExecStop = "-${pkgs.taskwarrior3}/bin/task +ACTIVE stop";
+          };
+          Install.WantedBy = [ "default.target" ];
+        };
       };
     };
 }
