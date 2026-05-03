@@ -40,11 +40,27 @@ let
 
     echo -e "$OUT"
   '';
+
 in
 {
   # Prefer the most advanced model
   model = claudeModel;
   effortLevel = "high";
+
+  # Use the full 1M context window before auto-compact kicks in
+  autoCompactWindow = 1000000;
+
+  # Snapshot files before edits so /rewind can restore them
+  fileCheckpointingEnabled = true;
+
+  # Flicker-free renderer with virtualized scrollback
+  tui = "fullscreen";
+
+  # Background memory consolidation across sessions
+  autoDreamEnabled = true;
+
+  # Surface thinking summaries in the transcript view
+  showThinkingSummaries = true;
 
   # Status line with full dashboard
   statusLine = {
@@ -69,60 +85,82 @@ in
       "mcp__nixos__nix"
       "mcp__nixos__nix_versions"
 
-      # Read-only git
-      "Bash(git *log*)"
-      "Bash(git *show*)"
-      "Bash(git *status*)"
-      "Bash(git *diff*)"
-      "Bash(git *branch*)"
-      "Bash(git *tag*)"
-      "Bash(git *remote*)"
-      "Bash(git *rev-parse*)"
-      "Bash(git *ls-files*)"
+      # Read-only git (canonical `<cmd>:*` prefix syntax)
+      "Bash(git log:*)"
+      "Bash(git show:*)"
+      "Bash(git status:*)"
+      "Bash(git diff:*)"
+      "Bash(git branch:*)"
+      "Bash(git tag:*)"
+      "Bash(git remote:*)"
+      "Bash(git rev-parse:*)"
+      "Bash(git ls-files:*)"
+      "Bash(git blame:*)"
 
       # Read-only filesystem
-      "Bash(ls *)"
-      "Bash(tree *)"
-      "Bash(wc *)"
-      "Bash(file *)"
-      "Bash(stat *)"
+      "Bash(ls:*)"
+      "Bash(tree:*)"
+      "Bash(wc:*)"
+      "Bash(file:*)"
+      "Bash(stat:*)"
 
       # Read-only nix
-      "Bash(nix flake show *)"
-      "Bash(nix flake metadata *)"
-      "Bash(nix eval *)"
-      "Bash(nix search *)"
+      "Bash(nix flake show:*)"
+      "Bash(nix flake metadata:*)"
+      "Bash(nix eval:*)"
+      "Bash(nix search:*)"
       "Bash(nix --version)"
     ];
     deny = [
-      # Environment and secret files
-      "Read(.env)"
-      "Read(.env.*)"
-      "Edit(.env)"
-      "Edit(.env.*)"
-      "Read(secrets/**)"
-      "Edit(secrets/**)"
+      # Environment and secret files (recursive)
+      "Read(**/.env)"
+      "Read(**/.env.*)"
+      "Edit(**/.env)"
+      "Edit(**/.env.*)"
+      "Read(**/secrets/**)"
+      "Edit(**/secrets/**)"
 
-      # SSH and GPG keys
+      # SSH and GPG dirs
       "Read(**/.ssh/**)"
+      "Edit(**/.ssh/**)"
       "Read(**/.gnupg/**)"
+      "Edit(**/.gnupg/**)"
+
+      # SSH private keys outside ~/.ssh (defense-in-depth)
+      "Read(**/id_rsa*)"
+      "Read(**/id_ed25519*)"
+      "Read(**/id_ecdsa*)"
 
       # Private keys and certificates
       "Read(**/*.pem)"
+      "Edit(**/*.pem)"
       "Read(**/*.key)"
+      "Edit(**/*.key)"
       "Read(**/*.p12)"
+      "Edit(**/*.p12)"
       "Read(**/*.pfx)"
+      "Edit(**/*.pfx)"
 
       # Age/SOPS encrypted secrets (common in NixOS)
       "Read(**/*.age)"
       "Edit(**/*.age)"
 
+      # GPG-encrypted / signed blobs
+      "Read(**/*.gpg)"
+      "Read(**/*.asc)"
+
       # Credential and token files
       "Read(**/.netrc)"
+      "Edit(**/.netrc)"
       "Read(**/.npmrc)"
+      "Edit(**/.npmrc)"
       "Read(**/.docker/config.json)"
+      "Edit(**/.docker/config.json)"
       "Read(**/.aws/**)"
+      "Edit(**/.aws/**)"
       "Read(**/.kube/config)"
+      "Edit(**/.kube/config)"
+      "Read(**/.config/gh/hosts.yml)"
     ];
   };
 
