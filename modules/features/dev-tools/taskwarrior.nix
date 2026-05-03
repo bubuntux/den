@@ -30,11 +30,11 @@
           # Contexts: `read` filters reports; `write` auto-tags new tasks
           # added while the context is active. `focus` is a view-only lens
           # (no write filter) that surfaces actionable work across projects.
-          context.work.read = "+work or project:work";
+          context.work.read = "+work";
           context.work.write = "+work";
-          context.personal.read = "project:personal";
-          context.personal.write = "project:personal";
-          context.focus.read = "+next or +today or +ACTIVE";
+          context.personal.read = "+personal";
+          context.personal.write = "+personal";
+          context.focus.read = "+next or +TODAY or +OVERDUE or +ACTIVE";
         };
       };
 
