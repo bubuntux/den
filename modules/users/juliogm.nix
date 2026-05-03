@@ -49,7 +49,7 @@
         kotlin-language-server
         jdt-language-server
         terraform-ls
-        pyright
+        python3Packages.python-lsp-server
         ruff
       ];
 
