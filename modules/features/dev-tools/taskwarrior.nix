@@ -149,6 +149,10 @@
             # is +1.8, which counterintuitively boosts Low above none).
             urgency.uda.priority.L.coefficient = -1.8;
 
+            # Personal tasks outrank work tasks in nearly all cases. Only
+            # `+next` (15.0) or imminently overdue work (≤12.0) wins.
+            urgency.user.tag.personal.coefficient = 10.0;
+
             # Numeric UDA for per-task Pomodoro duration override (minutes).
             uda.pomo.type = "numeric";
             uda.pomo.label = "Pomodoro";
