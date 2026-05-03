@@ -22,9 +22,19 @@
         package = pkgs.taskwarrior3;
         config = {
           hooks.location = "${config.xdg.configHome}/task/hooks";
+
           # Rank `priority:L` below unprioritized tasks (default coefficient
           # is +1.8, which counterintuitively boosts Low above none).
           urgency.uda.priority.L.coefficient = -1.8;
+
+          # Contexts: `read` filters reports; `write` auto-tags new tasks
+          # added while the context is active. `focus` is a view-only lens
+          # (no write filter) that surfaces actionable work across projects.
+          context.work.read = "+work or project:work";
+          context.work.write = "+work";
+          context.personal.read = "project:personal";
+          context.personal.write = "project:personal";
+          context.focus.read = "+next or +today or +ACTIVE";
         };
       };
 

@@ -20,7 +20,6 @@
       imports = with self.homeModules; [
         profile-developer
         gws
-        taskwarrior
       ];
 
       # Prevent HM from managing settings.json as a read-only symlink,
