@@ -20,7 +20,12 @@
       programs.taskwarrior = {
         enable = true;
         package = pkgs.taskwarrior3;
-        config.hooks.location = "${config.xdg.configHome}/task/hooks";
+        config = {
+          hooks.location = "${config.xdg.configHome}/task/hooks";
+          # Rank `priority:L` below unprioritized tasks (default coefficient
+          # is +1.8, which counterintuitively boosts Low above none).
+          urgency.uda.priority.L.coefficient = -1.8;
+        };
       };
 
       home.packages = with pkgs; [
