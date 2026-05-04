@@ -46,21 +46,55 @@
               sys.exit(0)
           t = tasks[0]
           desc = t.get("description", "(no description)")
+          now = datetime.now(timezone.utc)
           start = datetime.strptime(t["start"], "%Y%m%dT%H%M%SZ").replace(
               tzinfo=timezone.utc
           )
-          minutes = int((datetime.now(timezone.utc) - start).total_seconds() // 60)
+          minutes = int((now - start).total_seconds() // 60)
           if minutes < 60:
               elapsed = f"{minutes}m"
           else:
               h, m = divmod(minutes, 60)
               elapsed = f"{h}h {m}m" if m else f"{h}h"
-          subprocess.run([
+
+          parts = []
+          project = t.get("project")
+          if project:
+              parts.append(project)
+
+          due_str = t.get("due")
+          if due_str:
+              due = datetime.strptime(due_str, "%Y%m%dT%H%M%SZ").replace(
+                  tzinfo=timezone.utc
+              )
+              if due < now:
+                  days_late = (now.date() - due.date()).days
+                  parts.append("OVERDUE" if days_late == 0 else f"OVERDUE {days_late}d")
+              else:
+                  days_until = (due.date() - now.date()).days
+                  if days_until == 0:
+                      parts.append("due today")
+                  elif days_until == 1:
+                      parts.append("due tomorrow")
+                  elif days_until < 7:
+                      parts.append(f"due in {days_until}d")
+                  else:
+                      parts.append(f"due {due.strftime('%Y-%m-%d')}")
+
+          priority = t.get("priority")
+          if priority:
+              parts.append(f"priority {priority}")
+
+          args = [
               "${pkgs.libnotify}/bin/notify-send",
               "-a", "taskwarrior",
-              f"Time check: {desc}",
-              f"{elapsed} elapsed — break, switch, or keep going.",
-          ])
+              # Sticky: zero timeout. Honored by dunst/mako/KDE.
+              "-t", "0",
+              f"{elapsed} · {desc}",
+          ]
+          if parts:
+              args.append(" · ".join(parts))
+          subprocess.run(args)
         '';
       };
 
