@@ -13,7 +13,6 @@
         };
         mouse = {
           hide-when-typing = "yes";
-          selection-target = "none";
         };
       };
     };
