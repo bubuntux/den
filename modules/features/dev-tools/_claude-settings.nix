@@ -45,7 +45,7 @@ in
 {
   # Prefer the most advanced model
   model = claudeModel;
-  effortLevel = "high";
+  effortLevel = "xhigh";
 
   # Use the full 1M context window before auto-compact kicks in
   autoCompactWindow = 1000000;
