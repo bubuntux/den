@@ -46,10 +46,12 @@
               sys.exit(0)
           t = tasks[0]
           desc = t.get("description", "(no description)")
-          now = datetime.now(timezone.utc)
+          # Local-aware now/start/due so date() deltas reflect the user's
+          # wall clock, not UTC (matters for "due today" near midnight).
+          now = datetime.now().astimezone()
           start = datetime.strptime(t["start"], "%Y%m%dT%H%M%SZ").replace(
               tzinfo=timezone.utc
-          )
+          ).astimezone()
           minutes = int((now - start).total_seconds() // 60)
           if minutes < 60:
               elapsed = f"{minutes}m"
@@ -66,7 +68,7 @@
           if due_str:
               due = datetime.strptime(due_str, "%Y%m%dT%H%M%SZ").replace(
                   tzinfo=timezone.utc
-              )
+              ).astimezone()
               if due < now:
                   days_late = (now.date() - due.date()).days
                   parts.append("OVERDUE" if days_late == 0 else f"OVERDUE {days_late}d")
