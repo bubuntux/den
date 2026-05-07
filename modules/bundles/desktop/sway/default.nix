@@ -219,6 +219,10 @@ in
       # Keyring for secrets
       services.gnome.gnome-keyring.enable = true;
 
+      # Auto-unlock the keyring at login so apps (e.g. Claude Code) don't prompt
+      security.pam.services.greetd.enableGnomeKeyring = true;
+      security.pam.services.login.enableGnomeKeyring = true;
+
       # Enable greetd with tuigreet
       services.greetd = {
         enable = true;
