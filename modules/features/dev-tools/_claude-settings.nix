@@ -2,21 +2,25 @@
 let
   claudeModel = "opus[1m]";
   statusline = pkgs.writeShellScript "claude-statusline" ''
-    # Single jq call to extract and format all fields
-    IFS=$'\t' read -r MODEL PROJECT DIR PCT COST DURATION < <(
-      ${pkgs.jq}/bin/jq -r '
-        (.cost.total_duration_ms // 0 | . / 1000 | floor) as $secs |
+    # Single jq call to extract raw fields; formatting happens in shell.
+    # Use US (\x1f) as the separator — tab is whitespace and bash's `read`
+    # would collapse consecutive tabs, shifting fields when one is empty.
+    IFS=$'\x1f' read -r MODEL EFFORT DIR PCT COST_USD WALL_MS API_MS LINES_ADD LINES_DEL < <(
+      ${pkgs.jq}/bin/jq -j '
         [
           .model.display_name // "Claude",
-          (.workspace.current_dir // "~" | split("/") | last),
+          .effort.level // "",
           .workspace.current_dir // "~",
           (.context_window.used_percentage // 0 | floor),
-          (.cost.total_cost_usd // 0 | if . > 0 then "$\(. * 100 | round | . / 100)" else "" end),
-          (if $secs >= 3600 then "\($secs / 3600 | floor)h \($secs % 3600 / 60 | floor)m \($secs % 60)s"
-           elif $secs > 0 then "\($secs / 60 | floor)m \($secs % 60)s"
-           else "" end)
-        ] | @tsv'
+          (.cost.total_cost_usd // 0),
+          (.cost.total_duration_ms // 0),
+          (.cost.total_api_duration_ms // 0),
+          (.cost.total_lines_added // 0),
+          (.cost.total_lines_removed // 0)
+        ] | map(tostring) | join("")'
     )
+
+    PROJECT=$(basename "$DIR")
 
     # Git branch (only if in a git repo)
     BRANCH=$(${pkgs.git}/bin/git -C "$DIR" branch --show-current 2>/dev/null)
@@ -24,19 +28,50 @@ let
     # Context bar with color coding
     FILLED=$((PCT / 10))
     EMPTY=$((10 - FILLED))
-    BAR=$(printf "%''${FILLED}s" | tr ' ' '#')$(printf "%''${EMPTY}s" | tr ' ' '-')
+    BAR=$(printf "%*s" "$FILLED" "" | tr ' ' '#')$(printf "%*s" "$EMPTY" "" | tr ' ' '-')
 
     if [ "$PCT" -ge 90 ]; then COLOR='\e[31m'
     elif [ "$PCT" -ge 70 ]; then COLOR='\e[33m'
     else COLOR='\e[32m'; fi
     RESET='\e[0m'
 
+    # Cost: always 2 decimals; suppress only when truly zero
+    COST=$(printf '$%.2f' "$COST_USD")
+    [ "$COST" = '$0.00' ] && COST=""
+
+    # Duration formatter: ms → "Hh Mm Ss" / "Mm Ss" / "Ss" / ""
+    fmt_duration() {
+      local s=$(( $1 / 1000 ))
+      if [ "$s" -ge 3600 ]; then
+        printf '%dh %dm %ds' $((s/3600)) $((s%3600/60)) $((s%60))
+      elif [ "$s" -ge 60 ]; then
+        printf '%dm %ds' $((s/60)) $((s%60))
+      elif [ "$s" -gt 0 ]; then
+        printf '%ds' "$s"
+      fi
+    }
+    WALL=$(fmt_duration "$WALL_MS")
+    API=$(fmt_duration "$API_MS")
+
+    # Code churn (only when non-zero)
+    LINES=""
+    if [ "$LINES_ADD" -gt 0 ] || [ "$LINES_DEL" -gt 0 ]; then
+      LINES="+$LINES_ADD/-$LINES_DEL"
+    fi
+
     # Build output with conditional sections
-    OUT="[$MODEL] $PROJECT"
+    TAG="$MODEL"
+    [ -n "$EFFORT" ] && TAG="$TAG/$EFFORT"
+    OUT="[$TAG] $PROJECT"
     [ -n "$BRANCH" ] && OUT="$OUT | $BRANCH"
     OUT="$OUT | $COLOR[$BAR] $PCT%$RESET"
+    [ -n "$LINES" ] && OUT="$OUT | $LINES"
     [ -n "$COST" ] && OUT="$OUT | $COST"
-    [ -n "$DURATION" ] && OUT="$OUT | $DURATION"
+    if [ -n "$WALL" ] && [ -n "$API" ]; then
+      OUT="$OUT | $WALL (api $API)"
+    elif [ -n "$WALL" ]; then
+      OUT="$OUT | $WALL"
+    fi
 
     echo -e "$OUT"
   '';
