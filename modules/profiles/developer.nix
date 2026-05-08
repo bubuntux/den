@@ -18,6 +18,7 @@
         ripgrep # Fast grep
         fd # Fast find
         tree # Directory listing
+        mermaid-cli # Diagram generation from text
       ];
     };
 
