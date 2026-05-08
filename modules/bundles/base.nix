@@ -22,6 +22,7 @@
       sops
       sudors
       ntpdrs
+      dirty-frag-mitigation
     ];
   };
 
