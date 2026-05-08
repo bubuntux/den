@@ -146,6 +146,13 @@ in
         ];
       };
 
+      # Make `login` the default keyring so PAM-unlocked secrets are usable
+      # by libsecret apps (Claude Code, browsers, ...) without a prompt.
+      xdg.dataFile."keyrings/default" = {
+        text = "login";
+        force = true;
+      };
+
       # Packages
       home.packages = with pkgs; [
         clipman
