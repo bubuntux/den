@@ -20,6 +20,7 @@
       imports = with self.homeModules; [
         profile-developer
         gws
+        xdg
       ];
 
       # Prevent HM from managing settings.json as a read-only symlink,
