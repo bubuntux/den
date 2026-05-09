@@ -6,6 +6,7 @@
     {
       imports = with self.homeModules; [
         mpv
+        templates
         xdg
       ];
 
