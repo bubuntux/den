@@ -4,16 +4,13 @@
   flake.homeModules.bundle-desktop =
     { pkgs, ... }:
     {
-      imports = [ self.homeModules.mpv ];
+      imports = with self.homeModules; [
+        mpv
+        xdg
+      ];
 
       targets.genericLinux.enable = true;
       services.network-manager-applet.enable = true;
-
-      # XDG configuration
-      xdg = {
-        enable = true;
-        mimeApps.enable = true;
-      };
 
       # Desktop packages
       home.packages = with pkgs; [
