@@ -153,6 +153,9 @@ in
         force = true;
       };
 
+      # Sway has no desktop icons, so skip the Desktop folder.
+      xdg.userDirs.desktop = config.home.homeDirectory;
+
       # Packages
       home.packages = with pkgs; [
         clipman
