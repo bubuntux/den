@@ -42,7 +42,10 @@ in
     in
     {
       # Note: monitors module must be imported by the parent NixOS module
-      imports = [ self.homeModules.foot ];
+      imports = with self.homeModules; [
+        foot
+        librewolf
+      ];
       wayland.windowManager.sway = {
         enable = true;
         systemd.enable = true;
@@ -183,6 +186,7 @@ in
         brightnessctl
         pulseaudio
         lxqt.lxqt-policykit
+        xarchiver # GUI archive manager
       ];
     };
 

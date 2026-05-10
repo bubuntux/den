@@ -19,6 +19,9 @@
         qalculate-gtk # Calculator
         loupe # Image viewer
         pwvucontrol # PipeWire volume control
+        gimp-with-plugins # image editor
+        simple-scan # scanner
+        tidal-hifi # music streaming
       ];
     };
 

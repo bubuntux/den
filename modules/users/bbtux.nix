@@ -4,32 +4,16 @@
 }:
 {
   # Home Manager module for user bbtux
-  flake.homeModules.user-bbtux =
-    { pkgs, ... }:
-    {
-      imports = with self.homeModules; [
-        librewolf
-        taskwarrior
-      ];
-      # Git user configuration
-      programs.git.settings.user = {
-        name = "Julio Gutierrez";
-        email = "413330+bubuntux@users.noreply.github.com";
-      };
-
-      # User packages
-      home.packages = with pkgs; [
-        # Utilities
-        xarchiver # GUI archive manager
-
-        # Creative
-        gimp-with-plugins # image editor
-        simple-scan # scanner
-
-        # Media
-        tidal-hifi # music streaming
-      ];
+  flake.homeModules.user-bbtux = _: {
+    imports = with self.homeModules; [
+      taskwarrior
+    ];
+    # Git user configuration
+    programs.git.settings.user = {
+      name = "Julio Gutierrez";
+      email = "413330+bubuntux@users.noreply.github.com";
     };
+  };
 
   # NixOS module for user bbtux
   flake.nixosModules.user-bbtux =
