@@ -37,5 +37,13 @@
     networking.firewall.extraInputRules = ''
       ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport { 3000, 2222 } accept
     '';
+
+    virtualisation.vmVariant.virtualisation.forwardPorts = [
+      {
+        from = "host";
+        host.port = 3000;
+        guest.port = 3000;
+      }
+    ];
   };
 }

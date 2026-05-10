@@ -4,5 +4,13 @@
       enable = true;
       openFirewall = true;
     };
+
+    virtualisation.vmVariant.virtualisation.forwardPorts = [
+      {
+        from = "host";
+        host.port = 7878;
+        guest.port = 7878;
+      }
+    ];
   };
 }
