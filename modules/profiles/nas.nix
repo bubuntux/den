@@ -4,6 +4,7 @@
     imports = with self.nixosModules; [
       bazarr
       cloudflare-ddns
+      immich
       jellyfin
       openssh
       plex
