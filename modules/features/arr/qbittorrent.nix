@@ -5,7 +5,7 @@
 
     services.qbittorrent = {
       enable = true;
-      # Exposure is handled by the vpn-media namespace's portMappings.
+      # Exposure is handled by the vpn-confinement namespace's portMappings.
       openFirewall = false;
       webuiPort = 8080;
     };
