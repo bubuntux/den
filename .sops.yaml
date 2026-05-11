@@ -36,3 +36,8 @@ creation_rules:
       - age:
           - *bbtux
           - *zuko
+  - path_regex: secrets/appa\.yaml$
+    key_groups:
+      - age:
+          - *bbtux
+          # - *appa 
