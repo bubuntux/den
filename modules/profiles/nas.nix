@@ -6,7 +6,7 @@
       cloudflare-ddns
       crowdsec
       crowdsec-bouncers
-      forgejo
+      # forgejo
       immich
       jellyfin
       openssh
