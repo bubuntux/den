@@ -13,6 +13,18 @@
         openFirewall = true;
       };
 
+      # Catches actual auth failures from Jellyfin's own log stream — slow
+      # brute force that stays below caddy-ratelimit wouldn't otherwise
+      # trigger anything.
+      services.crowdsec.hub.collections = [ "LePresidente/jellyfin" ];
+      services.crowdsec.localConfig.acquisitions = [
+        {
+          source = "journalctl";
+          journalctl_filter = [ "_SYSTEMD_UNIT=jellyfin.service" ];
+          labels.type = "jellyfin";
+        }
+      ];
+
       services.reverse-proxy.routes.jellyfin = {
         inherit port;
         aliases = [
@@ -20,6 +32,9 @@
           "media"
         ];
         public = true;
+        # Rate-limit the login endpoint (5/IP/min defaults). Synchronous
+        # check, independent of CrowdSec's log-based scenarios.
+        rateLimit.paths = [ "/Users/AuthenticateByName" ];
         # Disable response buffering so streaming starts responding to the
         # client immediately (matters for video seek / first-frame latency).
         proxyConfig = ''

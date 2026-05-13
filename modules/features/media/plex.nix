@@ -12,6 +12,11 @@
         openFirewall = true;
       };
 
+      # Allowlist for Plex's own infrastructure (Plex Relay, metadata) so
+      # legitimate Plex traffic doesn't get flagged. No acquisition needed
+      # — this collection only ships a parser that whitelists known IPs.
+      services.crowdsec.hub.collections = [ "crowdsecurity/plex" ];
+
       services.reverse-proxy.routes.plex = {
         inherit port;
         aliases = [ "px" ];

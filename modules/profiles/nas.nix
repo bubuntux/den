@@ -4,6 +4,8 @@
     imports = with self.nixosModules; [
       bazarr
       cloudflare-ddns
+      crowdsec
+      crowdsec-bouncers
       forgejo
       immich
       jellyfin

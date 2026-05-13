@@ -14,6 +14,21 @@
         name: aliases:
         lib.concatStringsSep " " ([ "${name}.{$BASE_DOMAIN}" ] ++ map (a: "${a}.{$BASE_DOMAIN}") aliases);
 
+      mkRateLimit =
+        name: rl:
+        lib.optionalString (rl != null) ''
+          rate_limit {
+            zone ${name}_rate {
+              match {
+                path ${lib.concatStringsSep " " rl.paths}
+              }
+              key {client_ip}
+              events ${toString rl.events}
+              window ${rl.window}
+            }
+          }
+        '';
+
       mkRoute =
         name: route:
         let
@@ -27,7 +42,10 @@
               ''
             else
               "reverse_proxy 127.0.0.1:${toString route.port}";
-          body = lib.optionalString (route.extraConfig != "") (route.extraConfig + "\n") + proxy;
+          body =
+            mkRateLimit name route.rateLimit
+            + lib.optionalString (route.extraConfig != "") (route.extraConfig + "\n")
+            + proxy;
         in
         if route.public then
           ''
@@ -86,6 +104,37 @@
                     internet.
                   '';
                 };
+                rateLimit = lib.mkOption {
+                  type = lib.types.nullOr (
+                    lib.types.submodule {
+                      options = {
+                        paths = lib.mkOption {
+                          type = lib.types.listOf lib.types.str;
+                          description = ''
+                            Caddy path patterns matched for rate limiting.
+                            Supports wildcards (`/foo/*`).
+                          '';
+                        };
+                        events = lib.mkOption {
+                          type = lib.types.ints.positive;
+                          default = 5;
+                          description = "Max events per window per client IP.";
+                        };
+                        window = lib.mkOption {
+                          type = lib.types.str;
+                          default = "1m";
+                          description = "Time window (Caddy duration string).";
+                        };
+                      };
+                    }
+                  );
+                  default = null;
+                  description = ''
+                    Per-client-IP rate limit on specific paths. Requires the
+                    mholt/caddy-ratelimit plugin in the Caddy build. Excess
+                    requests get 429 Too Many Requests.
+                  '';
+                };
                 extraConfig = lib.mkOption {
                   type = lib.types.lines;
                   default = "";
@@ -123,12 +172,19 @@
         services.caddy = {
           enable = true;
 
-          # Custom build is required for DNS-01 — the Cloudflare provider isn't
-          # in upstream Caddy. When bumping the plugin version, set hash to
-          # lib.fakeHash, rebuild, and copy the real hash from the error.
+          # Custom build picks up three plugins:
+          #   * caddy-dns/cloudflare — DNS-01 challenge for wildcard cert
+          #   * hslatman/caddy-crowdsec-bouncer — HTTP-layer ban enforcement
+          #   * mholt/caddy-ratelimit — per-IP rate limits on auth endpoints
+          # When bumping any plugin version, set hash to lib.fakeHash,
+          # rebuild, and copy the real hash from the error.
           package = pkgs.caddy.withPlugins {
-            plugins = [ "github.com/caddy-dns/cloudflare@v0.2.1" ];
-            hash = "sha256-hEIqK6F+9OCcd4JueVSidfUgQsVPWo0/imciD1UnqRo=";
+            plugins = [
+              "github.com/caddy-dns/cloudflare@v0.2.1"
+              "github.com/hslatman/caddy-crowdsec-bouncer@v0.12.1"
+              "github.com/mholt/caddy-ratelimit@v0.1.0"
+            ];
+            hash = "sha256-TpI3/PfgurRxML0LHSWb2UbmAVNPz5dV+aOnyxNU2ok=";
           };
 
           environmentFile = config.sops.secrets.caddy_env.path;
@@ -137,12 +193,28 @@
           # leaked in certs or CT logs. Read at startup from the env file.
           email = "{$ACME_EMAIL}";
 
+          globalConfig = ''
+            order crowdsec first
+            order rate_limit before basic_auth
+
+            crowdsec {
+              api_url http://127.0.0.1:6060
+              api_key {env.CROWDSEC_CADDY_API_KEY}
+              ticker_interval 15s
+            }
+          '';
+
           # Single wildcard site block. All routing happens via @host matchers
           # below; this is the canonical Caddy pattern for a wildcard cert.
           virtualHosts."*.{$BASE_DOMAIN}".extraConfig = ''
             tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
+
+            # CrowdSec bouncer: checks every request against the agent's
+            # decision list (community blocklist + locally-detected bans).
+            # Banned IPs get 403 here, before any route matches.
+            crowdsec
 
             encode zstd gzip
 
@@ -163,6 +235,16 @@
 
         # HTTP/3 (QUIC) needs UDP 443; openFirewall above only handles TCP.
         networking.firewall.allowedUDPPorts = [ 443 ];
+
+        # CrowdSec reads Caddy's per-vhost access logs. Glob matches the
+        # env-substituted filename, e.g. /var/log/caddy/access-*.<domain>.log.
+        services.crowdsec.hub.collections = [ "crowdsecurity/caddy" ];
+        services.crowdsec.localConfig.acquisitions = [
+          {
+            filenames = [ "/var/log/caddy/access-*.log" ];
+            labels.type = "caddy";
+          }
+        ];
       };
     };
 }

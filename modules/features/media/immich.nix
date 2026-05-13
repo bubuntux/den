@@ -16,6 +16,8 @@
         inherit port;
         aliases = [ "photos" ];
         public = true;
+        # Rate-limit the login endpoint (5/IP/min defaults).
+        rateLimit.paths = [ "/api/auth/login" ];
         # Default Caddy body limit (10 MB) is too small for photo / 4K-video
         # uploads. Bump to 50 GB; Immich does chunked uploads above that.
         extraConfig = ''
