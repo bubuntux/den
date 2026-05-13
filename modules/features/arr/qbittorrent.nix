@@ -2,6 +2,9 @@
 {
   flake.nixosModules.qbittorrent =
     { pkgs, ... }:
+    let
+      webuiPort = 8080;
+    in
     {
       imports = [ self.nixosModules.vpn-confinement ];
 
@@ -9,11 +12,19 @@
         enable = true;
         # Exposure is handled by the vpn-confinement namespace's portMappings.
         openFirewall = false;
-        webuiPort = 8080;
+        inherit webuiPort;
         # Let the qbittorrent-natpmp sidecar update listen_port via the
         # Web API without credentials. Safe because the WebUI only binds
         # inside the wg netns.
         serverConfig.Preferences.WebUI.LocalHostAuth = false;
+      };
+
+      services.reverse-proxy.routes.qbittorrent = {
+        port = webuiPort;
+        aliases = [
+          "qb"
+          "torrent"
+        ];
       };
 
       systemd.services.qbittorrent.vpnConfinement = {
@@ -23,8 +34,8 @@
 
       vpnNamespaces.wg.portMappings = [
         {
-          from = 8080;
-          to = 8080;
+          from = webuiPort;
+          to = webuiPort;
           protocol = "tcp";
         }
       ];
@@ -62,7 +73,7 @@
 
         script = ''
           set -uo pipefail
-          webui=http://127.0.0.1:8080
+          webui=http://127.0.0.1:${toString webuiPort}
           fw_port=0
           qb_port=0
 
@@ -148,8 +159,8 @@
       virtualisation.vmVariant.virtualisation.forwardPorts = [
         {
           from = "host";
-          host.port = 8080;
-          guest.port = 8080;
+          host.port = webuiPort;
+          guest.port = webuiPort;
         }
       ];
     };

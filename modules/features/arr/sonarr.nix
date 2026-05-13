@@ -1,16 +1,27 @@
 {
-  flake.nixosModules.sonarr = _: {
-    services.sonarr = {
-      enable = true;
-      openFirewall = true;
-    };
+  flake.nixosModules.sonarr =
+    _:
+    let
+      port = 8989;
+    in
+    {
+      services.sonarr = {
+        enable = true;
+        openFirewall = true;
+        settings.server.port = port;
+      };
 
-    virtualisation.vmVariant.virtualisation.forwardPorts = [
-      {
-        from = "host";
-        host.port = 8989;
-        guest.port = 8989;
-      }
-    ];
-  };
+      services.reverse-proxy.routes.sonarr = {
+        inherit port;
+        aliases = [ "tv" ];
+      };
+
+      virtualisation.vmVariant.virtualisation.forwardPorts = [
+        {
+          from = "host";
+          host.port = port;
+          guest.port = port;
+        }
+      ];
+    };
 }

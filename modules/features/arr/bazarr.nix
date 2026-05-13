@@ -1,16 +1,27 @@
 {
-  flake.nixosModules.bazarr = _: {
-    services.bazarr = {
-      enable = true;
-      openFirewall = true;
-    };
+  flake.nixosModules.bazarr =
+    _:
+    let
+      port = 6767;
+    in
+    {
+      services.bazarr = {
+        enable = true;
+        openFirewall = true;
+        listenPort = port;
+      };
 
-    virtualisation.vmVariant.virtualisation.forwardPorts = [
-      {
-        from = "host";
-        host.port = 6767;
-        guest.port = 6767;
-      }
-    ];
-  };
+      services.reverse-proxy.routes.bazarr = {
+        inherit port;
+        aliases = [ "subs" ];
+      };
+
+      virtualisation.vmVariant.virtualisation.forwardPorts = [
+        {
+          from = "host";
+          host.port = port;
+          guest.port = port;
+        }
+      ];
+    };
 }

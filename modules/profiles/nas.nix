@@ -12,8 +12,11 @@
       prowlarr
       qbittorrent
       radarr
+      reverse-proxy
       sonarr
     ];
+
+    services.reverse-proxy.enable = true;
 
     # LAN ranges that can reach the namespaced services through the host.
     # Lives here rather than in vpn-confinement.nix to avoid list-duplication
