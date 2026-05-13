@@ -12,6 +12,17 @@
         inherit port;
       };
 
+      # Brute-force detection from Immich's own log stream — auth attempts
+      # below the caddy-ratelimit threshold still get caught here.
+      services.crowdsec.hub.collections = [ "gauth-fr/immich" ];
+      services.crowdsec.localConfig.acquisitions = [
+        {
+          source = "journalctl";
+          journalctl_filter = [ "_SYSTEMD_UNIT=immich-server.service" ];
+          labels.type = "immich";
+        }
+      ];
+
       services.reverse-proxy.routes.immich = {
         inherit port;
         aliases = [ "photos" ];
