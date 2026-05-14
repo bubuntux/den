@@ -261,15 +261,26 @@
         networking.firewall.allowedUDPPorts = [ 443 ];
 
         # CrowdSec reads Caddy's access logs from journald (the vhost
-        # above sends them to stdout, which systemd captures). Matches the
-        # journalctl pattern other services use (jellyfin, immich, sshd),
-        # and avoids the file-permission gap between caddy's umask and
-        # crowdsec's dynamic user.
+        # above sends them to stdout, which systemd captures). Avoids the
+        # file-permission gap between caddy's umask and crowdsec's
+        # dynamic user that the file-glob acquisition hit.
+        #
+        # `--output=cat` is the key bit: crowdsec's journalctl source
+        # otherwise feeds the syslog-prefixed line ("May 14 ... caddy[..]: {json}")
+        # into evt.Parsed.message, and crowdsecurity/caddy-logs does
+        # UnmarshalJSON on that field — fails on the 'M' prefix. cat
+        # output mode emits the MESSAGE field only, which is the raw
+        # JSON access log line Caddy wrote. Doesn't affect the other
+        # service acquisitions (sshd / jellyfin / immich), which use
+        # grok on the prefixed line and want to keep it.
         services.crowdsec.hub.collections = [ "crowdsecurity/caddy" ];
         services.crowdsec.localConfig.acquisitions = [
           {
             source = "journalctl";
-            journalctl_filter = [ "_SYSTEMD_UNIT=caddy.service" ];
+            journalctl_filter = [
+              "_SYSTEMD_UNIT=caddy.service"
+              "--output=cat"
+            ];
             labels.type = "caddy";
           }
         ];
