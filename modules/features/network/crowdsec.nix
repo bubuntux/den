@@ -50,6 +50,31 @@
         # module's setup script null-derefs cfg.settings.lapi.credentialsFile.
         settings.lapi.credentialsFile = "/etc/crowdsec/local_api_credentials.yaml";
 
+        # Tell the agent where the Central API (CAPI) credentials live and
+        # enable community sharing + blocklist pull. We write the whole
+        # online_client block here rather than via `settings.capi.credentialsFile`
+        # because the upstream module's setup snippet for that option has
+        # a stray `]` (`if ! grep ... ]; then`) that makes the check always
+        # fail, which would re-run `cscli capi register` on every boot.
+        # capi register is destructive (regenerates credentials, orphans
+        # the old machine identity, and breaks any prior Console
+        # association), so the buggy upstream loop is worse than not
+        # registering at all. crowdsec-online-setup.service below does
+        # the registration ourselves, exactly once.
+        #
+        # The full block is required because the upstream default for
+        # online_client is `lib.mkDefault { ...full set... }`, which gets
+        # replaced (not merged) when we set any nested field through the
+        # format.type freeform schema.
+        settings.general.api.server.online_client = {
+          credentials_path = "/etc/crowdsec/online_api_credentials.yaml";
+          sharing = true;
+          pull = {
+            community = true;
+            blocklists = true;
+          };
+        };
+
         # CrowdSec's default API port (8080) collides with qbittorrent's
         # webuiPort. Pick 6868 instead -- 6060 is taken by the upstream-
         # defaulted Prometheus exporter, and we'd rather not move that.
@@ -89,14 +114,26 @@
         ];
       };
 
-      # Console enrollment is idempotent in spirit but cscli prompts if
-      # already enrolled, so we skip when local_api_credentials shows a
-      # login. The user still has to approve the agent in the Console UI
-      # once — this just kicks the request automatically.
-      systemd.services.crowdsec-console-enroll = {
-        description = "Enroll the local agent with the CrowdSec Console";
-        after = [ "crowdsec.service" ];
-        wants = [ "crowdsec.service" ];
+      # Registers the agent with the Central API and (optionally) enrolls
+      # it with the CrowdSec Console webapp.
+      #
+      # Runs BEFORE crowdsec.service so the agent finds CAPI credentials at
+      # startup. Both cscli capi register and cscli console enroll are
+      # gated on local idempotency markers because:
+      #   * `cscli capi register` is destructive -- it always generates
+      #     fresh credentials, which would orphan the prior machine on
+      #     api.crowdsec.net and break any existing Console enrollment.
+      #     Gate on the presence of the credentials file.
+      #   * `cscli console enroll` POSTs to app.crowdsec.net and the user
+      #     has to validate the request in the webapp. Re-running it from
+      #     the agent side after enrollment is pointless; gate on a
+      #     touched marker file.
+      #
+      # Empty `crowdsec_console_key` is fine -- CAPI registration still
+      # happens (community blocklist), Console enrollment is skipped.
+      systemd.services.crowdsec-online-setup = {
+        description = "Register agent with the CrowdSec Central API + Console";
+        before = [ "crowdsec.service" ];
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
           Type = "oneshot";
@@ -104,17 +141,26 @@
         };
         path = [ config.services.crowdsec.package ];
         script = ''
+          creds=/etc/crowdsec/online_api_credentials.yaml
+          if [ ! -s "$creds" ] || ! grep -q '^password:' "$creds"; then
+            echo "registering with the Central API..."
+            cscli capi register --file "$creds"
+          fi
+
           key=$(cat ${config.sops.secrets.crowdsec_console_key.path})
           if [ -z "$key" ]; then
-            echo "no console key configured; skipping enrollment"
+            echo "no console key configured; skipping Console enrollment"
             exit 0
           fi
-          if [ -e /etc/crowdsec/online_api_credentials.yaml ] \
-             && grep -q '^login:' /etc/crowdsec/online_api_credentials.yaml; then
+
+          enrolled=/etc/crowdsec/.console-enrolled
+          if [ -e "$enrolled" ]; then
             echo "already enrolled with the Console; skipping"
             exit 0
           fi
+
           cscli console enroll "$key"
+          touch "$enrolled"
         '';
       };
     };
