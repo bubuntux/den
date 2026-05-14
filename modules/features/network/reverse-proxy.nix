@@ -245,6 +245,55 @@
             labels.type = "caddy";
           }
         ];
+
+        # VM build: sidestep Cloudflare/Let's Encrypt — ephemeral VM state
+        # means a fresh cert issuance on every boot, which burns the LE rate
+        # limit. Swap in Caddy's built-in CA (throwaway cert; `curl -k` or
+        # `caddy trust` to use it) and forward 80/443 to high host ports so
+        # qemu user-mode networking can bind them without root. Everything
+        # else — BASE_DOMAIN from sops, the crowdsec middleware, per-route
+        # matchers — stays identical to production.
+        #
+        # Host ports 18080/1443 prefix the guest ports with a "1": picked
+        # to avoid qbittorrent's 8080 webui forward while staying visibly
+        # tied to the upstream 80/443.
+        #
+        # Pair with /etc/hosts on the host machine:
+        #   127.0.0.1 sonarr.<BASE_DOMAIN> jellyfin.<BASE_DOMAIN> ...
+        # then hit https://sonarr.<BASE_DOMAIN>:1443
+        virtualisation.vmVariant = {
+          virtualisation.forwardPorts = [
+            {
+              from = "host";
+              host.port = 18080;
+              guest.port = 80;
+            }
+            {
+              from = "host";
+              host.port = 1443;
+              guest.port = 443;
+            }
+          ];
+
+          # HSTS intentionally dropped: with the internal CA, sending it
+          # would pollute browser HSTS state for the real domain.
+          services.caddy.virtualHosts."*.{$BASE_DOMAIN}".extraConfig = lib.mkForce ''
+            tls internal
+
+            crowdsec
+
+            encode zstd gzip
+
+            header {
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "SAMEORIGIN"
+              Referrer-Policy "strict-origin-when-cross-origin"
+            }
+
+            ${routes}
+            respond "Not found" 404
+          '';
+        };
       };
     };
 }
