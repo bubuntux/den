@@ -13,14 +13,24 @@
         enable = true;
         registerBouncer.enable = true;
 
-        # Point at the relocated CrowdSec API (see crowdsec.nix for why 6060).
-        settings.api_url = "http://127.0.0.1:6060";
+        # Point at the relocated CrowdSec API (see crowdsec.nix for why 6868).
+        settings.api_url = "http://127.0.0.1:6868";
       };
+
+      # Upstream sets Requires= but not After= for the register service, so
+      # on first boot the bouncer can race past it and fail to LoadCredential
+      # the API key the register hasn't written yet. Add the explicit
+      # ordering so the bouncer waits for the register oneshot to finish.
+      systemd.services.crowdsec-firewall-bouncer.after = [
+        "crowdsec-firewall-bouncer-register.service"
+      ];
 
       # Caddy bouncer auto-register. The bouncer plugin in Caddy doesn't
       # have a NixOS-side helper like the firewall bouncer does, so we
       # mint the bouncer ourselves using whatever key the user put into
-      # `caddy_env` (CROWDSEC_CADDY_API_KEY). Idempotent.
+      # `caddy_env` (CROWDSEC_CADDY_API_KEY). Idempotent. Raw cscli works
+      # here because crowdsec.nix provides /etc/crowdsec/config.yaml,
+      # which is the default config path cscli looks for.
       systemd.services.crowdsec-caddy-register = {
         description = "Register Caddy bouncer with the local CrowdSec agent";
         after = [ "crowdsec.service" ];

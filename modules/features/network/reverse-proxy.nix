@@ -210,7 +210,7 @@
             order rate_limit before basic_auth
 
             crowdsec {
-              api_url http://127.0.0.1:6060
+              api_url http://127.0.0.1:6868
               api_key {env.CROWDSEC_CADDY_API_KEY}
               ticker_interval 15s
             }
