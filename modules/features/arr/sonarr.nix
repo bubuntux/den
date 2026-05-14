@@ -13,7 +13,10 @@
 
       services.reverse-proxy.routes.sonarr = {
         inherit port;
-        aliases = [ "tv" ];
+        aliases = [
+          "tv"
+          "shows"
+        ];
       };
 
       virtualisation.vmVariant.virtualisation.forwardPorts = [
