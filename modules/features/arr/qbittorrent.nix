@@ -63,6 +63,12 @@
       # No static openVPNPorts: qbittorrent-natpmp leases a port from the
       # VPN at runtime and opens it in the namespace's INPUT chain.
 
+      services.backup.targets.qbittorrent = {
+        # No DB to dump — qbittorrent stores state in .fastresume files
+        # that are written atomically. File-level snapshot is sufficient.
+        paths = [ "/var/lib/qbittorrent" ];
+      };
+
       systemd.services.qbittorrent-natpmp = {
         description = "NAT-PMP port forwarder for qBittorrent";
         wantedBy = [ "multi-user.target" ];

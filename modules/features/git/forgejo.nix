@@ -1,6 +1,6 @@
 {
   flake.nixosModules.forgejo =
-    _:
+    { config, ... }:
     let
       port = 3000;
       sshPort = 2222;
@@ -71,6 +71,13 @@
       systemd.tmpfiles.rules = [
         "d /mnt/data/forgejo-dumps 0750 forgejo forgejo - -"
       ];
+
+      services.backup.targets.forgejo = {
+        # Forgejo runs its own dump at 04:31 (tar.zst); the backup timer
+        # fires at 05:00 and picks up the latest archive. Forgejo manages
+        # its own 30-day retention via `age = "30d"` on the dump.
+        paths = [ config.services.forgejo.dump.backupDir ];
+      };
 
       networking.firewall.extraInputRules = ''
         ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport { ${toString port}, ${toString sshPort} } accept

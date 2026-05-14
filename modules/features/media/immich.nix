@@ -1,6 +1,10 @@
 {
   flake.nixosModules.immich =
-    _:
+    {
+      config,
+      pkgs,
+      ...
+    }:
     let
       port = 2283;
     in
@@ -35,6 +39,26 @@
           request_body {
             max_size 50GB
           }
+        '';
+      };
+
+      services.backup.targets.immich = {
+        paths = [ config.services.immich.mediaLocation ];
+        # Both are re-derivable from the originals on demand.
+        exclude = [
+          "${config.services.immich.mediaLocation}/encoded-video"
+          "${config.services.immich.mediaLocation}/thumbs"
+        ];
+        # Crash-consistent pg_dump of the Immich DB. Restic walks the
+        # filesystem after this returns, so the dump is part of the snapshot.
+        prepareCommand = ''
+          ${pkgs.util-linux}/bin/runuser -u postgres -- \
+            ${config.services.postgresql.package}/bin/pg_dump -Fc ${config.services.immich.database.name} \
+            > $STAGING/immich.dump.tmp
+          mv $STAGING/immich.dump.tmp $STAGING/immich.dump
+        '';
+        cleanupCommand = ''
+          rm -f $STAGING/immich.dump
         '';
       };
 

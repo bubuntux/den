@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.nixosModules.prowlarr =
-    { config, ... }:
+    { config, pkgs, ... }:
     let
       port = 9696;
     in
@@ -35,6 +35,17 @@
           protocol = "tcp";
         }
       ];
+
+      services.backup.targets.prowlarr = {
+        paths = [ "/var/lib/prowlarr" ];
+        prepareCommand = ''
+          ${pkgs.sqlite}/bin/sqlite3 ${config.services.prowlarr.dataDir}/prowlarr.db \
+            ".backup $STAGING/prowlarr.db"
+        '';
+        cleanupCommand = ''
+          rm -f $STAGING/prowlarr.db
+        '';
+      };
 
       virtualisation.vmVariant.virtualisation.forwardPorts = [
         {

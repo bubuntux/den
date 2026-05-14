@@ -1,11 +1,12 @@
 {
   flake.nixosModules.jellyfin =
-    _:
+    { config, pkgs, ... }:
     # Upstream services.jellyfin module has no port option; these are the
     # hard-coded HTTP/HTTPS ports baked into the Jellyfin binary.
     let
       port = 8096;
       httpsPort = 8920;
+      dbDir = "${config.services.jellyfin.dataDir}/data";
     in
     {
       services.jellyfin = {
@@ -39,6 +40,34 @@
         # client immediately (matters for video seek / first-frame latency).
         proxyConfig = ''
           flush_interval -1
+        '';
+      };
+
+      services.backup.targets.jellyfin = {
+        paths = [ config.services.jellyfin.dataDir ];
+        # Cache/transcodes/log regenerate on first scan. Live SQLite DBs
+        # are excluded — restore uses the consistent .backup copies in
+        # $STAGING.
+        exclude = [
+          "${config.services.jellyfin.dataDir}/transcodes"
+          "${config.services.jellyfin.dataDir}/cache"
+          "${config.services.jellyfin.dataDir}/log"
+          "${dbDir}/jellyfin.db"
+          "${dbDir}/jellyfin.db-shm"
+          "${dbDir}/jellyfin.db-wal"
+          "${dbDir}/library.db"
+          "${dbDir}/library.db-shm"
+          "${dbDir}/library.db-wal"
+        ];
+        prepareCommand = ''
+          for db in jellyfin.db library.db; do
+            src="${dbDir}/$db"
+            [ -f "$src" ] || continue
+            ${pkgs.sqlite}/bin/sqlite3 "$src" ".backup '$STAGING/$db'"
+          done
+        '';
+        cleanupCommand = ''
+          rm -f "$STAGING"/*.db
         '';
       };
 

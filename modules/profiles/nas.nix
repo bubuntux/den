@@ -14,11 +14,21 @@
       prowlarr
       qbittorrent
       radarr
+      restic
       reverse-proxy
       sonarr
     ];
 
     services.reverse-proxy.enable = true;
+
+    services.backup = {
+      enable = true;
+      offsite.enable = true;
+      # Catch-all for files living on /mnt/data that aren't owned by a
+      # specific service (forgejo declares its own subdir; restic dedups
+      # any overlap at the chunk level).
+      targets.user-data.paths = [ "/mnt/data" ];
+    };
 
     # LAN ranges that can reach the namespaced services through the host.
     # Lives here rather than in vpn-confinement.nix to avoid list-duplication

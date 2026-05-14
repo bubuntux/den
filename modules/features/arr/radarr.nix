@@ -1,6 +1,10 @@
 {
   flake.nixosModules.radarr =
-    _:
+    {
+      config,
+      pkgs,
+      ...
+    }:
     let
       port = 7878;
     in
@@ -14,6 +18,17 @@
       services.reverse-proxy.routes.radarr = {
         inherit port;
         aliases = [ "movies" ];
+      };
+
+      services.backup.targets.radarr = {
+        paths = [ "/var/lib/radarr" ];
+        prepareCommand = ''
+          ${pkgs.sqlite}/bin/sqlite3 ${config.services.radarr.dataDir}/radarr.db \
+            ".backup $STAGING/radarr.db"
+        '';
+        cleanupCommand = ''
+          rm -f $STAGING/radarr.db
+        '';
       };
 
       virtualisation.vmVariant.virtualisation.forwardPorts = [
