@@ -13,10 +13,27 @@
         # Exposure is handled by the vpn-confinement namespace's portMappings.
         openFirewall = false;
         inherit webuiPort;
-        # Let the qbittorrent-natpmp sidecar update listen_port via the
-        # Web API without credentials. Safe because the WebUI only binds
-        # inside the wg netns.
-        serverConfig.Preferences.WebUI.LocalHostAuth = false;
+        serverConfig.Preferences.WebUI = {
+          # Let the qbittorrent-natpmp sidecar update listen_port via the
+          # Web API without credentials. Safe because the WebUI only binds
+          # inside the wg netns.
+          LocalHostAuth = false;
+          # qbittorrent's HostHeaderValidation rejects any Host that isn't
+          # its bind address; CSRFProtection rejects when Origin/Referer
+          # don't match Host. Both misfire behind caddy, which preserves
+          # the client hostname (qb.<BASE_DOMAIN>) rather than the
+          # namespace IP. Disable both: TLS termination + SNI matching at
+          # caddy already gate the requests, and AuthSubnetWhitelist
+          # below scopes who can talk to the WebUI without a login.
+          HostHeaderValidation = false;
+          CSRFProtection = false;
+          # Skip the WebUI login for trusted private ranges -- mirrors the
+          # LocalHostAuth UX and matches the LAN whitelist used in
+          # crowdsec.nix. 192.168.15.0/24 (the wg netns bridge) falls inside
+          # 192.168.0.0/16, so caddy → namespace traffic is covered.
+          AuthSubnetWhitelistEnabled = true;
+          AuthSubnetWhitelist = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16";
+        };
       };
 
       services.reverse-proxy.routes.qbittorrent = {
