@@ -218,6 +218,18 @@
 
           # Single wildcard site block. All routing happens via @host matchers
           # below; this is the canonical Caddy pattern for a wildcard cert.
+          #
+          # The NixOS caddy module's default per-vhost logFormat writes
+          # access logs to /var/log/caddy/access-<host>.log with mode 0600.
+          # CrowdSec runs as a different (dynamic) user and can't read those
+          # files, so the file-glob acquisition was silently empty. Send
+          # access logs to stdout instead — systemd captures them into
+          # journald, where the matching acquisition reads them like every
+          # other service. Browse with `journalctl -u caddy.service`.
+          virtualHosts."*.{$BASE_DOMAIN}".logFormat = ''
+            output stdout
+          '';
+
           virtualHosts."*.{$BASE_DOMAIN}".extraConfig = ''
             tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -248,12 +260,16 @@
         # HTTP/3 (QUIC) needs UDP 443; openFirewall above only handles TCP.
         networking.firewall.allowedUDPPorts = [ 443 ];
 
-        # CrowdSec reads Caddy's per-vhost access logs. Glob matches the
-        # env-substituted filename, e.g. /var/log/caddy/access-*.<domain>.log.
+        # CrowdSec reads Caddy's access logs from journald (the vhost
+        # above sends them to stdout, which systemd captures). Matches the
+        # journalctl pattern other services use (jellyfin, immich, sshd),
+        # and avoids the file-permission gap between caddy's umask and
+        # crowdsec's dynamic user.
         services.crowdsec.hub.collections = [ "crowdsecurity/caddy" ];
         services.crowdsec.localConfig.acquisitions = [
           {
-            filenames = [ "/var/log/caddy/access-*.log" ];
+            source = "journalctl";
+            journalctl_filter = [ "_SYSTEMD_UNIT=caddy.service" ];
             labels.type = "caddy";
           }
         ];
