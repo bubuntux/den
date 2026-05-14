@@ -1,0 +1,80 @@
+name: 'Caddy plugin hash heal'
+description: >-
+  Detect a caddy-src-with-plugins fixed-output hash drift in build logs and,
+  optionally, patch the `hash = "sha256-..."` line in reverse-proxy.nix.
+
+inputs:
+  error-logs-dir:
+    description: >-
+      Directory containing per-host build logs. The action matches
+      `<dir>/error-*/build.log`, which is the layout produced by
+      `_build.yml`'s upload-error-logs path after `actions/download-artifact`
+      with `pattern: error-*`.
+    required: false
+    default: 'errors'
+  file:
+    description: 'reverse-proxy.nix path to patch.'
+    required: false
+    default: 'modules/features/network/reverse-proxy.nix'
+  patch:
+    description: >-
+      When `true`, rewrite the hash line in-place. When `false`, run detection
+      only — useful when the caller just wants the new hash for a comment or
+      summary and doesn't have the file checked out.
+    required: false
+    default: 'true'
+
+outputs:
+  matched:
+    description: 'Whether a caddy plugin hash drift was detected (`true`/`false`).'
+    value: ${{ steps.detect.outputs.matched }}
+  new-hash:
+    description: 'The new `sha256-...` hash extracted from the build log. Empty when matched=false.'
+    value: ${{ steps.detect.outputs.new-hash }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: detect
+      shell: bash
+      run: |
+        # Require BOTH a caddy-src-with-plugins reference AND a
+        # `got: sha256-...` line in the same log file. Stops us from
+        # grabbing a hash from some unrelated FOD that happened to fail
+        # in the same run.
+        match_log=$(grep -lE 'caddy-src-with-plugins.*\.drv' "${{ inputs.error-logs-dir }}"/error-*/build.log 2>/dev/null | head -1 || true)
+        if [ -z "$match_log" ]; then
+          echo "matched=false" >> "$GITHUB_OUTPUT"
+          echo 'No `caddy-src-with-plugins` reference in any error log — not a heal candidate.' >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        new_hash=$(grep -oE 'got:[[:space:]]+sha256-[A-Za-z0-9+/=]+' "$match_log" | head -1 | awk '{print $2}')
+        if [ -z "$new_hash" ]; then
+          echo "matched=false" >> "$GITHUB_OUTPUT"
+          echo "Caddy reference found in \`$match_log\` but no \`got: sha256-...\` line — not a heal candidate." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        echo "matched=true" >> "$GITHUB_OUTPUT"
+        echo "new-hash=$new_hash" >> "$GITHUB_OUTPUT"
+        {
+          echo '### Caddy plugin hash drift detected'
+          echo "- Log: \`$match_log\`"
+          echo "- New hash: \`$new_hash\`"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - id: patch
+      if: inputs.patch == 'true' && steps.detect.outputs.matched == 'true'
+      shell: bash
+      run: |
+        file='${{ inputs.file }}'
+        new_hash='${{ steps.detect.outputs.new-hash }}'
+        # Defense in depth: refuse to patch unless exactly one matching
+        # hash line is present. Future-proofs against accidentally
+        # rewriting an unrelated FOD added to the same file later.
+        count=$(grep -cE '^[[:space:]]+hash = "sha256-[^"]*";' "$file")
+        if [ "$count" != "1" ]; then
+          echo "::error::Expected exactly one hash line in $file, found $count."
+          exit 1
+        fi
+        sed -i -E "s|(^[[:space:]]+hash = )\"sha256-[^\"]*\"|\1\"$new_hash\"|" "$file"
+        git --no-pager diff -- "$file"
