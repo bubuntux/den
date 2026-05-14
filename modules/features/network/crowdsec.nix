@@ -1,7 +1,12 @@
 { self, ... }:
 {
   flake.nixosModules.crowdsec =
-    { config, pkgs, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       # Seed the writable console.yaml with the same default content the
       # upstream module would produce. Used by the tmpfiles rule below.
@@ -218,5 +223,22 @@
           touch "$enrolled"
         '';
       };
+
+      # In VM builds /etc is ephemeral -- each `nix run .#appa-vm` starts
+      # from a fresh disk image, so the .console-enrolled marker doesn't
+      # survive. Without this override, every VM cycle would POST a new
+      # enrollment request to app.crowdsec.net, leaving a trail of pending
+      # entries to clean up. Skip the Console step entirely in the VM and
+      # keep just the CAPI registration so the community blocklist still
+      # gets exercised during testing.
+      virtualisation.vmVariant.systemd.services.crowdsec-online-setup.script = lib.mkForce ''
+        creds=/etc/crowdsec/online_api_credentials.yaml
+        if [ ! -s "$creds" ] || ! grep -q '^password:' "$creds"; then
+          echo "registering with the Central API..."
+          cscli capi register --file "$creds"
+          systemctl reload crowdsec.service || systemctl restart crowdsec.service
+        fi
+        echo "VM build: skipping Console enrollment"
+      '';
     };
 }
