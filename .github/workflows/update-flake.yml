@@ -82,9 +82,95 @@ jobs:
       fail-fast: false
     secrets:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
-  finalize:
+  heal:
+    # Self-heal scoped to one specific recurring failure: the
+    # caddy.withPlugins fixed-output hash drifting when nixpkgs bumps
+    # the Caddy version underneath our pinned plugins. Any other
+    # build failure falls through to the normal PR-for-review path.
     runs-on: ubuntu-latest
     needs: [update, build]
+    if: >-
+      always() && needs.update.outputs.changed == 'true' && needs.build.result == 'failure'
+    outputs:
+      matched: ${{ steps.detect.outputs.matched }}
+      new-hash: ${{ steps.detect.outputs.new-hash }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: update-data
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: error-*
+          path: errors
+        continue-on-error: true
+      - name: Detect caddy plugin hash mismatch
+        id: detect
+        run: |
+          # Require BOTH a caddy-src-with-plugins reference AND a
+          # `got: sha256-...` line in the same log file. Stops us from
+          # grabbing a hash from some unrelated FOD that happened to fail
+          # in the same run.
+          match_log=$(grep -lE 'caddy-src-with-plugins.*\.drv' errors/error-*/build.log 2>/dev/null | head -1 || true)
+          if [ -z "$match_log" ]; then
+            echo "matched=false" >> "$GITHUB_OUTPUT"
+            echo 'No `caddy-src-with-plugins` reference in any error log — not a heal candidate.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          new_hash=$(grep -oE 'got:[[:space:]]+sha256-[A-Za-z0-9+/=]+' "$match_log" | head -1 | awk '{print $2}')
+          if [ -z "$new_hash" ]; then
+            echo "matched=false" >> "$GITHUB_OUTPUT"
+            echo "Caddy reference found in \`$match_log\` but no \`got: sha256-...\` line — not a heal candidate." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "new-hash=$new_hash" >> "$GITHUB_OUTPUT"
+          {
+            echo '### Caddy plugin hash drift detected'
+            echo "- Log: \`$match_log\`"
+            echo "- New hash: \`$new_hash\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Patch hash in reverse-proxy.nix
+        if: steps.detect.outputs.matched == 'true'
+        run: |
+          new_hash='${{ steps.detect.outputs.new-hash }}'
+          file=modules/features/network/reverse-proxy.nix
+          # Defense in depth: refuse to patch unless exactly one matching
+          # hash line is present. Future-proofs against accidentally
+          # rewriting an unrelated FOD added to the same file later.
+          count=$(grep -cE '^[[:space:]]+hash = "sha256-[^"]*";' "$file")
+          if [ "$count" != "1" ]; then
+            echo "::error::Expected exactly one hash line in $file, found $count."
+            exit 1
+          fi
+          sed -i -E "s|(^[[:space:]]+hash = )\"sha256-[^\"]*\"|\1\"$new_hash\"|" "$file"
+          git --no-pager diff -- "$file"
+      - name: Re-upload artifact with patched file
+        if: steps.detect.outputs.matched == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: update-data
+          overwrite: true
+          path: |
+            flake.lock
+            modules/features/network/reverse-proxy.nix
+            update-output.log
+            check-before.log
+            check-after.log
+  heal-build:
+    needs: [update, heal]
+    if: >-
+      always() && needs.heal.outputs.matched == 'true'
+    uses: ./.github/workflows/_build.yml
+    with:
+      artifact-name: update-data
+      upload-error-logs: true
+      fail-fast: false
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  finalize:
+    runs-on: ubuntu-latest
+    needs: [update, build, heal, heal-build]
     if: >-
       always() && needs.update.outputs.changed == 'true'
     steps:
@@ -102,11 +188,28 @@ jobs:
         id: decide
         run: |
           echo '### Finalize' >> "$GITHUB_STEP_SUMMARY"
+          # Effective build result: heal-build supersedes the original build
+          # when the self-heal path ran successfully.
+          if [ "${{ needs.build.result }}" = "success" ]; then
+            effective_build="success"
+            hash_refreshed="false"
+          elif [ "${{ needs.heal.outputs.matched }}" = "true" ] && [ "${{ needs.heal-build.result }}" = "success" ]; then
+            effective_build="success"
+            hash_refreshed="true"
+            echo ':wrench: Caddy plugin hash auto-refreshed and rebuild passed' >> "$GITHUB_STEP_SUMMARY"
+          else
+            effective_build="failure"
+            hash_refreshed="false"
+            if [ "${{ needs.heal.outputs.matched }}" = "true" ]; then
+              echo ':warning: Heal attempted (hash refreshed) but rebuild still failed' >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+          echo "hash-refreshed=$hash_refreshed" >> "$GITHUB_OUTPUT"
           if [ "${{ needs.update.outputs.check-failed }}" = "true" ]; then
             echo "action=pr" >> "$GITHUB_OUTPUT"
             echo "reason=check-failure" >> "$GITHUB_OUTPUT"
             echo ':x: `nix flake check` failed after update — creating PR for review' >> "$GITHUB_STEP_SUMMARY"
-          elif [ "${{ needs.build.result }}" = "failure" ]; then
+          elif [ "$effective_build" = "failure" ]; then
             echo "action=pr" >> "$GITHUB_OUTPUT"
             echo "reason=build-failure" >> "$GITHUB_OUTPUT"
             echo ':x: Build failures detected — creating PR for review' >> "$GITHUB_STEP_SUMMARY"
@@ -137,7 +240,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add flake.lock
-          git commit -m "$(printf 'flake.lock: update flake inputs\n\nFlake lock file updates:\n\n%s' "$(cat update-output.log)")"
+          if [ "${{ steps.decide.outputs.hash-refreshed }}" = "true" ]; then
+            git add modules/features/network/reverse-proxy.nix
+            subject='flake.lock: update flake inputs + refresh caddy plugin hash'
+            footer=$'\n\nCaddy plugin bundle hash auto-refreshed after the nixpkgs\nbump moved the underlying Caddy version. See reverse-proxy.nix.'
+          else
+            subject='flake.lock: update flake inputs'
+            footer=''
+          fi
+          git commit -m "$(printf '%s\n\nFlake lock file updates:\n\n%s%s' "$subject" "$(cat update-output.log)" "$footer")"
           git push
       - name: Build PR body
         if: steps.decide.outputs.action == 'pr'
@@ -166,6 +277,12 @@ jobs:
               echo ''
               echo '### Build failures'
               echo 'The following configurations **failed to build** after updating inputs.'
+              if [ "${{ needs.heal.outputs.matched }}" = "true" ]; then
+                echo ''
+                echo ':wrench: A caddy plugin hash drift was detected and auto-patched, but the rebuild still failed.'
+                echo "New hash applied: \`${{ needs.heal.outputs.new-hash }}\`"
+                echo ''
+              fi
               if [ -d errors ]; then
                 for dir in errors/error-*/; do
                   [ -d "$dir" ] || continue
