@@ -2,6 +2,13 @@
 {
   flake.nixosModules.crowdsec =
     { config, pkgs, ... }:
+    let
+      # Seed the writable console.yaml with the same default content the
+      # upstream module would produce. Used by the tmpfiles rule below.
+      consoleSeed =
+        (pkgs.formats.yaml { }).generate "console.yaml"
+          config.services.crowdsec.settings.console.configuration;
+    in
     {
       imports = [ self.nixosModules.sops ];
 
@@ -30,8 +37,17 @@
       # crowdsec-online-setup.service has had a chance to populate it.
       # cscli treats empty/login-less content as "no CAPI" with a warning
       # rather than a fatal error.
+      #
+      # console.yaml is similar but needs to be writable: `cscli console
+      # enroll` rewrites it to record share_manual/tainted/context flags.
+      # The upstream module points console_path at a /nix/store path which
+      # is read-only, so enroll fails. Override the path and seed the file
+      # once from the same default content the upstream module would have
+      # generated. `C` copies only if the destination doesn't exist, so
+      # cscli's later writes survive a `nixos-rebuild switch`.
       systemd.tmpfiles.rules = [
         "f /etc/crowdsec/online_api_credentials.yaml 0640 crowdsec crowdsec - "
+        "C /etc/crowdsec/console.yaml 0640 crowdsec crowdsec - ${consoleSeed}"
       ];
 
       # The upstream NixOS module renders the daemon config to a /nix/store
@@ -92,6 +108,12 @@
         # Firewall and Caddy bouncers reference this port (see crowdsec-
         # bouncers.nix and reverse-proxy.nix).
         settings.general.api.server.listen_uri = "127.0.0.1:6868";
+
+        # cscli console enroll writes to console_path to record which
+        # Console feature flags (manual, tainted, context) are enabled.
+        # Upstream defaults console_path to a /nix/store path which is
+        # read-only; the tmpfiles rule above seeds a writable copy.
+        settings.general.api.server.console_path = "/etc/crowdsec/console.yaml";
 
         # Generic collections that aren't tied to one specific service.
         # Per-service collections + acquisitions live in the service module
