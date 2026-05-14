@@ -23,6 +23,17 @@
       # create /var/lib/private/crowdsec owned by the dynamic user.
       systemd.services.crowdsec.serviceConfig.StateDirectory = "crowdsec";
 
+      # cscli loads online_client.credentials_path on every invocation --
+      # even the unrelated `cscli machines add` in the upstream setup script
+      # crashes if the file is missing. Pre-create it as an empty file owned
+      # by the crowdsec user so the daemon's startup path succeeds before
+      # crowdsec-online-setup.service has had a chance to populate it.
+      # cscli treats empty/login-less content as "no CAPI" with a warning
+      # rather than a fatal error.
+      systemd.tmpfiles.rules = [
+        "f /etc/crowdsec/online_api_credentials.yaml 0640 crowdsec crowdsec - "
+      ];
+
       # The upstream NixOS module renders the daemon config to a /nix/store
       # path and passes it via `-c=<path>`, but raw cscli (used by upstream's
       # own crowdsec-firewall-bouncer-register) defaults to /etc/crowdsec/
@@ -117,23 +128,37 @@
       # Registers the agent with the Central API and (optionally) enrolls
       # it with the CrowdSec Console webapp.
       #
-      # Runs BEFORE crowdsec.service so the agent finds CAPI credentials at
-      # startup. Both cscli capi register and cscli console enroll are
-      # gated on local idempotency markers because:
+      # Runs AFTER crowdsec.service (which tolerates an empty creds file
+      # thanks to the tmpfiles entry above) and network-online.target (so
+      # DNS works for api.crowdsec.net). Both cscli capi register and
+      # cscli console enroll are gated on local idempotency markers
+      # because:
       #   * `cscli capi register` is destructive -- it always generates
       #     fresh credentials, which would orphan the prior machine on
       #     api.crowdsec.net and break any existing Console enrollment.
-      #     Gate on the presence of the credentials file.
+      #     Gate on the presence of a password line in the credentials
+      #     file.
       #   * `cscli console enroll` POSTs to app.crowdsec.net and the user
       #     has to validate the request in the webapp. Re-running it from
       #     the agent side after enrollment is pointless; gate on a
       #     touched marker file.
       #
+      # After populating CAPI creds we reload crowdsec.service so the
+      # daemon picks them up; otherwise the agent runs without community
+      # blocklist data until next reboot.
+      #
       # Empty `crowdsec_console_key` is fine -- CAPI registration still
       # happens (community blocklist), Console enrollment is skipped.
       systemd.services.crowdsec-online-setup = {
         description = "Register agent with the CrowdSec Central API + Console";
-        before = [ "crowdsec.service" ];
+        after = [
+          "crowdsec.service"
+          "network-online.target"
+        ];
+        wants = [
+          "crowdsec.service"
+          "network-online.target"
+        ];
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
           Type = "oneshot";
@@ -142,9 +167,17 @@
         path = [ config.services.crowdsec.package ];
         script = ''
           creds=/etc/crowdsec/online_api_credentials.yaml
+          did_register=0
           if [ ! -s "$creds" ] || ! grep -q '^password:' "$creds"; then
             echo "registering with the Central API..."
             cscli capi register --file "$creds"
+            did_register=1
+          fi
+
+          if [ "$did_register" = 1 ]; then
+            # The agent loaded the (empty) creds file at startup; force it
+            # to re-read so the freshly-written CAPI credentials take effect.
+            systemctl reload crowdsec.service || systemctl restart crowdsec.service
           fi
 
           key=$(cat ${config.sops.secrets.crowdsec_console_key.path})
