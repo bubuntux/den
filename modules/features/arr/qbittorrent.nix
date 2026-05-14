@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.nixosModules.qbittorrent =
-    { pkgs, ... }:
+    { config, pkgs, ... }:
     let
       webuiPort = 8080;
     in
@@ -21,6 +21,10 @@
 
       services.reverse-proxy.routes.qbittorrent = {
         port = webuiPort;
+        # vpn-confinement DNATs LAN-arriving traffic in PREROUTING, but
+        # Caddy on the same host dials over loopback and bypasses that
+        # rewrite. Point Caddy directly at the namespace veth IP.
+        upstreamAddr = config.vpnNamespaces.wg.namespaceAddress;
         aliases = [
           "qb"
           "torrent"

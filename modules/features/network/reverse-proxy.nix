@@ -36,12 +36,12 @@
           proxy =
             if route.proxyConfig != "" then
               ''
-                reverse_proxy 127.0.0.1:${toString route.port} {
+                reverse_proxy ${route.upstreamAddr}:${toString route.port} {
                   ${route.proxyConfig}
                 }
               ''
             else
-              "reverse_proxy 127.0.0.1:${toString route.port}";
+              "reverse_proxy ${route.upstreamAddr}:${toString route.port}";
           body =
             mkRateLimit name route.rateLimit
             + lib.optionalString (route.extraConfig != "") (route.extraConfig + "\n")
@@ -87,7 +87,19 @@
               options = {
                 port = lib.mkOption {
                   type = lib.types.port;
-                  description = "Local upstream port reached at 127.0.0.1.";
+                  description = "Upstream port Caddy dials on `upstreamAddr`.";
+                };
+                upstreamAddr = lib.mkOption {
+                  type = lib.types.str;
+                  default = "127.0.0.1";
+                  description = ''
+                    IP address Caddy dials for this route. Defaults to host
+                    loopback. For services running inside a VPN network
+                    namespace (vpn-confinement), set this to the namespace's
+                    veth IP — e.g. `config.vpnNamespaces.wg.namespaceAddress`
+                    — because VPN-Confinement only installs PREROUTING DNAT,
+                    which doesn't catch loopback traffic from Caddy itself.
+                  '';
                 };
                 aliases = lib.mkOption {
                   type = lib.types.listOf lib.types.str;

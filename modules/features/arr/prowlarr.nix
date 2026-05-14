@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.nixosModules.prowlarr =
-    _:
+    { config, ... }:
     let
       port = 9696;
     in
@@ -17,6 +17,9 @@
 
       services.reverse-proxy.routes.prowlarr = {
         inherit port;
+        # See qbittorrent.nix for why we dial the namespace veth IP rather
+        # than 127.0.0.1.
+        upstreamAddr = config.vpnNamespaces.wg.namespaceAddress;
         aliases = [ "idx" ];
       };
 
