@@ -38,7 +38,14 @@
             "sd_mod"
           ];
           boot.initrd.kernelModules = [ ];
-          boot.kernelModules = [ "kvm-intel" ];
+          # dm-raid + raid1 are needed to assemble the existing LVM RAID1
+          # mirrors (config, data LVs in VG `nas`). Root is on sda so these
+          # load after init, not in initrd.
+          boot.kernelModules = [
+            "kvm-intel"
+            "dm-raid"
+            "raid1"
+          ];
           boot.extraModulePackages = [ ];
 
           # --- LVM support (systemd initrd handles dm modules automatically) ---
