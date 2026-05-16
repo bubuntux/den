@@ -45,6 +45,7 @@
         # Process monitoring
         bottom
         htop
+        pv
 
         # Request/parsers
         httpie
