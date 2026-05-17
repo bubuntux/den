@@ -55,7 +55,7 @@ Cold (data dir exists, not running): `home-assistant`, `vaultwarden`,
 - `appa.nix:41-45` — added `dm-raid` + `raid1` to `boot.kernelModules` so
   systemd can assemble the LVM RAID mirrors post-boot.
 
----
+______________________________________________________________________
 
 ## Backup plan (pre-install)
 
@@ -120,6 +120,7 @@ rsync -aHAX --info=progress2 --human-readable \
 ```
 
 Flag notes:
+
 - `-a` archive (perms, times, symlinks, ownership)
 - `-H` hard links (cheap insurance)
 - `-A -X` preserve ACLs + xattrs (incl. SELinux labels — inert on NixOS,
@@ -128,6 +129,7 @@ Flag notes:
 - No `--delete` (fresh dir)
 
 Kept (irreplaceable):
+
 - Plex: `Preferences.xml`, `Plug-in Support/Databases/*.db`,
   `Plug-in Support/Preferences/`, `Plug-ins/`
 - Jellyfin: `data/` (library SQLite), `config/`, `plugins/`, `root/`
@@ -190,7 +192,7 @@ new appa is fully verified (~1-2 weeks of confirmed-working services).
 Then either delete or promote into an ongoing borg/restic job as part of
 the NixOS config.
 
----
+______________________________________________________________________
 
 ## After backup — still to plan
 
@@ -200,14 +202,14 @@ remaining before the install runbook is complete:
 1. **Bind-mounts for service state** — wire `/mnt/config/<service>` →
    `/var/lib/<service>` for each NixOS service module (default dataDir
    doesn't point at the LV).
-2. **UID alignment** — chown each service dir to the matching NixOS service
+1. **UID alignment** — chown each service dir to the matching NixOS service
    user after first activation. Document the post-install chown step here.
-3. **Install target by-id** — record the SSD's `/dev/disk/by-id/...` so
+1. **Install target by-id** — record the SSD's `/dev/disk/by-id/...` so
    `nixos-install` can never pick the wrong disk.
-4. **Fill in TODO UUIDs** — `appa.nix:57,62,90` for `/`, `/boot`, swap
+1. **Fill in TODO UUIDs** — `appa.nix:57,62,90` for `/`, `/boot`, swap
    after partitioning sda.
 
----
+______________________________________________________________________
 
 ## Decided: services in scope
 
@@ -243,7 +245,7 @@ remaining before the install runbook is complete:
 
 Total to archive: ~3.7G — negligible on a 200G LV.
 
----
+______________________________________________________________________
 
 ## Decided: mount paths + container-path migration
 
@@ -255,7 +257,7 @@ read-only — irrelevant on NixOS).
 
 ### The container-path problem
 
-Plex/Jellyfin library DBs and *arr/qBittorrent root-folder configs have
+Plex/Jellyfin library DBs and \*arr/qBittorrent root-folder configs have
 **container-internal paths** baked in (e.g., `/data/movies`, `/downloads`,
 `/tv`). On FCOS, podman volume mounts translate these to host paths
 (`/var/mnt/media/movies`, etc.). On NixOS, services run **natively** — no
@@ -277,6 +279,7 @@ done'
 ```
 
 Record each unique `Destination` path. Expected patterns:
+
 - Plex: `/data` → media, `/config` → plex config
 - Jellyfin: `/media` (or `/data`) → media
 - Sonarr/Radarr: `/tv`, `/movies`, `/downloads`
@@ -323,7 +326,7 @@ shim paths:
   **Mass Editor** → select all → change Root Folder → apply. Do not
   remove old root folder until Mass Editor reports zero items still on it.
 - **Bazarr**: follows Sonarr/Radarr via API; its paths update automatically
-  once *arr roots are migrated.
+  once \*arr roots are migrated.
 - **qBittorrent**: trickiest because in-progress torrents have absolute
   paths in per-torrent `.fastresume` / `.json` files. Either:
   - Change default save path in Preferences → bulk-select all torrents →
@@ -339,7 +342,7 @@ by spot-checking library item details), delete the `fileSystems."/data"`
 etc. blocks from `appa.nix` and `nixos-rebuild switch`. Mounts go away;
 services keep working because nothing references them.
 
----
+______________________________________________________________________
 
 ### Post-install cleanup (run from new appa as root, after services verified)
 

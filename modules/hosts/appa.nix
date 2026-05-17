@@ -31,13 +31,15 @@
           ];
 
           # --- Hardware / Kernel (Intel Pentium Silver J5040, SATA) ---
+          # sda is /dev/disk/by-id/ata-WDC_WDS500G1R0A-68A4W0_233710800325
           boot.initrd.availableKernelModules = [
             "ahci"
             "xhci_pci"
+            "usbhid"
             "usb_storage"
             "sd_mod"
           ];
-          boot.initrd.kernelModules = [ ];
+          boot.initrd.kernelModules = [ "dm-snapshot" ];
           # dm-raid + raid1 are needed to assemble the existing LVM RAID1
           # mirrors (config, data LVs in VG `nas`). Root is on sda so these
           # load after init, not in initrd.
@@ -58,15 +60,13 @@
           boot.consoleLogLevel = lib.mkForce 3;
 
           # --- Filesystems ---
-          # Root/boot/swap UUIDs will change after partitioning sda.
-          # After install, replace with: blkid /dev/sda*
           fileSystems."/" = {
-            device = "/dev/disk/by-uuid/TODO-AFTER-PARTITIONING";
+            device = "/dev/disk/by-uuid/312a5183-407c-4855-a6e1-ef5991765a19";
             fsType = "ext4";
           };
 
           fileSystems."/boot" = {
-            device = "/dev/disk/by-uuid/TODO-AFTER-PARTITIONING";
+            device = "/dev/disk/by-uuid/7BD6-F122";
             fsType = "vfat";
             options = [
               "fmask=0077"
@@ -94,7 +94,7 @@
           };
 
           swapDevices = [
-            { device = "/dev/disk/by-uuid/TODO-AFTER-PARTITIONING"; }
+            { device = "/dev/disk/by-uuid/ce0ee5b6-6ea3-4447-8540-7a52f4887441"; }
           ];
 
           # --- Intel hardware ---
