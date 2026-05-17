@@ -192,11 +192,11 @@
           # rebuild, and copy the real hash from the error.
           package = pkgs.caddy.withPlugins {
             plugins = [
-              "github.com/caddy-dns/cloudflare@v0.2.1"
+              "github.com/caddy-dns/cloudflare@v0.2.4"
               "github.com/hslatman/caddy-crowdsec-bouncer@v0.12.1"
               "github.com/mholt/caddy-ratelimit@v0.1.0"
             ];
-            hash = "sha256-YNFlKeDyazPDG1NoM6oT5PZKUPHA2K3P/8kYrbkG4FE=";
+            hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
           };
 
           environmentFile = config.sops.secrets.caddy_env.path;
