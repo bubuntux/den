@@ -26,6 +26,13 @@
           networking.hostName = "appa";
           system.stateVersion = "25.11";
 
+          # 4-core J5040 with limited RAM; keep build parallelism conservative
+          # so Go-heavy builds (caddy + plugins) don't trigger OOM/kernel oops.
+          nix.settings = {
+            max-jobs = 1;
+            cores = 2;
+          };
+
           imports = [
             (modulesPath + "/installer/scan/not-detected.nix")
           ];
