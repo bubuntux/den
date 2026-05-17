@@ -46,15 +46,17 @@
             "usb_storage"
             "sd_mod"
           ];
-          boot.initrd.kernelModules = [ "dm-snapshot" ];
-          # dm-raid + raid1 are needed to assemble the existing LVM RAID1
-          # mirrors (config, data LVs in VG `nas`). Root is on sda so these
-          # load after init, not in initrd.
-          boot.kernelModules = [
-            "kvm-intel"
+          # dm-raid + raid1 must be in initrd, not just boot.kernelModules.
+          # The udev-triggered lvm-activate-nas.service races the later
+          # systemd-modules-load.service and fails with "raid1 target support
+          # missing from kernel?" — only the linear `media` LV activates,
+          # the raid1 `config` / `data` LVs are left offline.
+          boot.initrd.kernelModules = [
+            "dm-snapshot"
             "dm-raid"
             "raid1"
           ];
+          boot.kernelModules = [ "kvm-intel" ];
           boot.extraModulePackages = [ ];
 
           # --- LVM support (systemd initrd handles dm modules automatically) ---
