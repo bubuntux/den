@@ -37,16 +37,6 @@
             (modulesPath + "/installer/scan/not-detected.nix")
           ];
 
-          # --- Network ---
-          # Static ULA for stable LAN AAAA records. The /64 is RA-advertised by UniFi
-          # on this VLAN; SLAAC still runs and adds an EUI-64 address alongside this one.
-          networking.interfaces.eno1.ipv6.addresses = [
-            {
-              address = "fdf9:ef45:81dc:2201::93";
-              prefixLength = 64;
-            }
-          ];
-
           # --- Hardware / Kernel (Intel Pentium Silver J5040, SATA) ---
           # sda is /dev/disk/by-id/ata-WDC_WDS500G1R0A-68A4W0_233710800325
           boot.initrd.availableKernelModules = [
