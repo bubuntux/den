@@ -35,6 +35,16 @@
       # create /var/lib/private/crowdsec owned by the dynamic user.
       systemd.services.crowdsec.serviceConfig.StateDirectory = "crowdsec";
 
+      # Disable DynamicUser. The upstream module declares BOTH User=crowdsec
+      # (static uid) AND DynamicUser=true AND PrivateUsers=true. Their
+      # interaction split state-dir ownership: parent /var/lib/private/
+      # crowdsec ended up owned by a transient dynamic UID, while subdirs
+      # written by the static user lingered as crowdsec:crowdsec. The setup
+      # pre-start then can't traverse the split — mkdir fails with EACCES
+      # and the service loops on Restart=. Pinning to the static user
+      # unifies ownership.
+      systemd.services.crowdsec.serviceConfig.DynamicUser = lib.mkForce false;
+
       # cscli loads online_client.credentials_path on every invocation --
       # even the unrelated `cscli machines add` in the upstream setup script
       # crashes if the file is missing. Pre-create it as an empty file owned
