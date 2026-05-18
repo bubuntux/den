@@ -1,6 +1,11 @@
 {
   flake.nixosModules.crowdsec-bouncers =
-    { config, pkgs, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     {
       # Firewall bouncer: drops banned IPs at the nftables layer. Protocol-
       # agnostic — catches port scans, SSH brute force, and anything else
@@ -24,6 +29,25 @@
       systemd.services.crowdsec-firewall-bouncer.after = [
         "crowdsec-firewall-bouncer-register.service"
       ];
+
+      # Same DynamicUser+StateDirectory bug as crowdsec.service (see comment
+      # in crowdsec.nix). The upstream register oneshot declares
+      # `StateDirectory=crowdsec-firewall-bouncer-register crowdsec` — so its
+      # DynamicUser=true namespace setup recreates the /var/lib/crowdsec →
+      # /var/lib/private/crowdsec symlink on every run, undoing the fix on
+      # the main service and breaking interactive cscli. Pin to the static
+      # crowdsec user so its StateDirectory entries are plain directories.
+      systemd.services.crowdsec-firewall-bouncer-register.serviceConfig.DynamicUser = lib.mkForce false;
+
+      # Auto-heal the register service's own state-dir symlink left over
+      # from a prior DynamicUser=true generation. Mirrors the script in
+      # crowdsec.nix for /var/lib/crowdsec. Idempotent.
+      system.activationScripts.crowdsec-firewall-bouncer-register-unwrap-statedir = ''
+        if [ -L /var/lib/crowdsec-firewall-bouncer-register ] && [ -d /var/lib/private/crowdsec-firewall-bouncer-register ]; then
+          rm /var/lib/crowdsec-firewall-bouncer-register
+          mv /var/lib/private/crowdsec-firewall-bouncer-register /var/lib/crowdsec-firewall-bouncer-register
+        fi
+      '';
 
       # Caddy bouncer auto-register. The bouncer plugin in Caddy doesn't
       # have a NixOS-side helper like the firewall bouncer does, so we
