@@ -1,15 +1,19 @@
 {
   flake.nixosModules.auto-upgrade =
-    { config, ... }:
+    { config, lib, ... }:
     {
+      # Tunable defaults — hosts can override any of these without mkForce.
+      # Cautious profile: daily build, stage for next boot, never auto-reboot.
+      # See modules/hosts/appa.nix for a more autonomous override (weekly,
+      # auto-reboot in a quiet window).
       system.autoUpgrade = {
         enable = true;
         flake = "github:bubuntux/den#${config.networking.hostName}";
-        dates = "daily";
-        operation = "boot";
-        allowReboot = false;
-        persistent = true;
-        randomizedDelaySec = "15min";
+        dates = lib.mkDefault "daily";
+        operation = lib.mkDefault "boot";
+        allowReboot = lib.mkDefault false;
+        persistent = lib.mkDefault true;
+        randomizedDelaySec = lib.mkDefault "15min";
       };
     };
 

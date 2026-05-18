@@ -44,6 +44,21 @@
           # keeps dhcpcd soliciting RAs so the static ULA and SLAAC coexist.
           networking.dhcpcd.IPv6rs = true;
 
+          # Run unattended weekly: Sunday at 03:00 build the new generation,
+          # stage as next-boot (operation=boot inherits from shared default),
+          # then reboot if a kernel/initrd/systemd change requires it -- but
+          # only within the 03:00-05:00 quiet window so we never reboot mid-
+          # stream. randomizedDelaySec stays at the shared 15min default,
+          # giving an effective run window of 03:00-03:15.
+          system.autoUpgrade = {
+            dates = "Sun *-*-* 03:00:00";
+            allowReboot = true;
+            rebootWindow = {
+              lower = "03:00";
+              upper = "05:00";
+            };
+          };
+
           # 4-core J5040 with limited RAM; keep build parallelism conservative
           # so Go-heavy builds (caddy + plugins) don't trigger OOM/kernel oops.
           nix.settings = {
