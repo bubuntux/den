@@ -13,6 +13,17 @@
         openFirewall = true;
       };
 
+      # `render` owns /dev/dri/renderD128 (GPU compute / VA-API), `video` owns
+      # the legacy card0 node. Jellyfin's hwaccel probe checks group membership
+      # before opening the device even when the device perms would already
+      # permit access, so without these groups the encoder silently falls back
+      # to software transcoding -- which on a Pentium Silver pegs the CPU
+      # during trickplay / chapter image generation.
+      users.users.jellyfin.extraGroups = [
+        "render"
+        "video"
+      ];
+
       # Catches actual auth failures from Jellyfin's own log stream — slow
       # brute force that stays below caddy-ratelimit wouldn't otherwise
       # trigger anything.

@@ -20,6 +20,7 @@
           config,
           lib,
           modulesPath,
+          pkgs,
           ...
         }:
         {
@@ -178,7 +179,21 @@
 
           # --- Intel hardware ---
           hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-          hardware.graphics.enable = true; # Intel UHD 605 for VA-API (Jellyfin transcoding)
+
+          # UHD 605 (Gemini Lake, Gen 9.5). VA-API via the iHD driver is the
+          # supported transcoding path for Jellyfin on this CPU class --
+          # oneVPL/QSV requires Tiger Lake+ and won't load here. Ship the i965
+          # fallback too in case iHD fails to probe a specific codec.
+          hardware.graphics = {
+            enable = true;
+            extraPackages = with pkgs; [
+              intel-media-driver
+              intel-vaapi-driver
+            ];
+          };
+
+          # vainfo for verifying the VA-API stack after a rebuild.
+          environment.systemPackages = [ pkgs.libva-utils ];
         }
       )
     ];
