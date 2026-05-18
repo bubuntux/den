@@ -10,6 +10,19 @@
     let
       cfg = config.services.reverse-proxy;
 
+      # LAN allowlist + loopback, formatted for Caddy's `client_ip` matcher
+      # (space-separated IPv4 and IPv6 CIDRs). The LAN portion comes from
+      # the shared `self.lib.lan` value so SSH, Caddy, and any other
+      # consumer stay in sync.
+      lanClientIps = lib.concatStringsSep " " (
+        self.lib.lan.ipv4
+        ++ self.lib.lan.ipv6
+        ++ [
+          "127.0.0.0/8"
+          "::1"
+        ]
+      );
+
       mkHosts =
         name: aliases:
         lib.concatStringsSep " " ([ "${name}.{$BASE_DOMAIN}" ] ++ map (a: "${a}.{$BASE_DOMAIN}") aliases);
@@ -58,7 +71,7 @@
           ''
             @${name} host ${hostList}
             handle @${name} {
-              @${name}-lan client_ip 192.168.0.0/16 10.0.0.0/8 127.0.0.0/8
+              @${name}-lan client_ip ${lanClientIps}
               handle @${name}-lan {
                 ${body}
               }
