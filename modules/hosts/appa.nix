@@ -102,6 +102,35 @@
             options = [ "nofail" ];
           };
 
+          # --- Plex: migrate FCOS state ---
+          # lsio container's /config volume root was /mnt/config/plex. Plex's
+          # data lives at Library/Application Support/Plex Media Server/ inside
+          # it. NixOS plex looks at $PLEX_DATADIR/Plex Media Server/, so bind
+          # dataDir to the FCOS parent of "Plex Media Server".
+          fileSystems."/var/lib/plex" = {
+            device = "/mnt/config/plex/Library/Application Support";
+            fsType = "none";
+            options = [
+              "bind"
+              "nofail"
+            ];
+          };
+          # Container-media-path shim. library.db section_locations reference
+          # /data/{movies,tv,music,audiobooks,videos}. Remove this bind after
+          # the library locations are remapped via Plex UI to /mnt/media/*.
+          fileSystems."/data" = {
+            device = "/mnt/media";
+            fsType = "none";
+            options = [
+              "bind"
+              "nofail"
+            ];
+          };
+          systemd.services.plex.unitConfig.RequiresMountsFor = [
+            "/var/lib/plex"
+            "/data"
+          ];
+
           swapDevices = [
             { device = "/dev/disk/by-uuid/ce0ee5b6-6ea3-4447-8540-7a52f4887441"; }
           ];
