@@ -28,22 +28,35 @@
         sopsFile = "${self}/secrets/appa.yaml";
       };
 
-      # Workaround for an upstream NixOS module bug: crowdsec.service is set
-      # up with DynamicUser=true but without StateDirectory=, so /var/lib/
-      # crowdsec ends up as a dangling symlink and the setup script can't
-      # mkdir through it. Setting StateDirectory explicitly makes systemd
-      # create /var/lib/private/crowdsec owned by the dynamic user.
-      systemd.services.crowdsec.serviceConfig.StateDirectory = "crowdsec";
+      # Pin the service to the static `crowdsec` user (uid 993) and let
+      # systemd pre-create /var/lib/crowdsec as a regular directory.
+      #
+      # The upstream NixOS module enables DynamicUser=true AND declares a
+      # static User=crowdsec AND turns on PrivateUsers=true. Their combo
+      # is broken: systemd allocates a transient UID for the parent state
+      # dir while subdirs written by the static user keep uid 993,
+      # splitting ownership across the tree. The setup pre-start fails
+      # with EACCES and the service loops on Restart=. DynamicUser=false
+      # unifies ownership; StateDirectory= ensures the dir exists by
+      # activation time so pre-start has somewhere to write.
+      systemd.services.crowdsec.serviceConfig = {
+        DynamicUser = lib.mkForce false;
+        StateDirectory = "crowdsec";
+      };
 
-      # Disable DynamicUser. The upstream module declares BOTH User=crowdsec
-      # (static uid) AND DynamicUser=true AND PrivateUsers=true. Their
-      # interaction split state-dir ownership: parent /var/lib/private/
-      # crowdsec ended up owned by a transient dynamic UID, while subdirs
-      # written by the static user lingered as crowdsec:crowdsec. The setup
-      # pre-start then can't traverse the split — mkdir fails with EACCES
-      # and the service loops on Restart=. Pinning to the static user
-      # unifies ownership.
-      systemd.services.crowdsec.serviceConfig.DynamicUser = lib.mkForce false;
+      # Auto-heal a leftover symlink at /var/lib/crowdsec on first activation
+      # after switching DynamicUser=true → false. systemd's migration moves
+      # the data from /var/lib/private/<name> to /var/lib/<name> but doesn't
+      # always remove the symlink at the public path. The symlink resolves
+      # into /var/lib/private (700 root:root), blocking out-of-namespace
+      # tools like interactive cscli. Idempotent — only acts when the
+      # symlink + target combo is present.
+      system.activationScripts.crowdsec-unwrap-statedir = ''
+        if [ -L /var/lib/crowdsec ] && [ -d /var/lib/private/crowdsec ]; then
+          rm /var/lib/crowdsec
+          mv /var/lib/private/crowdsec /var/lib/crowdsec
+        fi
+      '';
 
       # cscli loads online_client.credentials_path on every invocation --
       # even the unrelated `cscli machines add` in the upstream setup script
