@@ -12,6 +12,15 @@
         openFirewall = true;
       };
 
+      # `render` owns /dev/dri/renderD128 (GPU compute / VA-API), `video` owns
+      # the legacy card0 node. Required for Plex Pass hardware transcoding to
+      # find the iGPU; without these groups the transcoder probe fails
+      # silently and Plex falls back to software encoding.
+      users.users.plex.extraGroups = [
+        "render"
+        "video"
+      ];
+
       # Allowlist for Plex's own infrastructure (Plex Relay, metadata) so
       # legitimate Plex traffic doesn't get flagged. No acquisition needed
       # — this collection only ships a parser that whitelists known IPs.
