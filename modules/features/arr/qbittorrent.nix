@@ -1,7 +1,12 @@
 { self, ... }:
 {
   flake.nixosModules.qbittorrent =
-    { config, pkgs, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       webuiPort = 8080;
     in
@@ -28,11 +33,18 @@
           HostHeaderValidation = false;
           CSRFProtection = false;
           # Skip the WebUI login for trusted private ranges -- mirrors the
-          # LocalHostAuth UX and matches the LAN whitelist used in
-          # crowdsec.nix. 192.168.15.0/24 (the wg netns bridge) falls inside
-          # 192.168.0.0/16, so caddy → namespace traffic is covered.
+          # LocalHostAuth UX and matches the LAN whitelist used elsewhere.
+          # 192.168.15.0/24 (the wg netns bridge) falls inside 192.168.0.0/16,
+          # so caddy → namespace traffic is covered.
           AuthSubnetWhitelistEnabled = true;
-          AuthSubnetWhitelist = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16";
+          AuthSubnetWhitelist = lib.concatStringsSep "," (
+            self.lib.lan.ipv4
+            ++ self.lib.lan.ipv6
+            ++ [
+              "127.0.0.0/8"
+              "::1"
+            ]
+          );
         };
       };
 

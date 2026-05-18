@@ -135,18 +135,19 @@
 
         # Whitelist trusted local networks so internal traffic never gets
         # banned, even if a misconfigured app triggers an HTTP scenario.
+        # CIDRs sourced from `self.lib.lan` so SSH, Caddy, and CrowdSec
+        # share one definition.
         localConfig.parsers.s02Enrich = [
           {
             name = "den/lan-whitelist";
             description = "Trust local networks";
             whitelist = {
               reason = "trusted LAN ranges";
-              ip = [ "127.0.0.1" ];
-              cidr = [
-                "10.0.0.0/8"
-                "172.16.0.0/12"
-                "192.168.0.0/16"
+              ip = [
+                "127.0.0.1"
+                "::1"
               ];
+              cidr = self.lib.lan.ipv4 ++ self.lib.lan.ipv6;
             };
           }
         ];

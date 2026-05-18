@@ -1,6 +1,7 @@
+{ self, ... }:
 {
   flake.nixosModules.forgejo =
-    _:
+    { lib, ... }:
     let
       port = 3000;
       sshPort = 2222;
@@ -73,7 +74,8 @@
       ];
 
       networking.firewall.extraInputRules = ''
-        ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport { ${toString port}, ${toString sshPort} } accept
+        ip saddr { ${lib.concatStringsSep ", " self.lib.lan.ipv4} } tcp dport { ${toString port}, ${toString sshPort} } accept
+        ip6 saddr { ${lib.concatStringsSep ", " self.lib.lan.ipv6} } tcp dport { ${toString port}, ${toString sshPort} } accept
       '';
 
       virtualisation.vmVariant.virtualisation.forwardPorts = [
