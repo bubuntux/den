@@ -102,6 +102,47 @@
             options = [ "nofail" ];
           };
 
+          # --- Service-state bind-mounts ---
+          # Native NixOS services pointed at their FCOS-era state on
+          # /mnt/config so libraries, watched-state, plugins and configs
+          # survive the migration. nofail keeps the box bootable if a bind
+          # source is missing; RequiresMountsFor on each service unit
+          # prevents start-with-empty-state races.
+          #
+          # FCOS layout was lsio-container-style: /mnt/config/<svc>/ was the
+          # container's /config volume root, so the mapping isn't always
+          # one-to-one with the NixOS module defaults.
+
+          # Jellyfin: lsio container's /config volume root was
+          # /mnt/config/jellyfin/config (yes, nested), with cache and log as
+          # separate sibling dirs at the top level.
+          fileSystems."/var/lib/jellyfin" = {
+            device = "/mnt/config/jellyfin/config";
+            options = [
+              "bind"
+              "nofail"
+            ];
+          };
+          fileSystems."/var/cache/jellyfin" = {
+            device = "/mnt/config/jellyfin/cache";
+            options = [
+              "bind"
+              "nofail"
+            ];
+          };
+          fileSystems."/var/log/jellyfin" = {
+            device = "/mnt/config/jellyfin/log";
+            options = [
+              "bind"
+              "nofail"
+            ];
+          };
+          systemd.services.jellyfin.unitConfig.RequiresMountsFor = [
+            "/var/lib/jellyfin"
+            "/var/cache/jellyfin"
+            "/var/log/jellyfin"
+          ];
+
           swapDevices = [
             { device = "/dev/disk/by-uuid/ce0ee5b6-6ea3-4447-8540-7a52f4887441"; }
           ];
