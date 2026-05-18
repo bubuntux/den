@@ -44,6 +44,17 @@
         StateDirectory = "crowdsec";
       };
 
+      # crowdsec-update-hub.service runs as a DynamicUser with Group=crowdsec
+      # and ends with `ExecStartPost=systemctl reload crowdsec.service`, which
+      # needs root -- neither the dynamic UID nor the crowdsec group has
+      # polkit permission to manage system units. `cscli hub update` itself
+      # succeeds, but the unit ends with status=4/NOPERMISSION and shows up
+      # as failed. Prefix the reload with `+` so systemd runs that one step
+      # as root regardless of User=.
+      systemd.services.crowdsec-update-hub.serviceConfig.ExecStartPost = lib.mkForce [
+        "+${pkgs.systemd}/bin/systemctl reload crowdsec.service"
+      ];
+
       # Auto-heal a leftover symlink at /var/lib/crowdsec on first activation
       # after switching DynamicUser=true → false. systemd's migration moves
       # the data from /var/lib/private/<name> to /var/lib/<name> but doesn't
