@@ -88,6 +88,54 @@
         (pkgs.formats.yaml { }).generate "crowdsec-config.yaml"
           config.services.crowdsec.settings.general;
 
+      # Map journalctl acquisitions' `labels.type` to `evt.Parsed.program`
+      # so hub parsers whose filter is `evt.Parsed.program == '<name>'`
+      # (e.g. LePresidente/jellyfin-logs) actually match. The syslog-logs
+      # s00-raw parser sets `Parsed.program` from the syslog facility for
+      # syslog-style sources, but journalctl acquisitions skip that path,
+      # leaving Parsed.program empty and program-filtered hub parsers
+      # silently inert (0% parse rate). Written as a flat environment.etc
+      # file rather than via `localConfig.parsers.s00Raw` because the
+      # upstream module renders localConfig entries to hash-named files
+      # under /etc/crowdsec/parsers/ that aren't garbage-collected across
+      # rebuilds, leaving stale duplicates and "multiple parsers named X"
+      # warnings.
+      environment.etc."crowdsec/parsers/s00-raw/journald-program.yaml".source =
+        (pkgs.formats.yaml { }).generate "journald-program.yaml"
+          {
+            onsuccess = "next_stage";
+            name = "den/journald-program";
+            description = "Set Parsed.program from Labels.type for journalctl sources";
+            filter = "evt.Line.Module == 'journalctl'";
+            statics = [
+              {
+                meta = "program";
+                expression = "evt.Line.Labels.type";
+              }
+            ];
+          };
+
+      # Whitelist trusted local networks so internal traffic never gets
+      # banned, even if a misconfigured app triggers an HTTP scenario.
+      # CIDRs sourced from `self.lib.lan` so SSH, Caddy, and CrowdSec
+      # share one definition. Written via environment.etc (not
+      # localConfig.parsers.s02Enrich) for the same stale-file reason
+      # documented on the journald-program parser above.
+      environment.etc."crowdsec/parsers/s02-enrich/lan-whitelist.yaml".source =
+        (pkgs.formats.yaml { }).generate "lan-whitelist.yaml"
+          {
+            name = "den/lan-whitelist";
+            description = "Trust local networks";
+            whitelist = {
+              reason = "trusted LAN ranges";
+              ip = [
+                "127.0.0.1"
+                "::1"
+              ];
+              cidr = self.lib.lan.ipv4 ++ self.lib.lan.ipv6;
+            };
+          };
+
       services.crowdsec = {
         enable = true;
         # `cscli hub update` runs daily so parser / scenario / blocklist
@@ -156,24 +204,6 @@
           "crowdsecurity/whitelist-good-actors"
         ];
 
-        # Whitelist trusted local networks so internal traffic never gets
-        # banned, even if a misconfigured app triggers an HTTP scenario.
-        # CIDRs sourced from `self.lib.lan` so SSH, Caddy, and CrowdSec
-        # share one definition.
-        localConfig.parsers.s02Enrich = [
-          {
-            name = "den/lan-whitelist";
-            description = "Trust local networks";
-            whitelist = {
-              reason = "trusted LAN ranges";
-              ip = [
-                "127.0.0.1"
-                "::1"
-              ];
-              cidr = self.lib.lan.ipv4 ++ self.lib.lan.ipv6;
-            };
-          }
-        ];
       };
 
       # Registers the agent with the Central API and (optionally) enrolls
