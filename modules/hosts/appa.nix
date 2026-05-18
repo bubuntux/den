@@ -118,6 +118,7 @@
           # separate sibling dirs at the top level.
           fileSystems."/var/lib/jellyfin" = {
             device = "/mnt/config/jellyfin/config";
+            fsType = "none";
             options = [
               "bind"
               "nofail"
@@ -125,6 +126,7 @@
           };
           fileSystems."/var/cache/jellyfin" = {
             device = "/mnt/config/jellyfin/cache";
+            fsType = "none";
             options = [
               "bind"
               "nofail"
@@ -132,6 +134,7 @@
           };
           fileSystems."/var/log/jellyfin" = {
             device = "/mnt/config/jellyfin/log";
+            fsType = "none";
             options = [
               "bind"
               "nofail"
