@@ -192,8 +192,13 @@
             ];
           };
 
-          # vainfo for verifying the VA-API stack after a rebuild.
-          environment.systemPackages = [ pkgs.libva-utils ];
+          # vainfo confirms the VA-API stack; intel_gpu_top shows live
+          # per-engine GPU utilization, which is the definitive way to tell
+          # whether Jellyfin transcodes are actually hitting the hardware.
+          environment.systemPackages = with pkgs; [
+            libva-utils
+            intel-gpu-tools
+          ];
         }
       )
     ];
