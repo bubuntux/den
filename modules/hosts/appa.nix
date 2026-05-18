@@ -66,6 +66,14 @@
             cores = 2;
           };
 
+          # Static server: override the shared locale module's geoclue-based
+          # automatic timezone. The agent fails on a headless host because the
+          # dbus policy bundled with timedated only grants set-timezone to
+          # interactive (logind seat) callers.
+          time.timeZone = "America/Chicago";
+          services.automatic-timezoned.enable = lib.mkForce false;
+          services.geoclue2.enable = lib.mkForce false;
+
           imports = [
             (modulesPath + "/installer/scan/not-detected.nix")
           ];
