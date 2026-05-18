@@ -42,6 +42,12 @@
       systemd.services.crowdsec.serviceConfig = {
         DynamicUser = lib.mkForce false;
         StateDirectory = "crowdsec";
+        # Upstream module doesn't set ExecReload, so `systemctl reload
+        # crowdsec.service` exits NOTIMPLEMENTED -- which breaks both our
+        # crowdsec-update-hub post-step and the CAPI re-read in
+        # crowdsec-online-setup. The daemon handles SIGHUP as a
+        # config/hub reload, so wire that up explicitly.
+        ExecReload = "${pkgs.coreutils}/bin/kill -HUP $MAINPID";
       };
 
       # crowdsec-update-hub.service runs as a DynamicUser with Group=crowdsec
