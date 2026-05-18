@@ -23,6 +23,12 @@
         aliases = [ "idx" ];
       };
 
+      # On-box alias so host-side services (sonarr, radarr, bazarr) can
+      # dial prowlarr without hardcoding the namespace IP — the host can't
+      # reach it at its own LAN IP (see qbittorrent.nix for the PREROUTING
+      # / OUTPUT gotcha). Use `http://prowlarr.wg:9696` in the *arr UIs.
+      networking.hosts.${config.vpnNamespaces.wg.namespaceAddress} = [ "prowlarr.wg" ];
+
       systemd.services.prowlarr.vpnConfinement = {
         enable = true;
         vpnNamespace = "wg";

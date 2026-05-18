@@ -1,6 +1,6 @@
 {
   flake.nixosModules.radarr =
-    _:
+    { config, ... }:
     let
       port = 7878;
     in
@@ -17,6 +17,10 @@
         inherit port;
         aliases = [ "movies" ];
       };
+
+      # .wg alias so prowlarr (inside the wg netns) can dial us by name —
+      # see sonarr.nix for the full rationale.
+      networking.hosts.${config.vpnNamespaces.wg.bridgeAddress} = [ "radarr.wg" ];
 
       virtualisation.vmVariant.virtualisation.forwardPorts = [
         {

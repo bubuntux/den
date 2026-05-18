@@ -62,6 +62,11 @@
         ];
       };
 
+      # On-box alias so host-side services can dial qbittorrent without
+      # hardcoding the namespace IP — same PREROUTING/OUTPUT reason as
+      # the Caddy comment above. Use `http://qbittorrent.wg:8080`.
+      networking.hosts.${config.vpnNamespaces.wg.namespaceAddress} = [ "qbittorrent.wg" ];
+
       systemd.services.qbittorrent.vpnConfinement = {
         enable = true;
         vpnNamespace = "wg";
