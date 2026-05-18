@@ -37,6 +37,13 @@
             }
           ];
 
+          # Without this, NixOS's dhcpcd module auto-emits `noipv6rs` for
+          # any interface with a manually declared IPv6 address, which kills
+          # SLAAC on eno1 — the public 2605:… and router-announced ULA stop
+          # renewing and disappear after the lease expires. Forcing IPv6rs=true
+          # keeps dhcpcd soliciting RAs so the static ULA and SLAAC coexist.
+          networking.dhcpcd.IPv6rs = true;
+
           # 4-core J5040 with limited RAM; keep build parallelism conservative
           # so Go-heavy builds (caddy + plugins) don't trigger OOM/kernel oops.
           nix.settings = {
