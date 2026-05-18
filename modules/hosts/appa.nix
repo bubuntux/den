@@ -26,6 +26,17 @@
           networking.hostName = "appa";
           system.stateVersion = "25.11";
 
+          # Static ULA on eno1, in addition to SLAAC-derived ULA and public
+          # global addresses. Gives services a stable, short internal address
+          # to bind to. The router already announces fdf9:ef45:81dc:2200::/64,
+          # so this is reachable from any LAN host without extra routes.
+          networking.interfaces.eno1.ipv6.addresses = [
+            {
+              address = "fdf9:ef45:81dc:2200::a";
+              prefixLength = 64;
+            }
+          ];
+
           # 4-core J5040 with limited RAM; keep build parallelism conservative
           # so Go-heavy builds (caddy + plugins) don't trigger OOM/kernel oops.
           nix.settings = {
