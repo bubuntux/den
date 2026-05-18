@@ -22,6 +22,18 @@
 
       services.reverse-proxy.enable = true;
 
+      # Shared group joined by each media service (radarr, sonarr, ...)
+      # via its own feature file. Owns the /mnt/media tree so the services
+      # can co-write without one service's umask locking another out.
+      #
+      # First-time perms reconciliation on the host (run once after switch):
+      #   sudo chgrp -R media /mnt/media
+      #   sudo find /mnt/media -type d -exec chmod g+rwxs {} +
+      #   sudo find /mnt/media -type f -exec chmod g+rw {} +
+      # The setgid bit on dirs makes new files inherit the media group from
+      # then on.
+      users.groups.media = { };
+
       # LAN ranges that can reach the namespaced services through the host.
       # Lives here rather than in vpn-confinement.nix to avoid list-duplication
       # when vpn-confinement is imported via multiple service paths.

@@ -38,6 +38,7 @@
           "libvirtd"
           "lpadmin"
           "lxd"
+          "media"
           "network"
           "networkmanager"
           "pipewire"

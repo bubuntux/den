@@ -11,6 +11,8 @@
         settings.server.port = port;
       };
 
+      users.users.sonarr.extraGroups = [ "media" ];
+
       services.reverse-proxy.routes.sonarr = {
         inherit port;
         aliases = [

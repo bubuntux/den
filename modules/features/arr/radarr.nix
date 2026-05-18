@@ -11,6 +11,8 @@
         settings.server.port = port;
       };
 
+      users.users.radarr.extraGroups = [ "media" ];
+
       services.reverse-proxy.routes.radarr = {
         inherit port;
         aliases = [ "movies" ];

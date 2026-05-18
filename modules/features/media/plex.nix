@@ -17,6 +17,7 @@
       # find the iGPU; without these groups the transcoder probe fails
       # silently and Plex falls back to software encoding.
       users.users.plex.extraGroups = [
+        "media"
         "render"
         "video"
       ];

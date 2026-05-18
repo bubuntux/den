@@ -48,6 +48,8 @@
         };
       };
 
+      users.users.qbittorrent.extraGroups = [ "media" ];
+
       services.reverse-proxy.routes.qbittorrent = {
         port = webuiPort;
         # vpn-confinement DNATs LAN-arriving traffic in PREROUTING, but

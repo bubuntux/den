@@ -11,6 +11,8 @@
         listenPort = port;
       };
 
+      users.users.bazarr.extraGroups = [ "media" ];
+
       services.reverse-proxy.routes.bazarr = {
         inherit port;
         aliases = [ "subs" ];

@@ -20,6 +20,7 @@
       # to software transcoding -- which on a Pentium Silver pegs the CPU
       # during trickplay / chapter image generation.
       users.users.jellyfin.extraGroups = [
+        "media"
         "render"
         "video"
       ];
