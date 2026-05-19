@@ -1,6 +1,6 @@
 {
   flake.nixosModules.radarr =
-    { config, ... }:
+    { config, lib, ... }:
     let
       port = 7878;
     in
@@ -12,6 +12,11 @@
       };
 
       users.users.radarr.extraGroups = [ "media" ];
+
+      # 0002 so files/dirs radarr creates under /mnt/media keep group
+      # write -- needed for sonarr/bazarr/qbittorrent (all in the media
+      # group) to manage the same trees.
+      systemd.services.radarr.serviceConfig.UMask = lib.mkForce "0002";
 
       services.reverse-proxy.routes.radarr = {
         inherit port;

@@ -50,6 +50,13 @@
 
       users.users.qbittorrent.extraGroups = [ "media" ];
 
+      # 0002 so files land 0664 / dirs 0775 -- combined with the setgid
+      # bit on /mnt/media/*, radarr/sonarr (also in the media group) can
+      # rename files out of qbittorrent's per-torrent subdirs after the
+      # download completes. Default systemd umask 0022 strips group-write
+      # and breaks the handoff.
+      systemd.services.qbittorrent.serviceConfig.UMask = lib.mkForce "0002";
+
       services.reverse-proxy.routes.qbittorrent = {
         port = webuiPort;
         # vpn-confinement DNATs LAN-arriving traffic in PREROUTING, but
