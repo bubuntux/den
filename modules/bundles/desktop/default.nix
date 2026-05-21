@@ -1,4 +1,71 @@
 { self, ... }:
+let
+  okularDefaults = builtins.listToAttrs (
+    map
+      (m: {
+        name = m;
+        value = "okularApplication_pdf.desktop";
+      })
+      [
+        "application/pdf"
+        "application/x-gzpdf"
+        "application/x-bzpdf"
+        "application/x-wwf"
+      ]
+    ++ map (m: {
+      name = m;
+      value = "okularApplication_epub.desktop";
+    }) [ "application/epub+zip" ]
+    ++
+      map
+        (m: {
+          name = m;
+          value = "okularApplication_comicbook.desktop";
+        })
+        [
+          "application/x-cbz"
+          "application/x-cbr"
+          "application/x-cbt"
+          "application/x-cb7"
+        ]
+    ++
+      map
+        (m: {
+          name = m;
+          value = "okularApplication_ghostview.desktop";
+        })
+        [
+          "application/postscript"
+          "application/x-gzpostscript"
+          "application/x-bzpostscript"
+          "image/x-eps"
+          "image/x-gzeps"
+          "image/x-bzeps"
+        ]
+    ++ map (m: {
+      name = m;
+      value = "okularApplication_djvu.desktop";
+    }) [ "image/vnd.djvu" ]
+    ++ map (m: {
+      name = m;
+      value = "okularApplication_mobi.desktop";
+    }) [ "application/x-mobipocket-ebook" ]
+    ++ map (m: {
+      name = m;
+      value = "okularApplication_fb.desktop";
+    }) [ "application/x-fictionbook+xml" ]
+    ++
+      map
+        (m: {
+          name = m;
+          value = "okularApplication_xps.desktop";
+        })
+        [
+          "application/oxps"
+          "application/vnd.ms-xpsdocument"
+        ]
+  );
+in
 {
   # Home Manager module for desktop environments
   flake.homeModules.bundle-desktop =
@@ -12,6 +79,8 @@
 
       targets.genericLinux.enable = true;
       services.network-manager-applet.enable = true;
+
+      xdg.mimeApps.defaultApplications = okularDefaults;
 
       # Desktop packages
       home.packages = with pkgs; [

@@ -1,3 +1,10 @@
+{ self, ... }:
+let
+  mimeDefaults = {
+    "inode/directory" = "thunar.desktop";
+    "x-scheme-handler/file" = "thunar.desktop";
+  };
+in
 {
   flake.nixosModules.thunar =
     { pkgs, ... }:
@@ -12,5 +19,11 @@
           thunar-volman
         ];
       };
+      xdg.mime.defaultApplications = mimeDefaults;
+      home-manager.sharedModules = [ self.homeModules.thunar ];
     };
+
+  flake.homeModules.thunar = _: {
+    xdg.mimeApps.defaultApplications = mimeDefaults;
+  };
 }

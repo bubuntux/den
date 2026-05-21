@@ -219,6 +219,59 @@
 
         config =
           { pkgs, ... }:
+          let
+            # Translate zoommtg:// / zoomus:// links into the Zoom web client and
+            # open them in Chrome as an ad-hoc PWA window (--app=URL).
+            zoom-web-open = pkgs.writeShellScriptBin "zoom-web-open" ''
+              set -u
+              url="''${1:-}"
+              confno=""
+              pwd=""
+              tk=""
+              if [ -n "$url" ]; then
+                query="''${url#*\?}"
+                old_ifs="$IFS"
+                IFS='&'
+                set -f
+                for pair in $query; do
+                  k="''${pair%%=*}"
+                  v="''${pair#*=}"
+                  case "$k" in
+                    confno) confno="$v" ;;
+                    pwd) pwd="$v" ;;
+                    tk) tk="$v" ;;
+                  esac
+                done
+                set +f
+                IFS="$old_ifs"
+              fi
+              if [ -z "$confno" ]; then
+                exec google-chrome-stable --app="https://zoom.us/wc/join"
+              fi
+              target="https://zoom.us/wc/join/$confno"
+              sep="?"
+              if [ -n "$pwd" ]; then
+                target="''${target}''${sep}pwd=''${pwd}"
+                sep="&"
+              fi
+              if [ -n "$tk" ]; then
+                target="''${target}''${sep}tk=''${tk}"
+              fi
+              exec google-chrome-stable --app="$target"
+            '';
+            zoom-web-desktop = pkgs.makeDesktopItem {
+              name = "zoom-web";
+              desktopName = "Zoom (Web)";
+              exec = "${zoom-web-open}/bin/zoom-web-open %u";
+              icon = "Zoom";
+              categories = [ "Network" ];
+              mimeTypes = [
+                "x-scheme-handler/zoommtg"
+                "x-scheme-handler/zoomus"
+              ];
+              noDisplay = true;
+            };
+          in
           {
             imports = with self.nixosModules; [
               bundle-base
@@ -244,6 +297,8 @@
               jetbrains.gateway
               google-chrome
               slack
+              zoom-web-open
+              zoom-web-desktop
 
               v4l-utils
               libv4l
@@ -326,6 +381,19 @@
                 "1.1.1.1"
               ];
               defaultGateway = "192.168.100.10";
+            };
+
+            # Inside the container: Chrome handles URLs, Slack handles slack://,
+            # zoom:// links open in Chrome as an ad-hoc PWA window
+            home-manager.users.juliogm.xdg.mimeApps.defaultApplications = {
+              "text/html" = "google-chrome.desktop";
+              "x-scheme-handler/http" = "google-chrome.desktop";
+              "x-scheme-handler/https" = "google-chrome.desktop";
+              "x-scheme-handler/about" = "google-chrome.desktop";
+              "x-scheme-handler/unknown" = "google-chrome.desktop";
+              "x-scheme-handler/slack" = "slack.desktop";
+              "x-scheme-handler/zoommtg" = "zoom-web.desktop";
+              "x-scheme-handler/zoomus" = "zoom-web.desktop";
             };
 
             system.stateVersion = "25.11";
