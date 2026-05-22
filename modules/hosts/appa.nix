@@ -144,6 +144,19 @@
             options = [ "nofail" ];
           };
 
+          # Mount-point ownership normalization. systemd-tmpfiles refuses to
+          # create files under a path whose intermediate dirs are owned by a
+          # non-trusted user (TOCTOU safety): any rule like `d /mnt/data/<svc>
+          # 0700 <svc> <svc>` silently no-ops if /mnt/data itself is owned by
+          # uid 1000. `z` only adjusts the mountpoint root -- the subtree is
+          # left alone (the *arr stack reconciles /mnt/media recursively via
+          # the manual chgrp documented in profile-nas).
+          systemd.tmpfiles.rules = [
+            "z /mnt/config 0755 root root - -"
+            "z /mnt/data   0755 root root - -"
+            "z /mnt/media  2775 root media - -"
+          ];
+
           # --- Plex: migrate FCOS state ---
           # lsio container's /config volume root was /mnt/config/plex. Plex's
           # data lives at Library/Application Support/Plex Media Server/ inside
