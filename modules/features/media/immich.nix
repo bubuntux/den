@@ -1,24 +1,38 @@
 {
   flake.nixosModules.immich =
-    _:
+    { lib, ... }:
     let
       port = 2283;
+      mediaLocation = "/mnt/data/immich";
+      # Immich verifies a `.immich` sentinel in each of these subdirs on
+      # startup; pre-seed them so the integrity check passes on a custom
+      # mediaLocation (with the default /var/lib/immich the upstream
+      # bootstrap creates them, but with mountChecks already enabled in the
+      # DB the verify runs before that path).
+      mountFolders = [
+        "encoded-video"
+        "thumbs"
+        "upload"
+        "backups"
+        "library"
+        "profile"
+      ];
     in
     {
       services.immich = {
         enable = true;
         host = "0.0.0.0";
         openFirewall = true;
-        inherit port;
-        # Photos / videos land on the dedicated /mnt/data volume rather than
-        # the root filesystem. Directory is pre-created with immich ownership
-        # by the tmpfiles rule below (required when overriding the default).
-        mediaLocation = "/mnt/data/immich";
+        inherit port mediaLocation;
       };
 
       systemd.tmpfiles.rules = [
-        "d /mnt/data/immich 0750 immich immich - -"
-      ];
+        "d ${mediaLocation} 0750 immich immich - -"
+      ]
+      ++ lib.concatMap (folder: [
+        "d ${mediaLocation}/${folder} 0700 immich immich - -"
+        "f ${mediaLocation}/${folder}/.immich 0600 immich immich - -"
+      ]) mountFolders;
 
       # Brute-force detection from Immich's own log stream — auth attempts
       # below the caddy-ratelimit threshold still get caught here.
