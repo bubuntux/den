@@ -18,33 +18,44 @@
         # Exposure is handled by the vpn-confinement namespace's portMappings.
         openFirewall = false;
         inherit webuiPort;
-        serverConfig.Preferences.WebUI = {
-          # Let the qbittorrent-natpmp sidecar update listen_port via the
-          # Web API without credentials. Safe because the WebUI only binds
-          # inside the wg netns.
-          LocalHostAuth = false;
-          # qbittorrent's HostHeaderValidation rejects any Host that isn't
-          # its bind address; CSRFProtection rejects when Origin/Referer
-          # don't match Host. Both misfire behind caddy, which preserves
-          # the client hostname (qb.<BASE_DOMAIN>) rather than the
-          # namespace IP. Disable both: TLS termination + SNI matching at
-          # caddy already gate the requests, and AuthSubnetWhitelist
-          # below scopes who can talk to the WebUI without a login.
-          HostHeaderValidation = false;
-          CSRFProtection = false;
-          # Skip the WebUI login for trusted private ranges -- mirrors the
-          # LocalHostAuth UX and matches the LAN whitelist used elsewhere.
-          # 192.168.15.0/24 (the wg netns bridge) falls inside 192.168.0.0/16,
-          # so caddy → namespace traffic is covered.
-          AuthSubnetWhitelistEnabled = true;
-          AuthSubnetWhitelist = lib.concatStringsSep "," (
-            self.lib.lan.ipv4
-            ++ self.lib.lan.ipv6
-            ++ [
-              "127.0.0.0/8"
-              "::1"
-            ]
-          );
+        # NOTE: the upstream module rewrites qBittorrent.conf from this
+        # attrset on every service start (ExecStartPre install -Dm600), so
+        # any setting changed via the WebUI is lost on rebuild/reboot. To
+        # make a preference persist, declare it here.
+        serverConfig = {
+          Core.AutoDeleteAddedTorrentFile = "IfAdded";
+          BitTorrent = {
+            MergeTrackersEnabled = true;
+            Session.QueueingSystemEnabled = false;
+          };
+          Preferences.WebUI = {
+            # Let the qbittorrent-natpmp sidecar update listen_port via the
+            # Web API without credentials. Safe because the WebUI only binds
+            # inside the wg netns.
+            LocalHostAuth = false;
+            # qbittorrent's HostHeaderValidation rejects any Host that isn't
+            # its bind address; CSRFProtection rejects when Origin/Referer
+            # don't match Host. Both misfire behind caddy, which preserves
+            # the client hostname (qb.<BASE_DOMAIN>) rather than the
+            # namespace IP. Disable both: TLS termination + SNI matching at
+            # caddy already gate the requests, and AuthSubnetWhitelist
+            # below scopes who can talk to the WebUI without a login.
+            HostHeaderValidation = false;
+            CSRFProtection = false;
+            # Skip the WebUI login for trusted private ranges -- mirrors the
+            # LocalHostAuth UX and matches the LAN whitelist used elsewhere.
+            # 192.168.15.0/24 (the wg netns bridge) falls inside 192.168.0.0/16,
+            # so caddy → namespace traffic is covered.
+            AuthSubnetWhitelistEnabled = true;
+            AuthSubnetWhitelist = lib.concatStringsSep "," (
+              self.lib.lan.ipv4
+              ++ self.lib.lan.ipv6
+              ++ [
+                "127.0.0.0/8"
+                "::1"
+              ]
+            );
+          };
         };
       };
 
