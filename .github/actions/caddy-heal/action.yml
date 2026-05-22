@@ -42,7 +42,13 @@ runs:
         # `got: sha256-...` line in the same log file. Stops us from
         # grabbing a hash from some unrelated FOD that happened to fail
         # in the same run.
-        match_log=$(grep -lE 'caddy-src-with-plugins.*\.drv' "${{ inputs.error-logs-dir }}"/error-*/build.log 2>/dev/null | head -1 || true)
+        #
+        # Recursive search rather than a fixed glob: download-artifact
+        # only creates the `<artifact-name>/` subdir when *multiple*
+        # artifacts match the pattern. With one match (one failing
+        # host) the file lands at `errors/build.log`; with two it's at
+        # `errors/error-<host>/build.log`. See actions/download-artifact#426.
+        match_log=$(grep -rlE --include='build.log' 'caddy-src-with-plugins.*\.drv' "${{ inputs.error-logs-dir }}" 2>/dev/null | head -1 || true)
         if [ -z "$match_log" ]; then
           echo "matched=false" >> "$GITHUB_OUTPUT"
           echo 'No `caddy-src-with-plugins` reference in any error log — not a heal candidate.' >> "$GITHUB_STEP_SUMMARY"
