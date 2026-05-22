@@ -10,7 +10,15 @@
         host = "0.0.0.0";
         openFirewall = true;
         inherit port;
+        # Photos / videos land on the dedicated /mnt/data volume rather than
+        # the root filesystem. Directory is pre-created with immich ownership
+        # by the tmpfiles rule below (required when overriding the default).
+        mediaLocation = "/mnt/data/immich";
       };
+
+      systemd.tmpfiles.rules = [
+        "d /mnt/data/immich 0750 immich immich - -"
+      ];
 
       # Brute-force detection from Immich's own log stream — auth attempts
       # below the caddy-ratelimit threshold still get caught here.
