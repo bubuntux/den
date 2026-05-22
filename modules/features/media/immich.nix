@@ -26,6 +26,17 @@
         inherit port mediaLocation;
       };
 
+      # Cap the immich slice so a runaway ML/import job can't OOM-lock the
+      # host. Both immich-server and immich-machine-learning already run in
+      # Slice=system-immich.slice; declaring the slice here adds the limits.
+      # Reason: 2026-05-22 kernel page-fault BUG during bulk photo ingest on
+      # an 8 GB-RAM host (OCR + face-detect + Redis BGSAVE concurrency).
+      systemd.slices.system-immich.sliceConfig = {
+        MemoryHigh = "3G";
+        MemoryMax = "4G";
+        MemorySwapMax = "2G";
+      };
+
       systemd.tmpfiles.rules = [
         "d ${mediaLocation} 0750 immich immich - -"
       ]
