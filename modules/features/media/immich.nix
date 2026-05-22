@@ -23,12 +23,18 @@
         enable = true;
         host = "0.0.0.0";
         openFirewall = true;
+        # Disabled on appa (8 GB RAM): CLIP + face + OCR models peak ~3 GB
+        # which collides with the rest of the media stack. Re-enable once
+        # the host has more RAM or moves to a beefier box. If you re-enable,
+        # also add LimitCORE=0 to immich-machine-learning.service (see the
+        # serviceConfig override below for the rationale).
+        machine-learning.enable = false;
         inherit port mediaLocation;
       };
 
-      # Cap the immich slice so a runaway ML/import job can't OOM-lock the
-      # host. Both immich-server and immich-machine-learning already run in
-      # Slice=system-immich.slice; declaring the slice here adds the limits.
+      # Cap the immich slice so a runaway import job can't OOM-lock the
+      # host. immich-server already runs in Slice=system-immich.slice;
+      # declaring the slice here adds the limits.
       # Reason: 2026-05-22 kernel page-fault BUG during bulk photo ingest on
       # an 8 GB-RAM host (OCR + face-detect + Redis BGSAVE concurrency).
       systemd.slices.system-immich.sliceConfig = {
@@ -36,6 +42,12 @@
         MemoryMax = "4G";
         MemorySwapMax = "2G";
       };
+
+      # Suppress core dumps for immich-server. When the slice OOM-killed the
+      # ML worker on 2026-05-22, systemd-coredump tried to write a multi-GB
+      # core file and saturated the disk for 11 min, hanging logins and TTY
+      # getties. RLIMIT_CORE=0 tells the kernel to skip the dump entirely.
+      systemd.services.immich-server.serviceConfig.LimitCORE = 0;
 
       systemd.tmpfiles.rules = [
         "d ${mediaLocation} 0750 immich immich - -"
