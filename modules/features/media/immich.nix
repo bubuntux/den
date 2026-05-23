@@ -30,7 +30,22 @@
         # serviceConfig override below for the rationale).
         machine-learning.enable = false;
         inherit port mediaLocation;
+        # Expose the Intel iGPU render node to immich-server so ffmpeg can
+        # use VA-API for transcoding. Default `[ ]` sets PrivateDevices=true
+        # on the unit, which hides /dev/dri entirely. The codec path
+        # (VAAPI vs. QSV vs. disabled) is still chosen in the Immich admin
+        # UI under Video Transcoding -- this option only grants access.
+        accelerationDevices = [ "/dev/dri/renderD128" ];
       };
+
+      # accelerationDevices only handles the systemd DeviceAllow side; the
+      # render node is `crw-rw---- root:render` so ffmpeg still needs group
+      # membership to open it. Mirrors the jellyfin setup -- same iGPU, same
+      # failure mode (silent fallback to CPU transcoding) without these.
+      users.users.immich.extraGroups = [
+        "render"
+        "video"
+      ];
 
       # Cap the immich slice so a runaway import job can't OOM-lock the
       # host or starve other services of CPU/IO. immich-server (and any
