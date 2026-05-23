@@ -73,6 +73,7 @@
             };
           };
           Preferences = {
+            General.StatusbarExternalIPDisplayed = true;
             Scheduler = {
               days = "Weekday";
               start_time = mkQTimeVariant 9 0;
