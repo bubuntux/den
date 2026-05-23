@@ -22,6 +22,16 @@
       # before the disk mounts and create paths on the root fs.
       systemd.services.radarr.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
 
+      # Resource caps (percent-of-RAM scales with hardware upgrades).
+      # Symmetric with Sonarr's .NET runtime — observed peaks of ~560 MB
+      # with a smaller library than Sonarr's. CPUWeight=75 puts it below
+      # streamers (150) but above bulk-bg (50).
+      systemd.services.radarr.serviceConfig = {
+        MemoryHigh = "8%";
+        MemoryMax = "15%";
+        CPUWeight = 75;
+      };
+
       services.reverse-proxy.routes.radarr = {
         inherit port;
         aliases = [ "movies" ];

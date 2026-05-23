@@ -129,6 +129,17 @@
       # mounts, writing torrents into the root fs and shadowing the mount.
       systemd.services.qbittorrent.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
 
+      # Resource caps (percent-of-RAM scales with hardware upgrades).
+      # Active downloads + libtorrent disk caches have been observed near
+      # 1.3 GB on appa. CPUWeight=50 — pure background work, must yield to
+      # streams. The natpmp sidecar runs in this same slice via systemd's
+      # parent-service grouping.
+      systemd.services.qbittorrent.serviceConfig = {
+        MemoryHigh = "8%";
+        MemoryMax = "15%";
+        CPUWeight = 50;
+      };
+
       # Seed the downloads directory with the same setgid/group layout as
       # the rest of /mnt/media so handoffs to the *arrs work out of the box.
       systemd.tmpfiles.rules = [

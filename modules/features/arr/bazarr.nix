@@ -21,6 +21,15 @@
       # until that disk is mounted.
       systemd.services.bazarr.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
 
+      # Resource caps (percent-of-RAM scales with hardware upgrades).
+      # Python; modest steady-state. CPUWeight=50 — background subtitle
+      # downloads should always yield to interactive streams.
+      systemd.services.bazarr.serviceConfig = {
+        MemoryHigh = "4%";
+        MemoryMax = "8%";
+        CPUWeight = 50;
+      };
+
       services.reverse-proxy.routes.bazarr = {
         inherit port;
         aliases = [ "subs" ];

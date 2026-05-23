@@ -48,6 +48,15 @@
         # crowdsec-online-setup. The daemon handles SIGHUP as a
         # config/hub reload, so wire that up explicitly.
         ExecReload = "${pkgs.coreutils}/bin/kill -HUP $MAINPID";
+
+        # Resource caps (percent-of-RAM scales with hardware upgrades).
+        # Observed steady-state ~290 MB; cap keeps a runaway parser bug
+        # from spreading. CPUWeight=125 — slightly above default so
+        # detection / IP-bouncer decisions stay timely while heavy *arr
+        # scans run in the background.
+        MemoryHigh = "4%";
+        MemoryMax = "8%";
+        CPUWeight = 125;
       };
 
       # crowdsec-update-hub.service runs as a DynamicUser with Group=crowdsec

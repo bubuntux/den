@@ -34,6 +34,15 @@
         vpnNamespace = "wg";
       };
 
+      # Resource caps (percent-of-RAM scales with hardware upgrades).
+      # Smallest of the .NET *arrs — mostly idle, occasional indexer queries.
+      # CPUWeight=75 matches sonarr/radarr.
+      systemd.services.prowlarr.serviceConfig = {
+        MemoryHigh = "4%";
+        MemoryMax = "8%";
+        CPUWeight = 75;
+      };
+
       vpnNamespaces.wg.portMappings = [
         {
           from = port;

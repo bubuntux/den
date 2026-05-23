@@ -32,6 +32,17 @@
         "/mnt/media"
       ];
 
+      # Resource caps (percent-of-RAM scales with hardware upgrades).
+      # Plex took a SIGKILL (likely OOM) on 2026-05-22 — the in-cgroup cap
+      # makes any future OOM kill plex itself instead of the kernel hunting
+      # for the largest process system-wide. CPUWeight=150 keeps streams
+      # smooth under contention.
+      systemd.services.plex.serviceConfig = {
+        MemoryHigh = "6%";
+        MemoryMax = "12%";
+        CPUWeight = 150;
+      };
+
       # Allowlist for Plex's own infrastructure (Plex Relay, metadata) so
       # legitimate Plex traffic doesn't get flagged. No acquisition needed
       # — this collection only ships a parser that whitelists known IPs.

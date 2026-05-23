@@ -29,6 +29,17 @@
       # the disk mounts so Jellyfin doesn't index an empty mountpoint.
       systemd.services.jellyfin.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
 
+      # Resource caps (percent-of-RAM scales with hardware upgrades).
+      # Transcoding sessions can burst memory; cap above observed ~700 MB
+      # peak so live streams don't get OOM-killed mid-playback.
+      # CPUWeight=150 (default 100) wins CPU contention over scanners and
+      # downloaders — real-time playback timing must beat bulk work.
+      systemd.services.jellyfin.serviceConfig = {
+        MemoryHigh = "8%";
+        MemoryMax = "15%";
+        CPUWeight = 150;
+      };
+
       # Catches actual auth failures from Jellyfin's own log stream — slow
       # brute force that stays below caddy-ratelimit wouldn't otherwise
       # trigger anything.

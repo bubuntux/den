@@ -54,18 +54,20 @@
       # Reason: 2026-05-22 kernel page-fault BUG + 11-min I/O storm during
       # bulk photo ingest on an 8 GB-RAM / 4-core J5040 host.
       systemd.slices.system-immich.sliceConfig = {
-        # Memory: hard cap below host-OOM territory; let the kernel reclaim
-        # aggressively from 3G upward; bound swap usage so a leak can't
-        # exhaust the swap device either.
-        MemoryHigh = "3G";
-        MemoryMax = "4G";
-        MemorySwapMax = "2G";
-        # CPU: at most 2 of 4 cores. Leaves headroom for jellyfin/plex
-        # transcodes, sshd, kernel work — so a bulk ingest can't lock the
-        # host's interactive shell again. CPUWeight=50 (default is 100)
-        # means other slices win under contention.
+        # Memory: percent-of-RAM so caps auto-scale with hardware upgrades.
+        # On 8 GB:  high≈2.8 G  max≈4.0 G  swap≈2.0 G
+        # On 16 GB: high≈5.7 G  max≈8.0 G  swap≈4.0 G
+        # MemorySwapMax's % is relative to physical RAM (systemd quirk).
+        MemoryHigh = "35%";
+        MemoryMax = "50%";
+        MemorySwapMax = "25%";
+        # CPU: CPUQuota's "%" is per-core absolute (200% = 2 cores). Hard
+        # cap protects the host from a bulk import even if priority is
+        # high. CPUWeight=100 (default) — interactive photo browsing should
+        # outrank background *arr scans (75) but yield to live streams
+        # (jellyfin/plex at 150).
         CPUQuota = "200%";
-        CPUWeight = 50;
+        CPUWeight = 100;
         # IO: best-effort throttle. Honoured by BFQ / io.cost-enabled
         # schedulers; a no-op (but harmless) on the stock mq-deadline.
         IOWeight = 50;

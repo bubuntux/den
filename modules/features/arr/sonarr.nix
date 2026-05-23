@@ -22,6 +22,18 @@
       # before the disk mounts and create paths on the root fs.
       systemd.services.sonarr.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
 
+      # Resource caps (percent-of-RAM scales with hardware upgrades).
+      # Sonarr's .NET runtime has been observed peaking at 1.28 GB during
+      # library-wide refresh scans on appa, the largest non-immich consumer
+      # on the host. Cap above peak so scans don't OOM, below 1/5 of RAM so
+      # a runaway scan can't drown the box. CPUWeight=75 puts it below
+      # streamers (150) but above bulk-bg (50).
+      systemd.services.sonarr.serviceConfig = {
+        MemoryHigh = "12%";
+        MemoryMax = "18%";
+        CPUWeight = 75;
+      };
+
       services.reverse-proxy.routes.sonarr = {
         inherit port;
         aliases = [
