@@ -25,6 +25,10 @@
         "video"
       ];
 
+      # Library scans / playback all hit /mnt/media; defer start until
+      # the disk mounts so Jellyfin doesn't index an empty mountpoint.
+      systemd.services.jellyfin.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
+
       # Catches actual auth failures from Jellyfin's own log stream — slow
       # brute force that stays below caddy-ratelimit wouldn't otherwise
       # trigger anything.

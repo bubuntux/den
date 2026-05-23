@@ -22,6 +22,16 @@
         "video"
       ];
 
+      # Plex's dataDir is a bind-mount of /mnt/config/plex/... (see
+      # appa.nix); /mnt/media holds the library. The bind chain via
+      # var-lib-plex.mount already orders against /mnt/config implicitly,
+      # but list both explicitly so the dependency survives any refactor
+      # of the bind setup.
+      systemd.services.plex.unitConfig.RequiresMountsFor = [
+        "/mnt/config"
+        "/mnt/media"
+      ];
+
       # Allowlist for Plex's own infrastructure (Plex Relay, metadata) so
       # legitimate Plex traffic doesn't get flagged. No acquisition needed
       # — this collection only ships a parser that whitelists known IPs.

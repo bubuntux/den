@@ -17,6 +17,10 @@
       # and remain editable by radarr/sonarr (also in the media group).
       systemd.services.bazarr.serviceConfig.UMask = lib.mkForce "0002";
 
+      # Subtitles get written next to media on /mnt/media; defer start
+      # until that disk is mounted.
+      systemd.services.bazarr.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
+
       services.reverse-proxy.routes.bazarr = {
         inherit port;
         aliases = [ "subs" ];

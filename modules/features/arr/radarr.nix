@@ -18,6 +18,10 @@
       # group) to manage the same trees.
       systemd.services.radarr.serviceConfig.UMask = lib.mkForce "0002";
 
+      # Library lives on /mnt/media; without this the unit can start
+      # before the disk mounts and create paths on the root fs.
+      systemd.services.radarr.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
+
       services.reverse-proxy.routes.radarr = {
         inherit port;
         aliases = [ "movies" ];

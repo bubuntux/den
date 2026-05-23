@@ -18,6 +18,10 @@
       # group) to manage the same trees.
       systemd.services.sonarr.serviceConfig.UMask = lib.mkForce "0002";
 
+      # Library lives on /mnt/media; without this the unit can start
+      # before the disk mounts and create paths on the root fs.
+      systemd.services.sonarr.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
+
       services.reverse-proxy.routes.sonarr = {
         inherit port;
         aliases = [
