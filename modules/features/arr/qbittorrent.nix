@@ -67,9 +67,13 @@
               AddTrackersFromURLEnabled = true;
               AdditionalTrackersURL = trackersURL;
               # Alt upload cap = 1 MiB/s (KiB/s in conf), gated by the
-              # bandwidth scheduler below to 9:00-18:00 Mon-Fri.
+              # bandwidth scheduler below to 9:00-18:00 Mon-Fri. DL=0
+              # is qbittorrent's sentinel for "unlimited" -- the default
+              # would otherwise be 10 KiB/s, which throttles downloads
+              # too during the window.
               BandwidthSchedulerEnabled = true;
               AlternativeGlobalUPSpeedLimit = 1024;
+              AlternativeGlobalDLSpeedLimit = 0;
             };
           };
           Preferences = {
