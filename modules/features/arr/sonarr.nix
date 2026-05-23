@@ -32,6 +32,7 @@
         MemoryHigh = "12%";
         MemoryMax = "18%";
         CPUWeight = 75;
+        IOWeight = 75;
       };
 
       services.reverse-proxy.routes.sonarr = {

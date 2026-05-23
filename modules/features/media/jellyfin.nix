@@ -38,6 +38,7 @@
         MemoryHigh = "8%";
         MemoryMax = "15%";
         CPUWeight = 150;
+        IOWeight = 150;
       };
 
       # Catches actual auth failures from Jellyfin's own log stream — slow

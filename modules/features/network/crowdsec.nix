@@ -57,6 +57,7 @@
         MemoryHigh = "4%";
         MemoryMax = "8%";
         CPUWeight = 125;
+        IOWeight = 125;
       };
 
       # crowdsec-update-hub.service runs as a DynamicUser with Group=crowdsec

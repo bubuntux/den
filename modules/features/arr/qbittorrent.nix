@@ -138,6 +138,7 @@
         MemoryHigh = "8%";
         MemoryMax = "15%";
         CPUWeight = 50;
+        IOWeight = 50;
       };
 
       # Seed the downloads directory with the same setgid/group layout as

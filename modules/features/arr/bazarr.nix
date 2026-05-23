@@ -28,6 +28,7 @@
         MemoryHigh = "4%";
         MemoryMax = "8%";
         CPUWeight = 50;
+        IOWeight = 50;
       };
 
       services.reverse-proxy.routes.bazarr = {

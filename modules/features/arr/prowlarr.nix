@@ -41,6 +41,7 @@
         MemoryHigh = "4%";
         MemoryMax = "8%";
         CPUWeight = 75;
+        IOWeight = 75;
       };
 
       vpnNamespaces.wg.portMappings = [

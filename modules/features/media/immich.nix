@@ -68,9 +68,10 @@
         # (jellyfin/plex at 150).
         CPUQuota = "200%";
         CPUWeight = 100;
-        # IO: best-effort throttle. Honoured by BFQ / io.cost-enabled
-        # schedulers; a no-op (but harmless) on the stock mq-deadline.
-        IOWeight = 50;
+        # IO: matches CPUWeight tier — interactive priority (default 100).
+        # Activated by BFQ scheduler (see appa.nix udev rule); a no-op
+        # on mq-deadline.
+        IOWeight = 100;
       };
 
       # Refuse to start immich-server if the mediaLocation mount is missing.

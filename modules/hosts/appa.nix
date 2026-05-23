@@ -105,6 +105,17 @@
           boot.initrd.services.lvm.enable = true;
           services.lvm.enable = true;
 
+          # Switch HDDs to the BFQ I/O scheduler so per-cgroup IOWeight
+          # actually takes effect; the stock mq-deadline ignores weights.
+          # Gated on rotational==1 so the SATA SSD (sda) keeps mq-deadline,
+          # which is optimal for low-latency flash. BFQ has slightly higher
+          # per-IO CPU overhead but trades that for fair-queueing across
+          # services -- a worthwhile trade on a host where the *arr scans,
+          # qbittorrent, and immich background jobs all share five HDDs.
+          services.udev.extraRules = ''
+            ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+          '';
+
           # --- Headless: disable plymouth, show boot messages ---
           boot.plymouth.enable = lib.mkForce false;
           boot.kernelParams = lib.mkForce [ "boot.shell_on_fail" ];

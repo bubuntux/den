@@ -30,6 +30,7 @@
         MemoryHigh = "8%";
         MemoryMax = "15%";
         CPUWeight = 75;
+        IOWeight = 75;
       };
 
       services.reverse-proxy.routes.radarr = {

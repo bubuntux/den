@@ -41,6 +41,7 @@
         MemoryHigh = "6%";
         MemoryMax = "12%";
         CPUWeight = 150;
+        IOWeight = 150;
       };
 
       # Allowlist for Plex's own infrastructure (Plex Relay, metadata) so
