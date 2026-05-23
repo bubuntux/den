@@ -9,6 +9,29 @@
     }:
     let
       webuiPort = 8080;
+      defaultSavePath = "/mnt/media/downloads";
+      trackersURL = "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt";
+      # qbittorrent stores QTime via Qt's QSettings INI writer as an
+      # `@Variant(<8 bytes BE>)` blob: 4-byte type id (0x0f = QMetaType::QTime)
+      # followed by 4-byte msec-since-midnight. Generated literally here so
+      # the scheduler start/end times survive the upstream module's full
+      # conf rewrite at every service start.
+      mkQTimeVariant =
+        h: m:
+        let
+          hex2 =
+            n:
+            let
+              s = lib.toLower (lib.toHexString n);
+            in
+            if builtins.stringLength s < 2 then "0${s}" else s;
+          ms = h * 3600000 + m * 60000;
+          b3 = ms / 16777216;
+          b2 = (ms / 65536) - b3 * 256;
+          b1 = (ms / 256) - (ms / 65536) * 256;
+          b0 = ms - (ms / 256) * 256;
+        in
+        "@Variant(\\x00\\x00\\x00\\x0f\\x${hex2 b3}\\x${hex2 b2}\\x${hex2 b1}\\x${hex2 b0})";
     in
     {
       imports = [ self.nixosModules.vpn-confinement ];
@@ -26,35 +49,63 @@
           Core.AutoDeleteAddedTorrentFile = "IfAdded";
           BitTorrent = {
             MergeTrackersEnabled = true;
-            Session.QueueingSystemEnabled = false;
+            Session = {
+              QueueingSystemEnabled = false;
+              PerformanceWarning = true;
+              DefaultSavePath = defaultSavePath;
+              # AutoTMM on by default; relocate files when the torrent's
+              # category, category save path, or default save path change.
+              DisableAutoTMMByDefault = false;
+              DisableAutoTMMTriggers = {
+                CategoryChanged = false;
+                DefaultSavePathChanged = false;
+                CategorySavePathChanged = false;
+              };
+              # Append trackers fetched from a public list to all new
+              # public torrents. Setting the URL alone isn't enough --
+              # AddTrackersFromURLEnabled is the master toggle.
+              AddTrackersFromURLEnabled = true;
+              AdditionalTrackersURL = trackersURL;
+              # Alt upload cap = 1 MiB/s (KiB/s in conf), gated by the
+              # bandwidth scheduler below to 9:00-18:00 Mon-Fri.
+              BandwidthSchedulerEnabled = true;
+              AlternativeGlobalUPSpeedLimit = 1024;
+            };
           };
-          Preferences.WebUI = {
-            # Let the qbittorrent-natpmp sidecar update listen_port via the
-            # Web API without credentials. Safe because the WebUI only binds
-            # inside the wg netns.
-            LocalHostAuth = false;
-            # qbittorrent's HostHeaderValidation rejects any Host that isn't
-            # its bind address; CSRFProtection rejects when Origin/Referer
-            # don't match Host. Both misfire behind caddy, which preserves
-            # the client hostname (qb.<BASE_DOMAIN>) rather than the
-            # namespace IP. Disable both: TLS termination + SNI matching at
-            # caddy already gate the requests, and AuthSubnetWhitelist
-            # below scopes who can talk to the WebUI without a login.
-            HostHeaderValidation = false;
-            CSRFProtection = false;
-            # Skip the WebUI login for trusted private ranges -- mirrors the
-            # LocalHostAuth UX and matches the LAN whitelist used elsewhere.
-            # 192.168.15.0/24 (the wg netns bridge) falls inside 192.168.0.0/16,
-            # so caddy → namespace traffic is covered.
-            AuthSubnetWhitelistEnabled = true;
-            AuthSubnetWhitelist = lib.concatStringsSep "," (
-              self.lib.lan.ipv4
-              ++ self.lib.lan.ipv6
-              ++ [
-                "127.0.0.0/8"
-                "::1"
-              ]
-            );
+          Preferences = {
+            Scheduler = {
+              days = "Weekday";
+              start_time = mkQTimeVariant 9 0;
+              end_time = mkQTimeVariant 18 0;
+            };
+            WebUI = {
+              # Let the qbittorrent-natpmp sidecar update listen_port via the
+              # Web API without credentials. Safe because the WebUI only binds
+              # inside the wg netns.
+              LocalHostAuth = false;
+              # qbittorrent's HostHeaderValidation rejects any Host that isn't
+              # its bind address; CSRFProtection rejects when Origin/Referer
+              # don't match Host. Both misfire behind caddy, which preserves
+              # the client hostname (qb.<BASE_DOMAIN>) rather than the
+              # namespace IP. Disable both: TLS termination + SNI matching at
+              # caddy already gate the requests, and AuthSubnetWhitelist
+              # below scopes who can talk to the WebUI without a login.
+              HostHeaderValidation = false;
+              CSRFProtection = false;
+              # Skip the WebUI login for trusted private ranges -- mirrors the
+              # LocalHostAuth UX and matches the LAN whitelist used elsewhere.
+              # 192.168.15.0/24 (the wg netns bridge) falls inside 192.168.0.0/16,
+              # so caddy → namespace traffic is covered.
+              AuthSubnetWhitelistEnabled = true;
+              AuthSubnetWhitelist = lib.concatStringsSep "," (
+                self.lib.lan.ipv4
+                ++ self.lib.lan.ipv6
+                ++ [
+                  "127.0.0.0/8"
+                  "::1"
+                ]
+              );
+            };
           };
         };
       };
@@ -67,6 +118,17 @@
       # download completes. Default systemd umask 0022 strips group-write
       # and breaks the handoff.
       systemd.services.qbittorrent.serviceConfig.UMask = lib.mkForce "0002";
+
+      # Defer service start until /mnt/media is mounted -- DefaultSavePath
+      # lives under it. Without this the unit can start before the disk
+      # mounts, writing torrents into the root fs and shadowing the mount.
+      systemd.services.qbittorrent.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
+
+      # Seed the downloads directory with the same setgid/group layout as
+      # the rest of /mnt/media so handoffs to the *arrs work out of the box.
+      systemd.tmpfiles.rules = [
+        "d ${defaultSavePath} 02775 qbittorrent media - -"
+      ];
 
       services.reverse-proxy.routes.qbittorrent = {
         port = webuiPort;
