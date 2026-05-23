@@ -9,7 +9,7 @@
         crowdsec
         crowdsec-bouncers
         # forgejo
-        # immich
+        immich
         jellyfin
         openssh
         plex
