@@ -53,6 +53,60 @@
               QueueingSystemEnabled = false;
               PerformanceWarning = true;
               DefaultSavePath = defaultSavePath;
+              # Skip junk that rides along with media releases — *arrs
+              # hardlink the wanted files out, so excluding these here just
+              # avoids burning seed-tree space and inode count on samples,
+              # nfos, archive parts, hashes, web-bait, and OS cruft.
+              ExcludedFileNames = lib.concatStringsSep ", " [
+                # text/info/release metadata
+                "*.txt"
+                "*.info"
+                "*.diz"
+                "*.nfo"
+                # hash / checksum / parity
+                "*.sfv"
+                "*.md5"
+                "*.sha1"
+                "*.par2"
+                # web bait
+                "*.url"
+                "*.html"
+                "*.htm"
+                "*.lnk"
+                "*.link"
+                # executables / scripts
+                "*.exe"
+                "*.bat"
+                "*.sh"
+                "*.scr"
+                # archives & multi-part archives
+                "*.rar"
+                "*.r[0-9][0-9]"
+                "*.part*.rar"
+                "*.zip"
+                "*.7z"
+                "*.tar"
+                "*.gz"
+                "*.lzh"
+                "*.arj"
+                "*.lz"
+                "*.iso"
+                "*.001"
+                # images
+                "*.jpg"
+                "*.jpeg"
+                "*.png"
+                "*.gif"
+                "*.bmp"
+                "*.webp"
+                # samples
+                "*sample*"
+                # macOS / Windows cruft
+                ".DS_Store"
+                "Thumbs.db"
+                "__MACOSX/*"
+                "*.AppleDouble"
+              ];
               # AutoTMM on by default; relocate files when the torrent's
               # category, category save path, or default save path change.
               DisableAutoTMMByDefault = false;
