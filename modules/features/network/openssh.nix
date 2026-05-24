@@ -12,6 +12,15 @@
         };
       };
 
+      # Prioritise sshd over every other service in its slice for the
+      # brief auth/handoff window when system.slice is contended. The
+      # post-auth shell lives in user.slice (outside system.slice's cap)
+      # so the weight only matters for the connection-establishment
+      # path -- but that's the exact path we need responsive when the
+      # box is under load and we're trying to log in to fix it.
+      # No-op on uncontended hosts; defensive on the NAS.
+      systemd.services.sshd.serviceConfig.CPUWeight = 1000;
+
       networking.firewall.extraInputRules = ''
         ip saddr { ${lib.concatStringsSep ", " self.lib.lan.ipv4} } tcp dport 22 accept
         ip6 saddr { ${lib.concatStringsSep ", " self.lib.lan.ipv6} } tcp dport 22 accept
