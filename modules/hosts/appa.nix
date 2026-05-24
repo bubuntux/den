@@ -67,6 +67,17 @@
             cores = 2;
           };
 
+          # Reserve ~half a core for the kernel, journald, sshd, and the
+          # systemd hierarchy. Without this, an Immich post-migration
+          # backfill (pinned to its 2-core slice cap) + a qbittorrent
+          # recheck + an *arr library scan can collectively pin all 4
+          # cores -- the kernel can't flush its journal, sshd stops
+          # answering, and the box appears frozen even though no service
+          # actually OOM'd. PSI's `cpu some=70%+` during the 2026-05-24
+          # incident was the smoking gun. 350% = 4 cores * 100% - 50%
+          # headroom; bump proportionally on hardware upgrades.
+          systemd.slices.system.sliceConfig.CPUQuota = "350%";
+
           # Static server: override the shared locale module's geoclue-based
           # automatic timezone. The agent fails on a headless host because the
           # dbus policy bundled with timedated only grants set-timezone to

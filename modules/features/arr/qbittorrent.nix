@@ -188,10 +188,16 @@
       # 1.3 GB on appa. CPUWeight=50 — pure background work, must yield to
       # streams. The natpmp sidecar runs in this same slice via systemd's
       # parent-service grouping.
+      #
+      # CPUQuota=100% (1 core absolute): hash checks and torrent rechecks
+      # are the most reliable way to spike this service. Weight alone only
+      # helps under contention; a hard cap prevents a recheck from teaming
+      # up with an Immich backfill / *arr scan to saturate every core.
       systemd.services.qbittorrent.serviceConfig = {
         MemoryHigh = "8%";
         MemoryMax = "15%";
         CPUWeight = 50;
+        CPUQuota = "100%";
         IOWeight = 50;
       };
 
