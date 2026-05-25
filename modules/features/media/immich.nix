@@ -23,12 +23,12 @@
         enable = true;
         host = "0.0.0.0";
         openFirewall = true;
-        # Disabled on appa (8 GB RAM): CLIP + face + OCR models peak ~3 GB
-        # which collides with the rest of the media stack. Re-enable once
-        # the host has more RAM or moves to a beefier box. If you re-enable,
-        # also add LimitCORE=0 to immich-machine-learning.service (see the
-        # serviceConfig override below for the rationale).
-        machine-learning.enable = false;
+        # CLIP + face + OCR models peak ~3 GB. The slice
+        # (system-immich.slice) caps both services jointly, but ML alone
+        # could consume the full budget and starve the server during a
+        # smart-tag backfill -- per-service caps on immich-machine-learning
+        # below keep the server's interactive browsing prioritised.
+        machine-learning.enable = true;
         inherit port mediaLocation;
         # Expose the Intel iGPU render node to immich-server so ffmpeg can
         # use VA-API for transcoding. Default `[ ]` sets PrivateDevices=true
@@ -88,6 +88,22 @@
         # and saturated the disk for 11 min, hanging logins and TTY getties.
         # RLIMIT_CORE=0 tells the kernel to skip the dump entirely.
         serviceConfig.LimitCORE = 0;
+      };
+
+      # Per-service caps for the ML worker. system-immich.slice already
+      # bounds the joint footprint; these constrain ML *within* the slice
+      # so the server (CPUWeight=100 / IOWeight=100 defaults) keeps
+      # priority for interactive browsing during a tagging backfill.
+      # MemoryMax=35% (~2.8 G on 8 G RAM) is sized to the CLIP+face+OCR
+      # peak; MemoryHigh=25% throttles softly before the hard cap. % is
+      # relative to physical RAM, so caps auto-scale with hardware.
+      # LimitCORE=0 mirrors immich-server -- same OOM-on-coredump risk.
+      systemd.services.immich-machine-learning.serviceConfig = {
+        LimitCORE = 0;
+        MemoryHigh = "25%";
+        MemoryMax = "35%";
+        CPUWeight = 50;
+        IOWeight = 50;
       };
 
       systemd.tmpfiles.rules = [
