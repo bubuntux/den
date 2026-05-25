@@ -32,5 +32,15 @@
         # the login flow and the long-lived token issuer.
         rateLimit.paths = [ "/auth/*" ];
       };
+
+      # HA itself isn't on appa, so journald-based acquisitions aren't an
+      # option. The detection lives at the caddy layer: every request hits
+      # caddy access logs (already tailed via crowdsecurity/caddy), and
+      # LePresidente/http-generic-401-bf fires after repeated 401s on
+      # /auth/* -- verified via `cscli explain` against a simulated log
+      # line. Pin it here as a direct dependency so the HA protection
+      # doesn't silently disappear if some other module that pulled it in
+      # transitively (LePresidente/jellyfin) is ever removed.
+      services.crowdsec.hub.scenarios = [ "LePresidente/http-generic-401-bf" ];
     };
 }
