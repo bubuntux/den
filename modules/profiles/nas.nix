@@ -9,6 +9,7 @@
         crowdsec
         crowdsec-bouncers
         # forgejo
+        home-assistant-proxy
         immich
         jellyfin
         openssh
