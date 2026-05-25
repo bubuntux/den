@@ -36,6 +36,14 @@
 
         graphics.enable = lib.mkDefault true;
 
+        # CDI generation for the NVIDIA discrete GPU. Lives here (not in the
+        # podman feature) because the toolkit asserts that nvidia drivers are
+        # actually present -- enabling it unconditionally on every podman host
+        # breaks any non-NVIDIA host (e.g. appa, which only has an Intel iGPU).
+        # The QEMU vmVariant has no GPU to passthrough, so the same assertion
+        # would trip there; disable it via the vmVariant override below.
+        nvidia-container-toolkit.enable = lib.mkDefault true;
+
         nvidia = {
           open = lib.mkOverride 990 (nvidiaPackage ? open && nvidiaPackage ? firmware);
           modesetting.enable = lib.mkDefault true;
@@ -63,5 +71,10 @@
         pcscd.enable = lib.mkDefault true;
         thermald.enable = lib.mkDefault true;
       };
+
+      # No real GPU inside QEMU, so the nvidia-container-toolkit assertion
+      # ("requires nvidia drivers") fires when the host's vmVariant is
+      # evaluated as part of `nix flake check`. Force-off in the vmVariant.
+      virtualisation.vmVariant.hardware.nvidia-container-toolkit.enable = lib.mkForce false;
     };
 }

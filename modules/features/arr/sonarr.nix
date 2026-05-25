@@ -37,10 +37,7 @@
 
       services.reverse-proxy.routes.sonarr = {
         inherit port;
-        aliases = [
-          "tv"
-          "shows"
-        ];
+        aliases = [ "shows" ];
       };
 
       # .wg alias so prowlarr (inside the wg netns) can dial us by name —

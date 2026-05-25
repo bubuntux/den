@@ -5,9 +5,6 @@
       dockerEnabled = config.virtualisation.docker.enable;
     in
     {
-      # TODO: move
-      hardware.nvidia-container-toolkit.enable = true;
-
       virtualisation.podman = {
         enable = true;
         autoPrune.enable = true;

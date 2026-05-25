@@ -109,8 +109,21 @@
             "dm-raid"
             "raid1"
           ];
-          boot.kernelModules = [ "kvm-intel" ];
+          # em28xx + em28xx_dvb drive the Hauppauge USB hybrid sticks plugged
+          # into the front USB header; without dvb the analog/v4l half loads
+          # but `/dev/dvb/adapter*` never appears and tvheadend has nothing
+          # to scan.
+          boot.kernelModules = [
+            "kvm-intel"
+            "em28xx"
+            "em28xx_dvb"
+          ];
           boot.extraModulePackages = [ ];
+
+          # em28xx-based tuners load demodulator firmware blobs from
+          # linux-firmware at probe time. Without redistributable firmware the
+          # driver attaches but every channel scan returns "no signal".
+          hardware.enableRedistributableFirmware = true;
 
           # --- LVM support (systemd initrd handles dm modules automatically) ---
           boot.initrd.services.lvm.enable = true;
@@ -123,8 +136,13 @@
           # per-IO CPU overhead but trades that for fair-queueing across
           # services -- a worthwhile trade on a host where the *arr scans,
           # qbittorrent, and immich background jobs all share five HDDs.
+          # /dev/dvb adapter nodes default to root:root 0600, which keeps the
+          # tvheadend container (running as PUID/PGID 989) from opening the
+          # tuner even with --device passthrough. GROUP=video matches the
+          # supplementary group the container picks up via --group-add.
           services.udev.extraRules = ''
             ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+            SUBSYSTEM=="dvb", GROUP="video", MODE="0660"
           '';
 
           # --- Headless: disable plymouth, show boot messages ---

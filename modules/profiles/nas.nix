@@ -13,11 +13,13 @@
         jellyfin
         openssh
         plex
+        podman
         prowlarr
         qbittorrent
         radarr
         reverse-proxy
         sonarr
+        tvheadend
       ];
 
       services.reverse-proxy.enable = true;
@@ -32,7 +34,12 @@
       #   sudo find /mnt/media -type f -exec chmod g+rw {} +
       # The setgid bit on dirs makes new files inherit the media group from
       # then on.
-      users.groups.media = { };
+      # Pinned GID so the tvheadend OCI container can request supplementary
+      # group access via `--group-add=<gid>` deterministically across rebuilds.
+      # NixOS auto-assigned GIDs aren't stable across host rebuilds, which
+      # would silently break the container's write access to /mnt/media after
+      # any user/group reshuffle.
+      users.groups.media.gid = 990;
 
       # LAN ranges that can reach the namespaced services through the host.
       # Lives here rather than in vpn-confinement.nix to avoid list-duplication
