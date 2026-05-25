@@ -20,8 +20,17 @@
       services.reverse-proxy.routes.home-assistant = {
         port = 8123;
         upstreamAddr = "192.168.5.2";
-        aliases = [ "ha" ];
-        # public defaults to false -- LAN-only.
+        aliases = [
+          "ha"
+          "home"
+          "homeassistant"
+        ];
+        public = true;
+        # HA's auth endpoints are the obvious brute-force target once this is
+        # internet-reachable. 5/IP/min mirrors the jellyfin pattern; legitimate
+        # users tripping it just means waiting a minute. /auth/* covers both
+        # the login flow and the long-lived token issuer.
+        rateLimit.paths = [ "/auth/*" ];
       };
     };
 }
