@@ -36,11 +36,17 @@
       # HA itself isn't on appa, so journald-based acquisitions aren't an
       # option. The detection lives at the caddy layer: every request hits
       # caddy access logs (already tailed via crowdsecurity/caddy), and
-      # LePresidente/http-generic-401-bf fires after repeated 401s on
-      # /auth/* -- verified via `cscli explain` against a simulated log
-      # line. Pin it here as a direct dependency so the HA protection
-      # doesn't silently disappear if some other module that pulled it in
-      # transitively (LePresidente/jellyfin) is ever removed.
-      services.crowdsec.hub.scenarios = [ "LePresidente/http-generic-401-bf" ];
+      # `LePresidente/http-generic-401-bf` fires after repeated 401s on
+      # /auth/* — verified via `cscli explain` against a simulated log
+      # line.
+      #
+      # No explicit hub pin needed: that scenario is one of three docs
+      # inside the multi-doc file `scenarios/crowdsecurity/http-generic-bf.yaml`
+      # in the upstream hub, which gets installed transitively via
+      # `crowdsecurity/base-http-scenarios` (pulled in unconditionally by
+      # the crowdsec-setup script). Pinning by the scenario name fails
+      # because there is no hub *item* by that name — only `cscli scenarios
+      # install crowdsecurity/http-generic-bf` would work, and that's
+      # already covered by the base collection.
     };
 }
