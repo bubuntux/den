@@ -47,6 +47,33 @@
           --http-proxy socks5h://${socksHost}:${toString socksPort} \
           "$@"
       '';
+
+      # XMLTV grabber for the Atresmedia / Spanish FTA channels (Antena 3,
+      # La Sexta, Neox, Nova, Mega, Atreseries, etc.).
+      #
+      # The LSIO image ships `tv_grab_url`, but its bundled implementation
+      # takes the URL as a positional argument while tvheadend invokes
+      # grabbers with no args during a scheduled run — so it silently
+      # produces nothing on its own. It also doesn't decompress the
+      # gzipped XMLTV bundles that the community mirrors serve.
+      #
+      # This wrapper bakes both the source URL and the gunzip step in, and
+      # implements the standard XMLTV --description/--version/--capabilities
+      # probes that tvheadend uses to discover and label the grabber. After
+      # rebuild it appears in Configuration -> Channel/EPG -> EPG Grabber
+      # Modules and is enabled / scheduled from the UI like any other
+      # tv_grab_* script. EPG metadata is not geo-restricted, so the fetch
+      # goes out the host's normal network (NOT via wg-tvh).
+      tvGrabAtresplayer = pkgs.writeShellScriptBin "tv_grab_es_atresplayer" ''
+        case "$1" in
+          --description)  echo "Spain (Atresmedia community XMLTV)"; exit 0 ;;
+          --version)      echo "1.0"; exit 0 ;;
+          --capabilities) echo "baseline"; exit 0 ;;
+        esac
+        exec ${pkgs.curl}/bin/curl -fsSL \
+          https://www.open-epg.com/files/spain1.xml.gz \
+          | ${pkgs.gzip}/bin/gunzip
+      '';
     in
     {
       imports = [ self.nixosModules.vpn-confinement-tvh ];
@@ -88,6 +115,10 @@
           "/nix/store:/nix/store:ro"
           "${pkgs.streamlink}/bin/streamlink:/etc/tvheadend/streamlink:ro"
           "${streamlinkVpn}/bin/streamlink-vpn:/etc/tvheadend/streamlink-vpn:ro"
+          # /usr/local/bin/ is on the LSIO image's PATH so tvheadend's
+          # grabber discovery picks this up alongside the bundled tv_grab_*
+          # scripts in /usr/bin/.
+          "${tvGrabAtresplayer}/bin/tv_grab_es_atresplayer:/usr/local/bin/tv_grab_es_atresplayer:ro"
         ];
         # Bind the web port to loopback only; LAN access flows through caddy.
         # HTSP (9982) is intentionally not exposed -- no native HTSP clients
