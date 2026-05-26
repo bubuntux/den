@@ -39,8 +39,11 @@
       # group access via `--group-add=<gid>` deterministically across rebuilds.
       # NixOS auto-assigned GIDs aren't stable across host rebuilds, which
       # would silently break the container's write access to /mnt/media after
-      # any user/group reshuffle.
-      users.groups.media.gid = 990;
+      # any user/group reshuffle. 984 is where NixOS originally landed it on
+      # appa, kept here so the pin matches the on-disk state and doesn't
+      # collide with dhcpcd's GID 990 — moving it would require chgrp'ing
+      # the full /mnt/media tree under a service freeze.
+      users.groups.media.gid = 984;
 
       # LAN ranges that can reach the namespaced services through the host.
       # Lives here rather than in vpn-confinement.nix to avoid list-duplication
