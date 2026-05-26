@@ -17,28 +17,35 @@
       gid = 989;
 
       # Streamlink (tvhlink-style pipe muxes): we install it on the host via
-      # nixpkgs and expose it to the container through ro bind mounts of
-      # /etc/tvheadend and /nix/store. The pip-in-container approach the
-      # upstream tvhlink guide recommends would (a) require internet on
-      # container start, (b) drift from any pinned version, and (c) bury the
-      # SOCKS proxy flag in a /config/.config file that's easy to lose. Two
-      # wrappers, picked per-mux in the tvheadend UI:
+      # nixpkgs and bind-mount the resolved store paths directly into the
+      # container. The pip-in-container approach the upstream tvhlink guide
+      # recommends would (a) require internet on container start,
+      # (b) drift from any pinned version, and (c) bury the SOCKS proxy flag
+      # in a /config/.config file that's easy to lose. Two muxes wrappers,
+      # picked per-mux in the tvheadend UI:
       #
       #   pipe:///etc/tvheadend/streamlink-vpn ...   -> via wg-tvh exit
       #   pipe:///etc/tvheadend/streamlink     ...   -> direct, no VPN
       #
+      # The container binds /nix/store ro so the wrapper's shebang chain
+      # (bash -> streamlink -> python3 -> site-packages) resolves entirely
+      # inside it.
+      #
       # socks5h (with the trailing `h`) makes microsocks resolve DNS inside
       # the namespace too — without it streamlink would still leak hostname
       # lookups to the container's stub resolver.
+      #
+      # We bind the wrappers as individual file mounts instead of going
+      # through `environment.etc` because the latter lays files down as
+      # /etc/tvheadend/<x> -> /etc/static/tvheadend/<x> -> /nix/store/...,
+      # and mounting /etc/tvheadend alone leaves a dangling symlink to
+      # /etc/static inside the container. Direct file binds skip that hop.
       socksPort = 1080;
       socksHost = config.vpnNamespaces.wg-tvh.namespaceAddress;
       streamlinkVpn = pkgs.writeShellScriptBin "streamlink-vpn" ''
         exec ${pkgs.streamlink}/bin/streamlink \
           --http-proxy socks5h://${socksHost}:${toString socksPort} \
           "$@"
-      '';
-      streamlinkPlain = pkgs.writeShellScriptBin "streamlink" ''
-        exec ${pkgs.streamlink}/bin/streamlink "$@"
       '';
     in
     {
@@ -57,15 +64,6 @@
       };
       users.groups.tvheadend.gid = gid;
 
-      # Stable host paths the container sees verbatim. The .source = ...
-      # symlink points into /nix/store, which is also bind-mounted into the
-      # container, so the wrapper's shebang chain (bash -> streamlink ->
-      # python3 -> site-packages) resolves entirely inside it.
-      environment.etc = {
-        "tvheadend/streamlink-vpn".source = "${streamlinkVpn}/bin/streamlink-vpn";
-        "tvheadend/streamlink".source = "${streamlinkPlain}/bin/streamlink";
-      };
-
       # lscr's tvheadend image sets up an in-container `abc` user at the PUID
       # we pass in, but it does NOT import the host user's supplementary
       # groups -- those have to be granted to the container runtime via
@@ -82,11 +80,14 @@
         volumes = [
           "/mnt/config/tvheadend:/config"
           "/mnt/media/recordings:/recordings"
-          # Host-installed streamlink wrappers + their nix closure. ro
-          # because the container has no business writing here; /nix/store
-          # is already world-readable on the host.
-          "/etc/tvheadend:/etc/tvheadend:ro"
+          # Streamlink: the runtime closure (python, ffmpeg, site-packages)
+          # plus the two wrappers themselves. /nix/store is already
+          # world-readable on the host; the wrappers are bound as files at
+          # stable container paths so a `pipe:///etc/tvheadend/streamlink*`
+          # mux command works without /etc/static gymnastics.
           "/nix/store:/nix/store:ro"
+          "${pkgs.streamlink}/bin/streamlink:/etc/tvheadend/streamlink:ro"
+          "${streamlinkVpn}/bin/streamlink-vpn:/etc/tvheadend/streamlink-vpn:ro"
         ];
         # Bind the web port to loopback only; LAN access flows through caddy.
         # HTSP (9982) is intentionally not exposed -- no native HTSP clients
