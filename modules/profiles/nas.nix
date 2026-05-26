@@ -47,18 +47,29 @@
       # when vpn-confinement is imported via multiple service paths.
       #
       # vpn-confinement implements accessibleFrom by running
-      # `ip -n wg route add <cidr> via <bridge>` for each entry. fe80::/10 is
+      # `ip -n <ns> route add <cidr> via <bridge>` for each entry. fe80::/10 is
       # filtered out because installing a global route for link-local via a
       # ULA next-hop is semantically wrong and the kernel may reject it,
-      # failing wg.service activation. The remaining ULA prefix (fd00::/8)
-      # plus loopback (127.0.0.1 / ::1) cover return-traffic routing for
-      # everything we want to reach the namespace.
-      vpnNamespaces.wg.accessibleFrom =
-        self.lib.lan.ipv4
-        ++ lib.filter (cidr: cidr != "fe80::/10") self.lib.lan.ipv6
-        ++ [
-          "127.0.0.1"
-          "::1"
-        ];
+      # failing the namespace's activation. The remaining ULA prefix
+      # (fd00::/8) plus loopback (127.0.0.1 / ::1) cover return-traffic
+      # routing for everything we want to reach the namespace.
+      #
+      # Same list applies to wg-tvh — the streamlink SOCKS proxy receives
+      # connections from the tvheadend container's post-NAT source IP (the
+      # host's LAN address), so the LAN ranges authorize that return path.
+      vpnNamespaces =
+        let
+          lanAccess =
+            self.lib.lan.ipv4
+            ++ lib.filter (cidr: cidr != "fe80::/10") self.lib.lan.ipv6
+            ++ [
+              "127.0.0.1"
+              "::1"
+            ];
+        in
+        {
+          wg.accessibleFrom = lanAccess;
+          wg-tvh.accessibleFrom = lanAccess;
+        };
     };
 }
