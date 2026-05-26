@@ -128,6 +128,28 @@
         };
       };
 
+      # The namespace's INPUT chain is DROP by default (vpn-up.nix:36). The
+      # upstream module's only way to install an accept rule on the veth is
+      # via `portMappings`, which ALSO installs a PREROUTING DNAT for
+      # host_ip:from -> namespaceAddress:to. That DNAT is a no-op for
+      # host-local sources (incl. the tvheadend container after podman NAT)
+      # because PREROUTING isn't traversed for locally-originated packets,
+      # so we still reach microsocks via the namespace IP directly — but
+      # the INPUT allow rule the same option installs is mandatory.
+      #
+      # Side effect: anyone on the LAN dialing appa:1080 will be DNAT'd
+      # into the namespace and gets an unauthenticated SOCKS5 relay through
+      # the wg-tvh exit. Acceptable for a trusted home LAN; add a host
+      # firewall rule blocking 1080 inbound on the LAN interface if that
+      # changes.
+      vpnNamespaces.wg-tvh.portMappings = [
+        {
+          from = socksPort;
+          to = socksPort;
+          protocol = "tcp";
+        }
+      ];
+
       # Recordings + EPG cache live under /mnt/media; defer container start
       # until both disks mount so a missed mount doesn't write into the
       # underlying root fs and shadow the bind later.
