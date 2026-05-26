@@ -49,8 +49,8 @@
       '';
 
       # XMLTV grabber for the Atresmedia / Spanish FTA channels (Antena 3,
-      # La Sexta, Neox, Nova, Mega, Atreseries, etc.) from the open-epg.com
-      # community bundle. After rebuild it appears in
+      # La Sexta, Neox, Nova, Mega, Atreseries, etc.) from the
+      # epgshare01.online community bundle. After rebuild it appears in
       # Configuration -> Channel/EPG -> EPG Grabber Modules and is enabled
       # / scheduled from the UI like any other tv_grab_* script.
       #
@@ -62,16 +62,28 @@
       # --description/--version/--capabilities probes tvheadend uses to
       # discover and label the grabber.
       #
+      # Source choice: open-epg.com's Spain bundles ship zero <category>
+      # elements (verified across spain1..spain9.xml on 2026-05-26), so
+      # Jellyfin / clients can't classify programmes as News / Movie /
+      # Sports / etc. epgshare01's ES1 bundle ships ~17k categories in
+      # Spanish (Informativos / Cine / Películas / Deportes / Series /
+      # Infantil ...) that map to Jellyfin's keyword matcher, plus icons,
+      # ratings, episode numbers, and country tags. Channel IDs use dots
+      # (Antena.3.es) instead of spaces — re-map streamlink channels to
+      # the dotted IDs once in tvheadend UI after switching sources.
+      #
       # Defensive guards (added after the 2026-05-26 incident where
-      # open-epg.com replaced the .gz path with an HTML page that still
+      # open-epg.com replaced a .gz path with an HTML page that still
       # returned 200; combined with an over-frequent grab schedule the
       # bad payloads saturated tvheadend's single spawn slot and the web
       # UI stopped responding):
       #   - --max-time 30 caps each fetch so a wedged upstream can't
       #     occupy the spawn slot indefinitely
-      #   - response is buffered and sanity-checked for an XMLTV
-      #     preamble + <tv> root before any byte is emitted, so the
-      #     XMLTV parser never sees a garbage payload
+      #   - set -o pipefail makes a non-gzip body (e.g. HTML error page
+      #     served with 200) fail the gunzip stage and abort the wrapper
+      #   - decompressed response is sanity-checked for an XMLTV preamble
+      #     + <tv> root before any byte is emitted, so the XMLTV parser
+      #     never sees a garbage payload even if gunzip somehow succeeds
       #   - failures log a clear reason to stderr (tvheadend captures it
       #     into the journal as `[ERROR] spawn: ...`)
       #
@@ -86,10 +98,11 @@
           --capabilities) echo "baseline"; exit 0 ;;
         esac
 
-        url=https://www.open-epg.com/files/spain1.xml
+        url=https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz
 
-        if ! out=$(${pkgs.curl}/bin/curl -fsSL --max-time 30 "$url"); then
-          echo "tv_grab_es_atresplayer: fetch from $url failed" >&2
+        if ! out=$(${pkgs.curl}/bin/curl -fsSL --max-time 30 "$url" \
+                   | ${pkgs.gzip}/bin/gunzip); then
+          echo "tv_grab_es_atresplayer: fetch or gunzip of $url failed" >&2
           exit 1
         fi
 
