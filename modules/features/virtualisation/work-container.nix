@@ -297,6 +297,7 @@
               jetbrains.gateway
               google-chrome
               slack
+              xdg-utils
               zoom-web-open
               zoom-web-desktop
 
