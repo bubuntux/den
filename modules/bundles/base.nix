@@ -39,8 +39,14 @@
       ];
 
       home.packages = with pkgs; [
-        # File manager
-        ranger
+        # File manager. Drop already-applied shellscript-crash-fix patch from
+        # highlight (ranger's preview highlighter); the v4.20 source already
+        # includes it. Revert once NixOS/nixpkgs drops the redundant patch.
+        (ranger.override {
+          highlight = highlight.overrideAttrs (_: {
+            patches = [ ];
+          });
+        })
 
         # Process monitoring
         bottom
