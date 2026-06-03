@@ -86,9 +86,7 @@ in
       home.packages = with pkgs; [
         kdePackages.okular # PDF viewer
         # Drop already-applied 5.11 patch; revert once unstable channel passes NixOS/nixpkgs@8927bc2ba3.
-        (qalculate-gtk.overrideAttrs (_: {
-          patches = [ ];
-        })) # Calculator
+        qalculate-gtk # Calculator
         loupe # Image viewer
         pwvucontrol # PipeWire volume control
         gimp-with-plugins # image editor
