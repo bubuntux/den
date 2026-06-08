@@ -45,19 +45,30 @@
           # keeps dhcpcd soliciting RAs so the static ULA and SLAAC coexist.
           networking.dhcpcd.IPv6rs = true;
 
-          # Run unattended weekly: Sunday at 03:00 build the new generation,
-          # stage as next-boot (operation=boot inherits from shared default),
-          # then reboot if a kernel/initrd/systemd change requires it -- but
-          # only within the 03:00-05:00 quiet window so we never reboot mid-
-          # stream. randomizedDelaySec stays at the shared 15min default,
-          # giving an effective run window of 03:00-03:15.
+          # Run unattended weekly: Sunday at 03:00 build the new generation and
+          # apply it live -- operation=switch overrides the shared default's
+          # "boot", so userspace and security updates land every week without a
+          # reboot. Only a new kernel/initrd pends: it is staged as the boot
+          # default and takes effect on the next deliberate, attended reboot.
+          # Crucially, never auto-reboot.
+          #
+          # 2026-06-07 incident: the weekly upgrade bumped the kernel
+          # (6.18.33 -> 6.18.34) and, with allowReboot=true, auto-rebooted at
+          # 03:19 while the operator was on vacation. This ASRock J5040-ITX
+          # (BIOS P1.60, 2020) hung on the warm reboot -- a known Gemini Lake
+          # firmware quirk -- before POST, so it never reached the kernel. The
+          # 10-min reboot watchdog did not recover it, and with no one to
+          # power-cycle, the NAS sat dark for ~37h until a manual cold boot
+          # (which booted the *identical* generation cleanly, proving the build
+          # was fine and the reboot transition was at fault). See reboot=pci
+          # below for the firmware-hang fix.
+          #
+          # Policy: a headless box that can sit unreachable for weeks must never
+          # gamble an unattended reboot on firmware that may not come back.
           system.autoUpgrade = {
             dates = "Sun *-*-* 03:00:00";
-            allowReboot = true;
-            rebootWindow = {
-              lower = "03:00";
-              upper = "05:00";
-            };
+            operation = "switch";
+            allowReboot = false;
           };
 
           # 4-core J5040 with limited RAM; keep build parallelism conservative
@@ -147,7 +158,17 @@
 
           # --- Headless: disable plymouth, show boot messages ---
           boot.plymouth.enable = lib.mkForce false;
-          boot.kernelParams = lib.mkForce [ "boot.shell_on_fail" ];
+          # reboot=pci forces the CF9h PCI-reset path. The default ACPI/EFI
+          # reboot hangs this ASRock J5040-ITX (BIOS P1.60) on warm reboot --
+          # the firmware fails to re-POST and the box never comes back (the
+          # 2026-06-07 incident documented at system.autoUpgrade above). CF9h
+          # drives a full reset the firmware handles reliably. Validate with one
+          # attended `sudo reboot` after deploying; if it still hangs, fall back
+          # to reboot=acpi, then reboot=cold.
+          boot.kernelParams = lib.mkForce [
+            "boot.shell_on_fail"
+            "reboot=pci"
+          ];
           boot.consoleLogLevel = lib.mkForce 3;
 
           # --- Filesystems ---
