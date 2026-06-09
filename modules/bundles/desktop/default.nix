@@ -89,6 +89,7 @@ in
         qalculate-gtk # Calculator
         loupe # Image viewer
         pwvucontrol # PipeWire volume control
+        qpwgraph # PipeWire patchbay (route audio to multiple devices)
         gimp-with-plugins # image editor
         simple-scan # scanner
         tidal-hifi # music streaming
