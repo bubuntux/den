@@ -18,6 +18,7 @@
         prowlarr
         qbittorrent
         radarr
+        restic
         reverse-proxy
         sonarr
         tvheadend
