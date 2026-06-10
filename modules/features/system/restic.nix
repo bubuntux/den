@@ -44,11 +44,20 @@
       # an early-morning jellyfin client whose CPU lands on the same cores.
       # CPUQuota=200% lets it sprint to two cores when nothing else needs
       # them; weight=30 forces it to yield under contention.
+      #
+      # MemoryHigh (soft cap, kernel throttles reclaim above it) vs MemoryMax
+      # (hard cap, OOM kill): the initial seed of /mnt/data wants ~800MB for
+      # restic's pack assembly + rclone's upload buffers + the kernel's page
+      # cache of the source files. At MemoryHigh=10% the cgroup hit the soft
+      # cap constantly and spent more time reclaiming pages than uploading.
+      # 15% gives the seed room to breathe; nightly incrementals use ~200MB
+      # so the higher soft cap is a no-op in steady state. The hard ceiling
+      # at 20% (1.5GB on 8GB) is unchanged -- still bounds the worst case.
       caps = {
         CPUWeight = 30;
         CPUQuota = "200%";
         IOWeight = 30;
-        MemoryHigh = "10%";
+        MemoryHigh = "15%";
         MemoryMax = "20%";
       };
     in
