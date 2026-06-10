@@ -90,6 +90,20 @@
             # Safety net: restic stops at /mnt/data's fs boundary. /mnt/media
             # is a sibling mount, but this also catches any nested bind mounts.
             "--one-file-system"
+            # 32MB packs (default 16MB) halve API calls to Drive without a
+            # meaningful downside on a residential fiber upstream.
+            "--pack-size=32"
+          ];
+
+          # rclone.connections=4: parallel HTTP/2 streams to Drive. Default
+          # is a single stream that caps at ~100-200 Mbps regardless of pipe
+          # width. With 771 Mbps upstream we were using ~14% of headroom on
+          # one stream; four streams should push 400-600 Mbps. Each in-flight
+          # upload buffers ~chunk_size (set in rclone.conf via sops), so
+          # 4 * 64M = ~256MB extra in restic's cgroup -- fits inside the
+          # MemoryHigh=15% / MemoryMax=20% caps.
+          extraOptions = [
+            "rclone.connections=4"
           ];
 
           # First scheduled run will `restic init` the repo on Drive. No-op
