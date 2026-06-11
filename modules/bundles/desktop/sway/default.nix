@@ -156,16 +156,14 @@ in
         force = true;
       };
 
-      # Shadow dbus's auto-activation file for org.freedesktop.secrets with a
-      # no-op. Otherwise dbus races PAM, spawns a daemon without the login
-      # password, and the next libsecret call triggers a gcr-prompter dialog.
-      # With this in place, only PAM's `auto_start` (configured below) starts
-      # the daemon — and PAM has the password to unlock the login keyring.
-      xdg.dataFile."dbus-1/services/org.freedesktop.secrets.service".text = ''
-        [D-BUS Service]
-        Name=org.freedesktop.secrets
-        Exec=${pkgs.coreutils}/bin/true
-      '';
+      # Do NOT shadow dbus's auto-activation for org.freedesktop.secrets.
+      # The normal path is PAM's `auto_start` (configured below) launching
+      # gnome-keyring with the login password, so the daemon owns the bus name
+      # before any app runs. The system dbus activation file (which starts the
+      # real `gnome-keyring-daemon --components=secrets`) is kept as a fallback:
+      # if PAM ever fails to start/unlock the daemon, a libsecret client (e.g.
+      # protonvpn-app) triggers activation of the real daemon instead of
+      # hanging forever waiting for a bus name that never appears.
 
       # Sway has no desktop icons, so skip the Desktop folder.
       xdg.userDirs.desktop = config.home.homeDirectory;
