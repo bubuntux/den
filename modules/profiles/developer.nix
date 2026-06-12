@@ -8,6 +8,7 @@
         bundle-base
         claude-code
         devenv
+        difftastic
         gh
         go
       ];
