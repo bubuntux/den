@@ -19,7 +19,7 @@
           # in PipeWire mode can't see it. V4L2 mode lists the loopback directly.
           # (Trade-off: the built-in IPU6 libcamera cam, which is PipeWire-only, then
           # won't appear in Firefox -- it was the zoomed one anyway.)
-          "media.webrtc.camera.allow-pipewire" = false;
+          "media.webrtc.camera.allow-pipewire" = true;
         };
       };
       xdg.mime.defaultApplications = {
