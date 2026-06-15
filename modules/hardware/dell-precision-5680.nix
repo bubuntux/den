@@ -16,6 +16,40 @@
       nvidiaPackage = config.hardware.nvidia.package;
     in
     {
+      # OV02C10 (IPU6) webcam: the mainline intel_skl_int3472 driver only gained
+      # handling for this sensor's "GPIO type 0x02 (strobe)" power GPIO after 6.18,
+      # so on 6.18 the sensor is never powered up (int3472 aborts, csi2 frame-sync
+      # errors, isys stream -22). Kernel 7.0.x carries the upstream fix.
+      boot.kernelPackages = pkgs.linuxPackages_latest;
+
+      # Mainline libcamera Simple-pipeline + SoftISP camera stack. This replaces the
+      # proprietary ipu6-camera-hal / v4l2-relayd / icamerasrc path (hardware.ipu6),
+      # whose out-of-tree PSYS module does not build on 7.x. nixpkgs' libcamera 0.7
+      # builds simple+softisp by default and PipeWire is already linked against
+      # libcamera, so we only need device access and to hide the raw ISYS nodes.
+      services.udev.extraRules = ''
+        # SoftISP buffer allocation from the user session
+        KERNEL=="system", SUBSYSTEM=="dma_heap", TAG+="uaccess"
+        # Let user-session PipeWire/libcamera open the IPU6 ISYS media + capture nodes
+        SUBSYSTEM=="media",       DRIVERS=="intel-ipu6", TAG+="uaccess", GROUP="video", MODE="0660"
+        SUBSYSTEM=="video4linux", DRIVERS=="intel-ipu6", TAG+="uaccess", GROUP="video", MODE="0660"
+      '';
+
+      # Hide the raw Bayer ISYS v4l2 nodes so apps pick the libcamera-processed camera.
+      services.pipewire.wireplumber.extraConfig."51-ipu6-disable-raw-v4l2" = {
+        "monitor.v4l2.rules" = [
+          {
+            matches = [ { "device.product.name" = "ipu6"; } ];
+            actions."update-props"."device.disabled" = true;
+          }
+        ];
+      };
+
+      environment.systemPackages = [
+        pkgs.libcamera # `cam` for enumeration/capture testing
+        pkgs.libcamera-qcam # `qcam` live preview
+      ];
+
       imports = [
         inputs.nixos-hardware.nixosModules.common-hidpi
         inputs.nixos-hardware.nixosModules.common-pc-ssd
@@ -27,12 +61,6 @@
       hardware = {
         enableRedistributableFirmware = lib.mkDefault true;
         enableAllFirmware = lib.mkDefault true;
-
-        # Webcam (Intel IPU6EP for Raptor Lake)
-        ipu6 = {
-          enable = lib.mkDefault true;
-          platform = lib.mkDefault "ipu6ep";
-        };
 
         graphics.enable = lib.mkDefault true;
 

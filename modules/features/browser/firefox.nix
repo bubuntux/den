@@ -14,6 +14,8 @@
           "font.name-list.serif.x-unicode" = "Noto Serif, FiraCode Nerd Font Propo";
           "font.name-list.monospace.x-unicode" = "JetBrainsMono Nerd Font, FiraCode Nerd Font";
           "gfx.font_rendering.fontconfig.max_generic_substitutions" = 127;
+          # Discover cameras via PipeWire (required for the IPU6/libcamera webcam)
+          "media.webrtc.camera.allow-pipewire" = true;
         };
       };
       xdg.mime.defaultApplications = {

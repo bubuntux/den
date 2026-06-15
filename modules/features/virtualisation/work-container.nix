@@ -278,7 +278,10 @@
               user-juliogm
             ];
 
-            nixpkgs.config.google-chrome.commandLineArgs = "--enable-features=UseOzonePlatform,WebRTCPipeWireCapturer --ozone-platform=wayland";
+            # WebRtcPipeWireCamera lets Chrome/Zoom-web discover the host's IPU6
+            # webcam over the shared PipeWire socket + camera portal (the container
+            # has no PipeWire of its own; it uses the host's, like audio/screen-share).
+            nixpkgs.config.google-chrome.commandLineArgs = "--enable-features=UseOzonePlatform,WebRTCPipeWireCapturer,WebRtcPipeWireCamera --ozone-platform=wayland";
 
             # Disable pam_lastlog2 for login service — it fails inside nspawn
             # containers and causes machinectl shell sessions to exit immediately
@@ -401,30 +404,15 @@
           };
       };
 
-      # Webcam support for container
-      systemd.services."container@work" = {
-        serviceConfig = {
-          DeviceAllow = [
-            "char-drm rwm"
-            "char-video4linux rwm"
-            "char-misc rwm"
-          ];
-          EnvironmentFile = lib.mkForce [ "-/run/nixos-containers/work.conf" ];
-        };
-        preStart = ''
-          VIDEO_FLAGS=""
-          for dev in /dev/video*; do
-            if [ -e "$dev" ]; then
-              VIDEO_FLAGS="$VIDEO_FLAGS --bind=$dev"
-            fi
-          done
-          mkdir -p /run/nixos-containers
-          cp -fL /etc/nixos-containers/work.conf /run/nixos-containers/work.conf
-          if [ -n "$VIDEO_FLAGS" ]; then
-            sed -i "s|^EXTRA_NSPAWN_FLAGS=\"|EXTRA_NSPAWN_FLAGS=\"$VIDEO_FLAGS |" /run/nixos-containers/work.conf
-          fi
-        '';
-      };
+      # Extra device access for the work container (not camera-related): GPU
+      # (/dev/dri, char-drm) for Chrome/Zoom rendering + video decode, and
+      # /dev/net/tun (char-misc) for the cloudflare-warp VPN. The webcam reaches
+      # the container over the shared host PipeWire socket, so the old /dev/video*
+      # bind + char-video4linux access (V4L2 path) are no longer needed.
+      systemd.services."container@work".serviceConfig.DeviceAllow = [
+        "char-drm rwm"
+        "char-misc rwm"
+      ];
 
       # Home Manager configuration for work aliases and desktop entries
       home-manager.sharedModules = [ self.homeModules.work-container ];
