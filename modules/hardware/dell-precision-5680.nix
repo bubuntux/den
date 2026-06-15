@@ -16,17 +16,22 @@
       nvidiaPackage = config.hardware.nvidia.package;
     in
     {
-      # OV02C10 (IPU6) webcam: the mainline intel_skl_int3472 driver only gained
-      # handling for this sensor's "GPIO type 0x02 (strobe)" power GPIO after 6.18,
-      # so on 6.18 the sensor is never powered up (int3472 aborts, csi2 frame-sync
-      # errors, isys stream -22). Kernel 7.0.x carries the upstream fix.
+      # --- IPU6 webcam (OmniVision OV02C10) ---
+      # Kernel 7.0.x powers the sensor (mainline intel-ipu6 ISYS + int3472); 6.18
+      # left it dead (csi2 frame-sync / isys stream -22). The camera is exposed via
+      # libcamera + SoftISP -> PipeWire.
+      #
+      # KNOWN LIMITATION (revisit when nixpkgs ships libcamera > 0.7.0): libcamera
+      # 0.7.0's SoftISP debayer (DebayerCpu::updateGammaTable) SIGSEGVs on full-res
+      # frames, so we cannot relay the full field-of-view to a v4l2loopback via
+      # v4l2-relayd (that path crashes). PipeWire therefore exposes the camera
+      # directly -- which works, but the OV02C10 has a single 1928x1092 mode and the
+      # IPU6 has no scaler, so any smaller request is center-cropped: the image looks
+      # ZOOMED IN. The work container also has no camera on this path (it needs the
+      # v4l2loopback relay). Both are fixed once the SoftISP crash is resolved
+      # upstream and we can switch to the libcamerasrc -> v4l2-relayd relay.
       boot.kernelPackages = pkgs.linuxPackages_latest;
 
-      # Mainline libcamera Simple-pipeline + SoftISP camera stack. This replaces the
-      # proprietary ipu6-camera-hal / v4l2-relayd / icamerasrc path (hardware.ipu6),
-      # whose out-of-tree PSYS module does not build on 7.x. nixpkgs' libcamera 0.7
-      # builds simple+softisp by default and PipeWire is already linked against
-      # libcamera, so we only need device access and to hide the raw ISYS nodes.
       services.udev.extraRules = ''
         # SoftISP buffer allocation from the user session
         KERNEL=="system", SUBSYSTEM=="dma_heap", TAG+="uaccess"
@@ -45,10 +50,7 @@
         ];
       };
 
-      environment.systemPackages = [
-        pkgs.libcamera # `cam` for enumeration/capture testing
-        pkgs.libcamera-qcam # `qcam` live preview
-      ];
+      environment.systemPackages = [ pkgs.libcamera ]; # `cam` for testing
 
       imports = [
         inputs.nixos-hardware.nixosModules.common-hidpi

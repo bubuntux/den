@@ -14,8 +14,12 @@
           "font.name-list.serif.x-unicode" = "Noto Serif, FiraCode Nerd Font Propo";
           "font.name-list.monospace.x-unicode" = "JetBrainsMono Nerd Font, FiraCode Nerd Font";
           "gfx.font_rendering.fontconfig.max_generic_substitutions" = 127;
-          # Discover cameras via PipeWire (required for the IPU6/libcamera webcam)
-          "media.webrtc.camera.allow-pipewire" = true;
+          # Enumerate cameras via V4L2, not PipeWire: PipeWire doesn't create a
+          # capture source for the DroidCam exclusive_caps v4l2loopback, so Firefox
+          # in PipeWire mode can't see it. V4L2 mode lists the loopback directly.
+          # (Trade-off: the built-in IPU6 libcamera cam, which is PipeWire-only, then
+          # won't appear in Firefox -- it was the zoomed one anyway.)
+          "media.webrtc.camera.allow-pipewire" = false;
         };
       };
       xdg.mime.defaultApplications = {

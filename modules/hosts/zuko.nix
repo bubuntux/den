@@ -18,6 +18,7 @@
       user-bbtux
       firefox
       loupe
+      droidcam
       cachix-push
 
       # Monitor configuration
