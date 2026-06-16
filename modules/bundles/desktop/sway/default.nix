@@ -156,14 +156,25 @@ in
         force = true;
       };
 
-      # Do NOT shadow dbus's auto-activation for org.freedesktop.secrets.
-      # The normal path is PAM's `auto_start` (configured below) launching
-      # gnome-keyring with the login password, so the daemon owns the bus name
-      # before any app runs. The system dbus activation file (which starts the
-      # real `gnome-keyring-daemon --components=secrets`) is kept as a fallback:
-      # if PAM ever fails to start/unlock the daemon, a libsecret client (e.g.
-      # protonvpn-app) triggers activation of the real daemon instead of
-      # hanging forever waiting for a bus name that never appears.
+      # Own org.freedesktop.secrets from inside the graphical session.
+      # greetd's PAM `auto_start` (configured below) unlocks a keyring daemon
+      # with the login password at login, but PAM runs before the user dbus
+      # socket exists, so that daemon never claims the session bus and then
+      # dies. Left alone, the first libsecret app dbus-activates a fresh,
+      # LOCKED daemon minutes later and you get a password prompt. This user
+      # service runs `gnome-keyring-daemon --start` at graphical-session start,
+      # while the PAM daemon is still alive: it adopts that already-unlocked
+      # daemon via its control socket and claims the bus, so apps see an
+      # unlocked keyring. The system dbus activation file is kept as a fallback
+      # (e.g. for protonvpn-app) if PAM ever fails to start/unlock the daemon.
+      services.gnome-keyring = {
+        enable = true;
+        components = [
+          "pkcs11"
+          "secrets"
+          "ssh"
+        ];
+      };
 
       # Sway has no desktop icons, so skip the Desktop folder.
       xdg.userDirs.desktop = config.home.homeDirectory;
