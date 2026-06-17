@@ -8,21 +8,27 @@
         exec machinectl -q shell juliogm@work /bin/sh -l -c "$*"
       '';
       workExec = cmd: "${work-run}/bin/work-run ${cmd}";
-      # Slack lives only in the work container. A slack:// deep link clicked
+      # Host-side handler for a deep link (slack://, zoommtg://, ...) clicked
       # anywhere on the host — including container-Chrome, which routes OpenURI
-      # through the shared host session bus to the host portal — lands here.
-      # Pass the URL as its own argv element through a login shell so the
-      # container inherits the session env (WAYLAND_DISPLAY, DBUS, ...) and the
-      # URL's `&` query separators aren't chewed up by the shell.
-      slack-work-open = pkgs.writeShellScriptBin "slack-work-open" ''
-        sudo systemctl start container@work.service
-        url="''${1:-}"
-        if [ -n "$url" ]; then
-          exec machinectl -q shell juliogm@work /bin/sh -l -c 'exec slack "$1"' slack-work "$url"
-        else
-          exec machinectl -q shell juliogm@work /bin/sh -l -c 'exec slack'
-        fi
-      '';
+      # through the shared host session bus to the host portal. Run the
+      # container command, forwarding the URL as its own argv element through a
+      # login shell so the container inherits the session env (WAYLAND_DISPLAY,
+      # DBUS, ...) and the URL's `&` query separators aren't chewed up by sh.
+      mkUriOpener =
+        name: cmd:
+        pkgs.writeShellScriptBin name ''
+          sudo systemctl start container@work.service
+          url="''${1:-}"
+          if [ -n "$url" ]; then
+            exec machinectl -q shell juliogm@work /bin/sh -l -c 'exec ${cmd} "$1"' ${name} "$url"
+          else
+            exec machinectl -q shell juliogm@work /bin/sh -l -c 'exec ${cmd}'
+          fi
+        '';
+      # Slack lives only in the container; zoom:// links open the Zoom web
+      # client as a Chrome --app window via the container's zoom-web-open.
+      slack-work-open = mkUriOpener "slack-work-open" "slack";
+      zoom-work-open = mkUriOpener "zoom-work-open" "zoom-web-open";
     in
     {
       home = {
@@ -44,6 +50,20 @@
             ];
             # Make this the slack:// handler so deep links open the container Slack
             mimeTypes = [ "x-scheme-handler/slack" ];
+          })
+          (makeDesktopItem {
+            name = "zoom-work";
+            desktopName = "Zoom (Work)";
+            exec = "${zoom-work-open}/bin/zoom-work-open %u";
+            icon = "Zoom";
+            categories = [ "Network" ];
+            # Handle zoom:// deep links: open the Zoom web client as a Chrome
+            # --app window inside the container. Hidden from the app menu.
+            mimeTypes = [
+              "x-scheme-handler/zoommtg"
+              "x-scheme-handler/zoomus"
+            ];
+            noDisplay = true;
           })
           (makeDesktopItem {
             name = "google-chrome-work";
@@ -85,8 +105,12 @@
         ];
       };
 
-      # Route slack:// links to the container Slack instead of a host Slack.
-      xdg.mimeApps.defaultApplications."x-scheme-handler/slack" = "slack-work.desktop";
+      # Route slack:// and zoom:// links into the work container.
+      xdg.mimeApps.defaultApplications = {
+        "x-scheme-handler/slack" = "slack-work.desktop";
+        "x-scheme-handler/zoommtg" = "zoom-work.desktop";
+        "x-scheme-handler/zoomus" = "zoom-work.desktop";
+      };
     };
 
   flake.nixosModules.work-container =
