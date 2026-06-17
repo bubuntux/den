@@ -8,6 +8,21 @@
         exec machinectl -q shell juliogm@work /bin/sh -l -c "$*"
       '';
       workExec = cmd: "${work-run}/bin/work-run ${cmd}";
+      # Slack lives only in the work container. A slack:// deep link clicked
+      # anywhere on the host — including container-Chrome, which routes OpenURI
+      # through the shared host session bus to the host portal — lands here.
+      # Pass the URL as its own argv element through a login shell so the
+      # container inherits the session env (WAYLAND_DISPLAY, DBUS, ...) and the
+      # URL's `&` query separators aren't chewed up by the shell.
+      slack-work-open = pkgs.writeShellScriptBin "slack-work-open" ''
+        sudo systemctl start container@work.service
+        url="''${1:-}"
+        if [ -n "$url" ]; then
+          exec machinectl -q shell juliogm@work /bin/sh -l -c 'exec slack "$1"' slack-work "$url"
+        else
+          exec machinectl -q shell juliogm@work /bin/sh -l -c 'exec slack'
+        fi
+      '';
     in
     {
       home = {
@@ -17,18 +32,18 @@
         };
         packages = with pkgs; [
           work-run
-          # TODO move slack
-          slack
           (makeDesktopItem {
             name = "slack-work";
             desktopName = "Slack (Work)";
-            exec = workExec "slack";
+            exec = "${slack-work-open}/bin/slack-work-open %u";
             icon = "slack";
             categories = [
               "Network"
               "InstantMessaging"
               "Chat"
             ];
+            # Make this the slack:// handler so deep links open the container Slack
+            mimeTypes = [ "x-scheme-handler/slack" ];
           })
           (makeDesktopItem {
             name = "google-chrome-work";
@@ -69,6 +84,9 @@
           })
         ];
       };
+
+      # Route slack:// links to the container Slack instead of a host Slack.
+      xdg.mimeApps.defaultApplications."x-scheme-handler/slack" = "slack-work.desktop";
     };
 
   flake.nixosModules.work-container =
