@@ -44,7 +44,6 @@ in
       # Note: monitors module must be imported by the parent NixOS module
       imports = with self.homeModules; [
         foot
-        librewolf
       ];
       wayland.windowManager.sway = {
         enable = true;
