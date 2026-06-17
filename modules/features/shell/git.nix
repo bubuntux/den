@@ -14,6 +14,7 @@
               graph = "log --decorate --oneline --graph";
             };
             init.defaultBranch = "main";
+            push.autoSetupRemote = true;
           };
           ignores = [
             ".direnv"
