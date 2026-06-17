@@ -45,19 +45,6 @@
                     "collapse_selection"
                     "keep_primary_selection"
                   ];
-                  space.space = "file_picker";
-                  space.w = ":w";
-                  space.q = ":q";
-
-                  # Lazygit
-                  C-g = [
-                    ":write-all"
-                    ":new"
-                    (":insert-output " + lib.getExe pkgs.lazygit)
-                    ":buffer-close!"
-                    ":redraw"
-                    ":reload-all"
-                  ];
                 };
               };
             };
@@ -89,23 +76,6 @@
               # Typst
               tinymist
               typstyle
-
-              # ty
-              # ruff
-              # python313Packages.python-lsp-server
-
-              # # Rust
-              # cargo
-              # clippy
-              # rustc
-              # rustfmt
-              # rust-analyzer
-
-              # # Go
-              # gopls
-              # golangci-lint
-              # golangci-lint-langserver
-              # delve
 
             ];
             languages.language = [
