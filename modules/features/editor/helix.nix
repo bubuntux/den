@@ -1,151 +1,167 @@
+{ inputs, ... }:
 {
-  flake.homeModules.helix =
-    { pkgs, lib, ... }:
-    {
-      programs.helix = {
-        enable = true;
-        defaultEditor = lib.mkDefault true;
-        settings = {
-          theme = "onedark";
-          editor = {
-            mouse = false;
-            true-color = true;
-            soft-wrap.enable = true;
-            line-number = "relative";
-            rulers = [
-              80
-              120
-            ];
+  flake-file.inputs.helix.url = "github:helix-editor/helix";
 
-            cursor-shape = {
-              insert = "bar";
-              normal = "block";
-              select = "underline";
+  # Keyed wrapper so this module deduplicates when reached through multiple
+  # import paths (e.g. katara). Required because it sets the unique
+  # `programs.helix.package` option, which errors on duplicate definitions.
+  flake.homeModules.helix = {
+    key = "homeModules.helix";
+    imports = [
+      (
+        { pkgs, lib, ... }:
+        {
+          programs.helix = {
+            enable = true;
+            # Track Helix master (lockfile-pinned; bump with `nix flake update helix`).
+            # Not following nixpkgs so the build matches helix.cachix.org rather than
+            # recompiling from source.
+            package = inputs.helix.packages.${pkgs.stdenv.hostPlatform.system}.default;
+            defaultEditor = lib.mkDefault true;
+            settings = {
+              theme = "onedark";
+              editor = {
+                mouse = false;
+                true-color = true;
+                soft-wrap.enable = true;
+                line-number = "relative";
+                rulers = [
+                  80
+                  120
+                ];
+
+                cursor-shape = {
+                  insert = "bar";
+                  normal = "block";
+                  select = "underline";
+                };
+
+                lsp.display-messages = true;
+                file-picker.hidden = false;
+              };
+              keys = {
+                normal = {
+                  esc = [
+                    "collapse_selection"
+                    "keep_primary_selection"
+                  ];
+                  space.space = "file_picker";
+                  space.w = ":w";
+                  space.q = ":q";
+
+                  # Lazygit
+                  C-g = [
+                    ":write-all"
+                    ":new"
+                    (":insert-output " + lib.getExe pkgs.lazygit)
+                    ":buffer-close!"
+                    ":redraw"
+                    ":reload-all"
+                  ];
+                };
+              };
             };
+            extraPackages = with pkgs; [
+              bash-language-server
+              yaml-language-server
 
-            lsp.display-messages = true;
-            file-picker.hidden = false;
-          };
-          keys = {
-            normal = {
-              esc = [
-                "collapse_selection"
-                "keep_primary_selection"
-              ];
-              space.space = "file_picker";
-              space.w = ":w";
-              space.q = ":q";
+              vscode-langservers-extracted
 
-              # Lazygit
-              C-g = [
-                ":write-all"
-                ":new"
-                (":insert-output " + lib.getExe pkgs.lazygit)
-                ":buffer-close!"
-                ":redraw"
-                ":reload-all"
-              ];
-            };
-          };
-        };
-        extraPackages = with pkgs; [
-          bash-language-server
-          yaml-language-server
+              dockerfile-language-server
+              docker-compose-language-service
 
-          vscode-langservers-extracted
+              # gcc
+              lldb
+              libgcc
+              gcc
 
-          dockerfile-language-server
-          docker-compose-language-service
+              # Toml
+              taplo
 
-          # gcc
-          lldb
-          libgcc
-          gcc
+              # Markdown
+              marksman
+              markdown-oxide
 
-          # Toml
-          taplo
+              # Nix
+              nil
+              nixd
 
-          # Markdown
-          marksman
-          markdown-oxide
+              # Typst
+              tinymist
+              typstyle
 
-          # Nix
-          nil
-          nixd
+              # ty
+              # ruff
+              # python313Packages.python-lsp-server
 
-          # Typst
-          tinymist
-          typstyle
+              # # Rust
+              # cargo
+              # clippy
+              # rustc
+              # rustfmt
+              # rust-analyzer
 
-          # ty
-          # ruff
-          # python313Packages.python-lsp-server
+              # # Go
+              # gopls
+              # golangci-lint
+              # golangci-lint-langserver
+              # delve
 
-          # # Rust
-          # cargo
-          # clippy
-          # rustc
-          # rustfmt
-          # rust-analyzer
-
-          # # Go
-          # gopls
-          # golangci-lint
-          # golangci-lint-langserver
-          # delve
-
-        ];
-        languages.language = [
-          {
-            name = "bash";
-            auto-format = true;
-            formatter.command = lib.getExe pkgs.shfmt;
-          }
-          {
-            name = "json";
-            auto-format = true;
-            formatter.command = lib.getExe pkgs.biome;
-            formatter.args = [
-              "format"
-              "--stdin-file-path"
-              "file.json"
             ];
-          }
-          {
-            name = "markdown";
-            auto-format = true;
-            formatter.command = lib.getExe pkgs.mdformat;
-            formatter.args = [ "-" ];
-          }
-          {
-            name = "nix";
-            auto-format = true;
-            formatter.command = lib.getExe pkgs.nixfmt;
-          }
-          {
-            name = "toml";
-            auto-format = true;
-            formatter.command = lib.getExe pkgs.taplo;
-            formatter.args = [
-              "fmt"
-              "-"
+            languages.language = [
+              {
+                name = "bash";
+                auto-format = true;
+                formatter.command = lib.getExe pkgs.shfmt;
+              }
+              {
+                name = "json";
+                auto-format = true;
+                formatter.command = lib.getExe pkgs.biome;
+                formatter.args = [
+                  "format"
+                  "--stdin-file-path"
+                  "file.json"
+                ];
+              }
+              {
+                name = "markdown";
+                auto-format = true;
+                formatter.command = lib.getExe pkgs.mdformat;
+                formatter.args = [ "-" ];
+              }
+              {
+                name = "nix";
+                auto-format = true;
+                formatter.command = lib.getExe pkgs.nixfmt;
+              }
+              {
+                name = "toml";
+                auto-format = true;
+                formatter.command = lib.getExe pkgs.taplo;
+                formatter.args = [
+                  "fmt"
+                  "-"
+                ];
+              }
+              {
+                name = "typst";
+                auto-format = true;
+                formatter.command = lib.getExe pkgs.typstyle;
+              }
             ];
-          }
-          {
-            name = "typst";
-            auto-format = true;
-            formatter.command = lib.getExe pkgs.typstyle;
-          }
-        ];
-        ignores = [
-          ".build/"
-          "*.class"
-          ".direnv"
-          "!.gitattributes"
-          "!.gitignore"
-          ".gradle"
-          "target/"
-        ];
-      };
-    };
+            ignores = [
+              ".build/"
+              "*.class"
+              ".direnv"
+              "!.gitattributes"
+              "!.gitignore"
+              ".gradle"
+              "target/"
+            ];
+          };
+        }
+      )
+    ];
+  };
 }
