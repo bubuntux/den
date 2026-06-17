@@ -160,6 +160,13 @@
               "target/"
             ];
           };
+
+          # vi/vim/nvim launch Helix
+          home.shellAliases = {
+            vi = "hx";
+            vim = "hx";
+            nvim = "hx";
+          };
         }
       )
     ];

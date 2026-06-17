@@ -34,7 +34,6 @@
         fonts
         git
         helix
-        neovim
         ssh
       ];
 
