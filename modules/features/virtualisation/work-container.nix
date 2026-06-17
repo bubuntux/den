@@ -293,21 +293,12 @@
             environment.systemPackages = with pkgs; [
               cloudflare-warp
               jetbrains.gateway
-              # Chrome enumerates cameras via V4L2 (the default — no
-              # WebRtcPipeWireCamera), so it sees the DroidCam v4l2loopback bound
-              # in at /dev/video*. Trade-off: the built-in IPU6 cam is
-              # PipeWire/libcamera-only and won't appear here — enabling the
-              # PipeWire camera backend would surface it but hide DroidCam, since
-              # Chrome can't use both backends at once and WirePlumber doesn't
-              # expose the exclusive_caps v4l2loopback as a PipeWire source.
-              # commandLineArgs must be passed via .override — the wrapper reads
-              # the package arg, NOT nixpkgs.config.google-chrome.commandLineArgs.
-              # WebRTCPipeWireCapturer: Wayland screen share. WaylandWindowDecorations
-              # is repeated from the nixpkgs default because Chrome's last
-              # --enable-features switch wins.
-              (google-chrome.override {
-                commandLineArgs = "--enable-features=WaylandWindowDecorations,WebRTCPipeWireCapturer";
-              })
+              # Chrome uses V4L2 for cameras (the default), so it sees the DroidCam
+              # v4l2loopback bound at /dev/video*. (The built-in IPU6 cam is
+              # PipeWire/libcamera-only and won't appear here.) Ozone/Wayland comes
+              # from NIXOS_OZONE_WL and screen share from xdg-desktop-portal, so no
+              # extra commandLineArgs are needed.
+              google-chrome
               slack
               xdg-utils
               zoom-web-open
