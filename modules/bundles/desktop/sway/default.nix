@@ -267,6 +267,17 @@ in
         };
       };
 
+      # The blueman-applet unit ships no [Install] section, so nothing starts it
+      # at login. Full DEs (e.g. GNOME on katara) autostart it via XDG, but sway
+      # has no XDG autostart -- bind it to the graphical session like waybar/mako
+      # so the Bluetooth tray icon actually appears. Scoped here (not in the
+      # shared bluetooth feature) to avoid a duplicate applet on GNOME hosts.
+      systemd.user.services.blueman-applet = {
+        wantedBy = [ "graphical-session.target" ];
+        partOf = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+      };
+
       # Add home-manager sway module to shared modules
       home-manager.sharedModules = [
         self.homeModules.monitors
