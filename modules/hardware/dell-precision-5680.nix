@@ -66,16 +66,6 @@
         thermald.enable = lib.mkDefault true;
       };
 
-      # The Intel Wi-Fi/BT combo card (BT controller 8087:0033) firmware-crashes
-      # with "hci0: Hardware error 0x0c" every few minutes when USB autosuspend is
-      # active on it. Each crash resets hci0, which disconnects/reconnects paired
-      # HID devices -- felt as a Bluetooth mouse freezing for a second or two.
-      # btusb enables autosuspend by default (enable_autosuspend=Y); turn it off
-      # for the controller to keep it powered and stop the resets.
-      boot.extraModprobeConfig = ''
-        options btusb enable_autosuspend=0
-      '';
-
       # No real GPU inside QEMU, so the nvidia-container-toolkit assertion
       # ("requires nvidia drivers") fires when the host's vmVariant is
       # evaluated as part of `nix flake check`. Force-off in the vmVariant.
