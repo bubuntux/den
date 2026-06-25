@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "aws-agent-toolkit": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1782292924,
+        "narHash": "sha256-7g2w2Ri0Br0F083GmGrdRCny/jsrd61WiZG9FxS1Hpo=",
+        "owner": "aws",
+        "repo": "agent-toolkit-for-aws",
+        "rev": "cbdc61a29707dc97989d5d11a2b53ad584781e78",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aws",
+        "repo": "agent-toolkit-for-aws",
+        "type": "github"
+      }
+    },
     "flake-file": {
       "locked": {
         "lastModified": 1781217157,
@@ -51,6 +67,22 @@
         "owner": "numtide",
         "repo": "flake-utils",
         "type": "github"
+      }
+    },
+    "glab-cli": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1782312695,
+        "narHash": "sha256-/hheB9IRQuAS59w+aW5n6xaRtzfV1gl1V3vqB3w8y3k=",
+        "owner": "gitlab-org",
+        "repo": "cli",
+        "rev": "8f4ac1c3b179417fdf0e790943e9c0e6df599419",
+        "type": "gitlab"
+      },
+      "original": {
+        "owner": "gitlab-org",
+        "repo": "cli",
+        "type": "gitlab"
       }
     },
     "gws": {
@@ -190,8 +222,10 @@
     },
     "root": {
       "inputs": {
+        "aws-agent-toolkit": "aws-agent-toolkit",
         "flake-file": "flake-file",
         "flake-parts": "flake-parts",
+        "glab-cli": "glab-cli",
         "gws": "gws",
         "helix": "helix",
         "home-manager": "home-manager",

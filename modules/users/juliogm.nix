@@ -19,6 +19,8 @@
     {
       imports = with self.homeModules; [
         profile-developer
+        aws
+        glab
         gws
         xdg
       ];
@@ -43,6 +45,14 @@
           chmod 644 "$target"
         fi
       '';
+
+      # awscli2 and glab are provided by the aws/glab feature modules (which
+      # also wire up their Claude Code skills).
+      home.packages = with pkgs; [
+        acli
+        src-cli
+        toolhive
+      ];
 
       # Language servers Helix auto-detects when their binaries are on PATH.
       # Docker LSPs are already provided by the shared helix module.

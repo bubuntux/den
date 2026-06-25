@@ -6,10 +6,18 @@
   outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } (inputs.import-tree ./modules);
 
   inputs = {
+    aws-agent-toolkit = {
+      url = "github:aws/agent-toolkit-for-aws";
+      flake = false;
+    };
     flake-file.url = "github:vic/flake-file";
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+    glab-cli = {
+      url = "gitlab:gitlab-org/cli";
+      flake = false;
     };
     gws = {
       url = "github:googleworkspace/cli";
