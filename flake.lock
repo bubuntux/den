@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1782292924,
-        "narHash": "sha256-7g2w2Ri0Br0F083GmGrdRCny/jsrd61WiZG9FxS1Hpo=",
+        "lastModified": 1782391332,
+        "narHash": "sha256-QlOTMa1Cep7rpkIEMTWC+zoCyufxX+gKOJr6Aqhrwys=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "cbdc61a29707dc97989d5d11a2b53ad584781e78",
+        "rev": "a670147568876ec56db7f1a94fc3c35c01bb652c",
         "type": "github"
       },
       "original": {
