@@ -206,10 +206,10 @@
           package = pkgs.caddy.withPlugins {
             plugins = [
               "github.com/caddy-dns/cloudflare@v0.2.4"
-              "github.com/hslatman/caddy-crowdsec-bouncer@v0.12.1"
+              "github.com/hslatman/caddy-crowdsec-bouncer@v0.13.1"
               "github.com/mholt/caddy-ratelimit@v0.1.0"
             ];
-            hash = "sha256-cckIoGVEa1EAmx8FSsWMJ4FrWpGBHSjI9kyqNSgvZI4=";
+            hash = "sha256-pLhJEdnC2LgGp0ubGWETWI7gmEqtglgZOYoDWY9SG/o=";
           };
 
           environmentFile = config.sops.secrets.caddy_env.path;
