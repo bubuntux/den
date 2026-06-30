@@ -318,6 +318,7 @@
             imports = with self.nixosModules; [
               bundle-base
               user-juliogm
+              unstable-packages
             ];
 
             # Disable pam_lastlog2 for login service — it fails inside nspawn

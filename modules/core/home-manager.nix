@@ -1,7 +1,7 @@
 { inputs, self, ... }:
 {
 
-  flake-file.inputs.home-manager.url = "github:nix-community/home-manager";
+  flake-file.inputs.home-manager.url = "github:nix-community/home-manager/release-26.05";
   flake-file.inputs.home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
   imports = [

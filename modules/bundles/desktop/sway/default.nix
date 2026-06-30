@@ -208,7 +208,7 @@ in
         waybar
         kanshi
         thunar
-        xdpw-pin
+        unstable-packages
       ];
 
       # Enable sway compositor

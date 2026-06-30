@@ -6,7 +6,7 @@
 {
   flake-file.inputs.nixos-hardware.url = "github:nixos/nixos-hardware";
 
-  flake.nixosConfigurations.appa = inputs.nixpkgs.lib.nixosSystem {
+  flake.nixosConfigurations.appa = inputs.nixpkgs-unstable.lib.nixosSystem {
     specialArgs = { inherit self inputs; };
     system = "x86_64-linux";
     modules = with self.nixosModules; [
