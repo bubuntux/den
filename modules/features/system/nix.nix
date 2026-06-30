@@ -38,6 +38,9 @@ in
 {
   flake.nixosModules.nix = _: {
     nixpkgs.config.allowUnfree = true;
+    # pnpm 10.29.2 is flagged insecure but is only a hermetic build-time dep of
+    # the gws (googleworkspace/cli) flake package; no runtime exposure.
+    nixpkgs.config.permittedInsecurePackages = [ "pnpm-10.29.2" ];
     nix = {
       settings = commonSettings // {
         log-lines = 20;
