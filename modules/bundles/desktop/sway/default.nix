@@ -208,7 +208,6 @@ in
         waybar
         kanshi
         thunar
-        unstable-packages
       ];
 
       # Enable sway compositor
