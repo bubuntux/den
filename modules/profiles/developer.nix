@@ -11,6 +11,7 @@
         difftastic
         gh
         go
+        jujutsu
       ];
 
       # Common development tools
