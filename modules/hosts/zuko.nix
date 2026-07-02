@@ -26,50 +26,25 @@
         home-manager.sharedModules = [
           {
             monitors = [
-              # Built-in laptop display
+              # Built-in laptop display (undocked use; off when docked with lid closed)
               {
                 name = "eDP-1";
                 width = 1920;
                 height = 1200;
-                workspaces = [
-                  "8"
-                  "9"
-                  "10"
-                ];
               }
-              # External monitors (dock ports vary)
-              {
-                name = "DP-3";
-                width = 2560;
-                height = 1440;
-              }
-              {
-                name = "DP-4";
-                width = 2560;
-                height = 1440;
-              }
+              # Left external — portrait, workspaces 1-3
               {
                 name = "DP-5";
                 width = 2560;
                 height = 1440;
-                transform = "270";
+                transform = "90";
                 workspaces = [
                   "1"
                   "2"
                   "3"
                 ];
               }
-              {
-                name = "DP-6";
-                width = 2560;
-                height = 1440;
-                transform = "270";
-                workspaces = [
-                  "1"
-                  "2"
-                  "3"
-                ];
-              }
+              # Right external — landscape, workspaces 4-0
               {
                 name = "DP-7";
                 width = 2560;
@@ -79,53 +54,18 @@
                   "5"
                   "6"
                   "7"
-                ];
-              }
-              {
-                name = "DP-8";
-                width = 2560;
-                height = 1440;
-                workspaces = [
-                  "4"
-                  "5"
-                  "6"
-                  "7"
-                ];
-              }
-              {
-                name = "DP-9";
-                width = 2560;
-                height = 1440;
-                workspaces = [
-                  "4"
-                  "5"
-                  "6"
-                  "7"
+                  "8"
+                  "9"
+                  "10"
                 ];
               }
             ];
 
             monitorProfiles = {
               laptop = [ "eDP-1" ];
-              office = {
-                "DP-3" = "0,0";
-                "DP-4" = "2560,0";
-                "eDP-1" = "1440,1440";
-              };
-              workstation5-7 = {
+              docked = {
                 "DP-5" = "0,0";
-                "DP-7" = "1440,0";
-                "eDP-1" = "1440,1440";
-              };
-              workstation6-8 = {
-                "DP-6" = "0,0";
-                "DP-8" = "1440,0";
-                "eDP-1" = "1440,1440";
-              };
-              workstation6-9 = {
-                "DP-6" = "0,0";
-                "DP-9" = "1440,0";
-                "eDP-1" = "1440,1440";
+                "DP-7" = "1440,669";
               };
             };
           }
