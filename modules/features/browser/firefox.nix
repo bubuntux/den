@@ -206,10 +206,8 @@ in
             {
               "uBlock0@raymondhill.net" = forced "ublock-origin";
               "78272b6fa58f4a1abaac99321d503a20@proton.me" = forced "proton-pass";
-              "{d7742d87-e61d-4b78-b8a1-b469842139fa}" = forced "vimium-ff";
               "sponsorBlocker@ajay.app" = forced "sponsorblock";
               "myallychou@gmail.com" = forced "youtube-recommended-videos";
-              "leechblockng@proginosko.com" = forced "leechblock-ng";
               "@contain-facebook" = forced "facebook-container";
             };
 
