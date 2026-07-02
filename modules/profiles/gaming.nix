@@ -74,10 +74,6 @@
 
       # Packages
       environment.systemPackages = with pkgs; [
-        # Communication
-        vesktop
-        mumble
-
         # Desktop entry for Steam with gamemode
         steam-gamemode-desktop
       ];
