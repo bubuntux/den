@@ -38,10 +38,6 @@
               "git"
               "fetch"
             ];
-            pull = [
-              "git"
-              "fetch"
-            ]; # jj has no merge-pull; fetch is the closest equivalent
             # Advance the nearest bookmark to the parent of the working copy.
             tug = [
               "bookmark"
