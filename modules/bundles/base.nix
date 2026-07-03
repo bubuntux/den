@@ -23,6 +23,7 @@
       sudors
       ntpdrs
       dirty-frag-mitigation
+      zsh
     ];
   };
 
