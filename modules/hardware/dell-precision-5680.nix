@@ -24,6 +24,37 @@
         inputs.nixos-hardware.nixosModules.common-gpu-nvidia
       ];
 
+      # The built-in IPU6/MIPI camera (ov02c10 sensor) only exposes raw Bayer
+      # V4L2 nodes browsers can't use, and its 32 ISYS capture nodes make
+      # Firefox's camera enumeration take ~50s -- so no camera ever appears in
+      # time (Chrome tolerates it). Its libcamera SoftISP path also crashes, so
+      # the built-in cam is unused: DroidCam / the Logitech BRIO are the webcams.
+      # Blacklist the whole IPU6 stack so those dead /dev/video* nodes are never
+      # created. (Takes effect on reboot -- the modules are loaded at boot.)
+      boot.blacklistedKernelModules = [
+        "intel_ipu6"
+        "intel_ipu6_isys"
+        "ipu_bridge"
+        "ov02c10"
+      ];
+
+      # Every display on the 5680 is driven by the Intel iGPU (PCI 00:02.0); the
+      # NVIDIA dGPU is PRIME-offload only. Left alone, wlroots picks NVIDIA as its
+      # primary renderer and does a cross-GPU copy every frame -- which made
+      # Firefox screen-share stream a single frozen frame (one frame, then stuck
+      # until a pause/resume). Pin wlroots to the Intel GPU instead.
+      #
+      # WLR_DRM_DEVICES is a COLON-separated list, so the /dev/dri/by-path name
+      # (which is full of colons) gets split into garbage; and /dev/dri/cardN
+      # numbering isn't stable across boots. So expose a stable, colon-free
+      # symlink to the Intel card by its fixed PCI slot and point wlroots at that.
+      # PRIME offload (nvidia-offload / __NV_PRIME_RENDER_OFFLOAD) is unaffected
+      # -- wlroots never opens the dGPU, so it can also idle/suspend.
+      services.udev.extraRules = ''
+        SUBSYSTEM=="drm", ENV{DEVTYPE}=="drm_minor", KERNEL=="card[0-9]*", KERNELS=="0000:00:02.0", SYMLINK+="dri/intel"
+      '';
+      environment.sessionVariables.WLR_DRM_DEVICES = "/dev/dri/intel";
+
       hardware = {
         enableRedistributableFirmware = lib.mkDefault true;
         enableAllFirmware = lib.mkDefault true;
