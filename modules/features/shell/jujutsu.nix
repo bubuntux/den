@@ -17,8 +17,8 @@
             "$right"
           ];
 
-          # Create local bookmarks tracking their remote on fetch (git-like).
-          git.auto-local-bookmark = true;
+          # Auto-track all bookmarks from the "origin" remote (git-like).
+          remotes.origin.auto-track-bookmarks = "*";
 
           # Built-in aliases already provided by jj: st, b, ci, desc.
           aliases = {
