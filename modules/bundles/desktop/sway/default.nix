@@ -201,6 +201,64 @@ in
   # NixOS module for system-level sway configuration
   flake.nixosModules.sway =
     { pkgs, ... }:
+    let
+      # Screen-share picker for xdg-desktop-portal-wlr. wlroots can only capture
+      # a whole monitor or a whole window (never an arbitrary region), so this
+      # lists both in a rofi menu and returns the exact token xdpw expects:
+      # "Monitor: <output>" or "Window: <ext-foreign-toplevel-list-v1 id>".
+      screencastChooser = pkgs.writeShellApplication {
+        name = "sway-screencast-chooser";
+        runtimeInputs = with pkgs; [
+          sway
+          jq
+          lswt
+          rofi
+        ];
+        text = ''
+          tokens=()
+          labels=()
+
+          # Active monitors. Both displays are often the same model, so the label
+          # carries resolution, left/right position, orientation and a ★ on the
+          # focused output. The token returned to xdpw stays "Monitor: <name>".
+          while IFS=$'\t' read -r name label; do
+            tokens+=("Monitor: $name")
+            labels+=("$label")
+          done < <(swaymsg -t get_outputs | jq -r '
+            [ .[] | select(.active) ] as $o
+            | ($o | map(.rect.x) | min) as $minx
+            | ($o | map(.rect.x) | max) as $maxx
+            | $o[]
+            | ( (.rect.width | tostring) + "×" + (.rect.height | tostring) ) as $res
+            | ( (.current_mode.refresh / 1000) | round | tostring ) as $hz
+            | ( if .rect.width > .rect.height then "landscape" else "portrait" end ) as $orient
+            | ( if $minx == $maxx then "" elif .rect.x == $minx then "left·" elif .rect.x == $maxx then "right·" else "center·" end ) as $pos
+            | ( if .focused then " ★" else "" end ) as $foc
+            | [ .name,
+                ("🖵  " + .name + "  " + (.model // "?") + "  " + $res + "@" + $hz + "Hz  " + $pos + $orient + $foc)
+              ] | @tsv')
+
+          # Open windows via ext-foreign-toplevel-list-v1 (lswt supplies the id).
+          while IFS=$'\t' read -r id app title; do
+            tokens+=("Window: $id")
+            labels+=("🗔  $app — $title")
+          done < <(lswt -j \
+            | jq -r '.toplevels[]? | [.identifier, (."app-id" // "?"), (.title // "")] | @tsv')
+
+          if [ ''${#labels[@]} -eq 0 ]; then
+            exit 0
+          fi
+
+          # -format i => rofi prints the selected row index; -no-custom blocks
+          # free-text entries. Empty output / non-zero exit == user cancelled.
+          idx=$(printf '%s\n' "''${labels[@]}" \
+            | rofi -dmenu -i -no-custom -format i -p "Share") || exit 0
+          [ -z "$idx" ] && exit 0
+
+          printf '%s\n' "''${tokens[$idx]}"
+        '';
+      };
+    in
     {
       imports = with self.nixosModules; [
         bundle-desktop
@@ -242,7 +300,19 @@ in
       # XDG portal for screen sharing and file dialogs
       xdg.portal = {
         enable = true;
-        wlr.enable = true;
+        wlr = {
+          enable = true;
+          # xdg-desktop-portal-wlr draws no picker of its own; Firefox delegates
+          # screen-sharing entirely to the portal, so without a chooser its
+          # getDisplayMedia silently no-ops ("no output found"). screencastChooser
+          # (defined above) pops a rofi menu of monitors + windows. (Chrome works
+          # without a chooser because it draws its own source picker.)
+          settings.screencast = {
+            chooser_type = "simple";
+            chooser_cmd = "${screencastChooser}/bin/sway-screencast-chooser";
+            max_fps = 30;
+          };
+        };
         extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
       };
 
