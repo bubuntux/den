@@ -8,16 +8,49 @@
         enable = true;
         settings = {
           ui.default-command = "log";
+          ui.editor = "hx"; # Helix is the repo's sole editor
+          # Render diffs structurally with difftastic (already on PATH).
+          ui.diff-formatter = [
+            "difft"
+            "--color=always"
+            "$left"
+            "$right"
+          ];
+
+          # Create local bookmarks tracking their remote on fetch (git-like).
+          git.auto-local-bookmark = true;
 
           # Built-in aliases already provided by jj: st, b, ci, desc.
           aliases = {
-            init = [ "git" "init" ]; # colocated .git+.jj by default in jj 0.41
-            clone = [ "git" "clone" ]; # colocated by default
-            push = [ "git" "push" ];
-            fetch = [ "git" "fetch" ];
-            pull = [ "git" "fetch" ]; # jj has no merge-pull; fetch is the closest equivalent
+            init = [
+              "git"
+              "init"
+            ]; # colocated .git+.jj by default in jj 0.41
+            clone = [
+              "git"
+              "clone"
+            ]; # colocated by default
+            push = [
+              "git"
+              "push"
+            ];
+            fetch = [
+              "git"
+              "fetch"
+            ];
+            pull = [
+              "git"
+              "fetch"
+            ]; # jj has no merge-pull; fetch is the closest equivalent
             # Advance the nearest bookmark to the parent of the working copy.
-            tug = [ "bookmark" "move" "--from" "closest_bookmark(@-)" "--to" "@-" ];
+            tug = [
+              "bookmark"
+              "move"
+              "--from"
+              "closest_bookmark(@-)"
+              "--to"
+              "@-"
+            ];
           };
 
           revset-aliases."closest_bookmark(to)" = "heads(::to & bookmarks())";

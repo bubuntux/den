@@ -77,6 +77,14 @@
       xdg.configFile."jj/conf.d/identity.toml".source =
         config.lib.file.mkOutOfStoreSymlink "/run/secrets-host/jj_config";
 
+      # Sign own commits with the work SSH key (id_rsa is the container's key,
+      # symlinked from the ssh_private_key/ssh_public_key sops secrets).
+      programs.jujutsu.settings.signing = {
+        behavior = "own";
+        backend = "ssh";
+        key = "~/.ssh/id_rsa.pub";
+      };
+
       # SSH host configuration (decrypted from sops secret via bind mount)
       programs.ssh.includes = [ "/run/secrets-host/ssh_config" ];
 

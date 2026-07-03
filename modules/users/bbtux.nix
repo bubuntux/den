@@ -16,6 +16,13 @@
       name = "Julio Gutierrez";
       email = "413330+bubuntux@users.noreply.github.com";
     };
+
+    # Sign own commits with the SSH key
+    programs.jujutsu.settings.signing = {
+      behavior = "own";
+      backend = "ssh";
+      key = "~/.ssh/id_ed25519.pub";
+    };
   };
 
   # NixOS module for user bbtux
