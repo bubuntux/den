@@ -93,6 +93,15 @@
           [ -f "$f" ] && . "$f"
         done
       '';
+
+      # Same kube-profile sourcing for zsh. The (N) nullglob qualifier keeps
+      # zsh from erroring when no profile files exist (unlike bash, zsh treats
+      # an unmatched glob as an error).
+      programs.zsh.initContent = ''
+        for f in "$HOME"/.*-kube-profile(N); do
+          [ -f "$f" ] && . "$f"
+        done
+      '';
     };
 
   # Standalone Home Manager configuration for non-NixOS systems
@@ -103,6 +112,7 @@
     };
     modules = [
       self.homeModules.user-juliogm
+      self.homeModules.zsh
       self.homeModules.nix
       self.homeModules.sops
       self.homeModules.auto-upgrade
@@ -134,6 +144,11 @@
 
   # NixOS module for user juliogm (used inside the work container)
   flake.nixosModules.user-juliogm = _: {
+    # zsh as juliogm's login shell inside the container. Reuses the zsh feature
+    # (single cached compinit, enableGlobalCompInit off, defaultUserShell = zsh)
+    # and wires homeModules.zsh into the container via its sharedModules.
+    imports = [ self.nixosModules.zsh ];
+
     users.users.juliogm = {
       isNormalUser = true;
       uid = 1000;
