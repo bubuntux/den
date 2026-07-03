@@ -49,7 +49,7 @@
                 name = "DP-5";
                 width = 2560;
                 height = 1440;
-                transform = "90";
+                transform = "270";
                 workspaces = [
                   "1"
                   "2"
