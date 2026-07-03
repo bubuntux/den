@@ -11,6 +11,19 @@
         # there is nothing to migrate.
         dotDir = "${config.xdg.configHome}/zsh";
         enableCompletion = true;
+        # Cache the completion dump: run the cheap `compinit -C` (skip the
+        # security scan and rebuild) on every start, but do a full `compinit`
+        # when the dump is older than 24h so completions from new packages
+        # still get picked up. Trims the single compinit further (~70ms→~30ms).
+        # Force an immediate refresh with `rm ~/.config/zsh/.zcompdump`.
+        completionInit = ''
+          autoload -Uz compinit
+          if [[ -n ''${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
+            compinit
+          else
+            compinit -C
+          fi
+        '';
         autosuggestion.enable = true; # fish-style inline history suggestions
         syntaxHighlighting.enable = true; # colorize commands as you type
         historySubstringSearch.enable = true; # prefix + up/down walks matches
@@ -54,7 +67,15 @@
   flake.nixosModules.zsh =
     { pkgs, ... }:
     {
-      programs.zsh.enable = true;
+      programs.zsh = {
+        enable = true;
+        # Home Manager runs compinit in each user's .zshrc, after the per-user
+        # profile has joined fpath. The global compinit in /etc/zshrc runs a
+        # second time beforehand with a smaller fpath, which forces HM's compinit
+        # into a full dump rebuild — measured ~490ms startup vs ~70ms with this
+        # off. Let HM own the single compinit.
+        enableGlobalCompInit = false;
+      };
       users.defaultUserShell = pkgs.zsh;
 
       # Wrap in an attrset with an explicit key so Home Manager deduplicates
