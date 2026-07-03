@@ -6,7 +6,12 @@
 {
   # Home Manager module for user juliogm
   flake.homeModules.user-juliogm =
-    { pkgs, lib, ... }:
+    {
+      config,
+      pkgs,
+      lib,
+      ...
+    }:
     let
       jsonFormat = pkgs.formats.json { };
       claudeBaseSettings = import "${self}/modules/features/dev-tools/_claude-settings.nix" {
@@ -67,6 +72,11 @@
       # Git user configuration (decrypted from sops secret via bind mount)
       programs.git.includes = [ { path = "/run/secrets-host/git_config"; } ];
 
+      # jj identity (decrypted from sops secret via bind mount). jj has no
+      # `includes`, so the snippet is loaded via the conf.d config directory.
+      xdg.configFile."jj/conf.d/identity.toml".source =
+        config.lib.file.mkOutOfStoreSymlink "/run/secrets-host/jj_config";
+
       # SSH host configuration (decrypted from sops secret via bind mount)
       programs.ssh.includes = [ "/run/secrets-host/ssh_config" ];
 
@@ -97,10 +107,14 @@
 
           sops.age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
           sops.secrets.git_config.sopsFile = "${self}/secrets/juliogm.yaml";
+          sops.secrets.jj_config.sopsFile = "${self}/secrets/juliogm.yaml";
           sops.secrets.ssh_config.sopsFile = "${self}/secrets/juliogm.yaml";
           programs.git.includes = lib.mkForce [
             { path = config.sops.secrets.git_config.path; }
           ];
+          xdg.configFile."jj/conf.d/identity.toml".source = lib.mkForce (
+            config.lib.file.mkOutOfStoreSymlink config.sops.secrets.jj_config.path
+          );
           programs.ssh.includes = lib.mkForce [
             config.sops.secrets.ssh_config.path
           ];

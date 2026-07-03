@@ -152,6 +152,10 @@
         sopsFile = "${self}/secrets/juliogm.yaml";
         owner = "bbtux";
       };
+      sops.secrets.jj_config = {
+        sopsFile = "${self}/secrets/juliogm.yaml";
+        owner = "bbtux";
+      };
       sops.secrets.ssh_private_key = {
         sopsFile = "${self}/secrets/juliogm.yaml";
         owner = "bbtux";
@@ -240,6 +244,11 @@
           "git-config" = {
             hostPath = config.sops.secrets.git_config.path;
             mountPoint = "/run/secrets-host/git_config";
+            isReadOnly = true;
+          };
+          "jj-config" = {
+            hostPath = config.sops.secrets.jj_config.path;
+            mountPoint = "/run/secrets-host/jj_config";
             isReadOnly = true;
           };
           "ssh-private-key" = {

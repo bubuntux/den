@@ -10,6 +10,12 @@
       name = "Julio Gutierrez";
       email = "413330+bubuntux@users.noreply.github.com";
     };
+
+    # jj shares the same identity (mirrors the git config above)
+    programs.jujutsu.settings.user = {
+      name = "Julio Gutierrez";
+      email = "413330+bubuntux@users.noreply.github.com";
+    };
   };
 
   # NixOS module for user bbtux
