@@ -31,6 +31,18 @@
                 name = "eDP-1";
                 width = 1920;
                 height = 1200;
+                workspaces = [
+                  "1"
+                  "2"
+                  "3"
+                  "4"
+                  "5"
+                  "6"
+                  "7"
+                  "8"
+                  "9"
+                  "10"
+                ];
               }
               # Left external — portrait, workspaces 1-3
               {
