@@ -18,10 +18,9 @@ let
   # -- Allowlisted prefs (honored by the Preferences policy) ------------------
 
   # Tier 1 — clean new-tab page, no sponsored/Pocket/recommendation content.
+  # (Sponsored shortcuts/stories are LOCKED off in lockedPrefs, not here.)
   annoyances = {
     "browser.discovery.enabled" = false;
-    "browser.newtabpage.activity-stream.showSponsored" = false;
-    "browser.newtabpage.activity-stream.showSponsoredTopSites" = false;
     "browser.newtabpage.activity-stream.feeds.section.topstories" = false;
     "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features" = false;
     "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons" = false;
@@ -111,9 +110,11 @@ let
   };
 
   # SELECTED — block audio+video autoplay; a click is required to start media.
+  # Also keep videos playing in Picture-in-Picture when switching tabs.
   media = {
     "media.autoplay.default" = 5;
     "media.autoplay.blocking_policy" = 2;
+    "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled" = true;
   };
 
   # SELECTED — no JavaScript execution inside the built-in PDF viewer.
@@ -125,6 +126,30 @@ let
   # off (mode 5 also blocks Mozilla's automatic DoH rollout).
   dns = {
     "network.trr.mode" = 5;
+  };
+
+  # SELECTED — disable AI/ML feature toggles. Belt-and-suspenders alongside the
+  # AIControls policy below, which is the authoritative locked kill switch.
+  ai = {
+    "browser.ml.enable" = false;
+    "browser.ml.chat.enabled" = false;
+    "browser.ml.chat.menu" = false;
+    "browser.ml.chat.shortcuts" = false;
+    "browser.ml.chat.shortcuts.custom" = false;
+    "browser.ml.chat.sidebar" = false;
+    "browser.ml.linkPreview.enabled" = false;
+    "browser.tabs.groups.smart.enabled" = false;
+    "browser.tabs.groups.smart.userEnabled" = false;
+    "pdfjs.enableAltText" = false;
+    "pdfjs.enableAltTextModelDownload" = false;
+    "extensions.ui.mlmodel.hidden" = true;
+    "browser.preferences.aiControls" = false;
+  };
+
+  # SELECTED — Firefox Home "Shortcuts": usage-based tiles, 2 rows.
+  homeShortcuts = {
+    "browser.newtabpage.activity-stream.feeds.topsites" = true;
+    "browser.newtabpage.activity-stream.topSitesRows" = 2;
   };
 
   policyPrefs =
@@ -140,7 +165,9 @@ let
     // fingerprinting
     // media
     // pdf
-    // dns;
+    // dns
+    // ai
+    // homeShortcuts;
 
   # -- Prefs NOT on the Preferences-policy allowlist -> autoconfig .cfg --------
   # These would be silently dropped as policy prefs; deliver via autoConfig.
@@ -162,6 +189,18 @@ let
     "security.cert_pinning.enforcement_level" = 2;
     "security.pki.crlite_mode" = 2;
     "security.remote_settings.crlite_filters.enabled" = true;
+  };
+
+  # -- Prefs we want ENFORCED (locked) via autoconfig `lockPref` --------------
+  # Unlike the `default`-status prefs above, lockPref OVERRIDES any value your
+  # existing profile already has AND greys the toggle out so it can't be
+  # re-enabled. Use only for things you never want on.
+  lockedPrefs = {
+    # "Automatically send crash reports" — off, enforced.
+    "browser.crashReports.unsubmittedCheck.autoSubmit2" = false;
+    # Sponsored shortcuts + sponsored stories (the "supports Firefox" content).
+    "browser.newtabpage.activity-stream.showSponsored" = false;
+    "browser.newtabpage.activity-stream.showSponsoredTopSites" = false;
   };
 in
 {
@@ -185,6 +224,9 @@ in
           lib.mapAttrsToList (
             name: value: "defaultPref(${builtins.toJSON name}, ${builtins.toJSON value});"
           ) autoConfigPrefs
+          ++ lib.mapAttrsToList (
+            name: value: "lockPref(${builtins.toJSON name}, ${builtins.toJSON value});"
+          ) lockedPrefs
         );
 
         policies = {
@@ -193,22 +235,88 @@ in
           DisableFirefoxAccounts = true; # disables Sync / Mozilla account
           Certificates.ImportEnterpriseRoots = false; # ignore OS/enterprise roots (mostly a no-op on Linux)
 
+          # Disable + hard-lock all AI features (authoritative kill switch,
+          # FF 149+). Flip Translations to "available" to allow local translation.
+          AIControls = {
+            Default = {
+              Value = "blocked";
+              Locked = true;
+            };
+            SidebarChatbot = {
+              Value = "blocked";
+              Locked = true;
+            };
+            SmartTabGroups = {
+              Value = "blocked";
+              Locked = true;
+            };
+            SmartWindow = {
+              Value = "blocked";
+              Locked = true;
+            };
+            LinkPreviewKeyPoints = {
+              Value = "blocked";
+              Locked = true;
+            };
+            PDFAltText = {
+              Value = "blocked";
+              Locked = true;
+            };
+            Translations = {
+              Value = "blocked";
+              Locked = true;
+            };
+          };
+
           # Force-installed extensions (cannot be disabled/removed via the UI).
           # LibreWolf bundles uBlock Origin; the rest are your requested set.
+          # `extra` per extension:
+          #   default_area   = "navbar" (pinned to main toolbar) | "menupanel" (overflow ≡ menu)
+          #   private_browsing = true  (allowed to run in private windows)
+          # default_area sets the DEFAULT placement (applied on fresh profiles).
           ExtensionSettings =
             let
               amo = slug: "https://addons.mozilla.org/firefox/downloads/latest/${slug}/latest.xpi";
-              forced = slug: {
-                installation_mode = "force_installed";
-                install_url = amo slug;
-              };
+              forced =
+                slug: extra:
+                {
+                  installation_mode = "force_installed";
+                  install_url = amo slug;
+                }
+                // extra;
             in
             {
-              "uBlock0@raymondhill.net" = forced "ublock-origin";
-              "78272b6fa58f4a1abaac99321d503a20@proton.me" = forced "proton-pass";
-              "sponsorBlocker@ajay.app" = forced "sponsorblock";
-              "myallychou@gmail.com" = forced "youtube-recommended-videos";
-              "@contain-facebook" = forced "facebook-container";
+              "uBlock0@raymondhill.net" = forced "ublock-origin" {
+                default_area = "navbar";
+                private_browsing = true;
+              };
+              "78272b6fa58f4a1abaac99321d503a20@proton.me" = forced "proton-pass" {
+                default_area = "navbar";
+                private_browsing = true;
+              };
+              # Multi-Account Containers: create/manage containers + per-site
+              # assignments. NOTE: assignments are stored in-profile (UI only) —
+              # they cannot be declared here; set them once in its UI. Private
+              # windows don't use containers, so no private_browsing.
+              "@testpilot-containers" = forced "multi-account-containers" {
+                default_area = "navbar";
+              };
+              "sponsorBlocker@ajay.app" = forced "sponsorblock" {
+                default_area = "menupanel";
+                private_browsing = true;
+              };
+              "myallychou@gmail.com" = forced "youtube-recommended-videos" {
+                default_area = "menupanel";
+                private_browsing = true;
+              };
+              # Facebook Container auto-traps all Meta domains (FB/IG/Messenger/WhatsApp/Threads).
+              "@contain-facebook" = forced "facebook-container" {
+                default_area = "menupanel";
+              };
+              # Google Container: only dedicated option on AMO, unmaintained since 2021.
+              "@contain-google" = forced "google-container" {
+                default_area = "menupanel";
+              };
             };
 
           # Strip first-run / onboarding / promo surfaces.
