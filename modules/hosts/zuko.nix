@@ -56,9 +56,34 @@
                   "3"
                 ];
               }
+              {
+                name = "DP-6";
+                width = 2560;
+                height = 1440;
+                transform = "270";
+                workspaces = [
+                  "1"
+                  "2"
+                  "3"
+                ];
+              }
               # Right external — landscape, workspaces 4-0
               {
                 name = "DP-7";
+                width = 2560;
+                height = 1440;
+                workspaces = [
+                  "4"
+                  "5"
+                  "6"
+                  "7"
+                  "8"
+                  "9"
+                  "10"
+                ];
+              }
+              {
+                name = "DP-8";
                 width = 2560;
                 height = 1440;
                 workspaces = [
@@ -78,6 +103,10 @@
               docked = {
                 "DP-5" = "0,0";
                 "DP-7" = "1440,669";
+              };
+              docked2 = {
+                "DP-6" = "0,0";
+                "DP-8" = "1440,669";
               };
             };
           }
