@@ -17,8 +17,9 @@
             "$right"
           ];
 
-          # Auto-track all bookmarks from the "origin" remote (git-like).
-          remotes.origin.auto-track-bookmarks = "*";
+          # Only auto-track the main/master bookmarks from "origin"; other
+          # branches (feature/*, etc.) are fetched but left untracked.
+          remotes.origin.auto-track-bookmarks = "exact:main|exact:master";
 
           # Built-in aliases already provided by jj: st, b, ci, desc.
           aliases = {
