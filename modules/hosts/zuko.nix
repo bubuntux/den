@@ -138,7 +138,16 @@
             "rtsx_pci_sdmmc"
           ];
           boot.initrd.kernelModules = [ ];
-          boot.kernelModules = [ "kvm-intel" ];
+          # Preload the FAT/NLS modules the vfat /boot (ESP) mount needs. Without
+          # this the kernel auto-loads them mid-mount, and that request stalls
+          # ~11s behind nvidia_uvm's slow init (kernel serializes module loading),
+          # showing as a "A start job is running for /boot" hang every boot.
+          boot.kernelModules = [
+            "kvm-intel"
+            "vfat"
+            "nls_cp437"
+            "nls_iso8859-1"
+          ];
           boot.extraModulePackages = [ ];
 
           fileSystems."/" = {
