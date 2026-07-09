@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1783520809,
-        "narHash": "sha256-1lW8cRuUSIMvTI4VXLDZDiB8R/Ot0S4VovKMFi+QWGw=",
+        "lastModified": 1783587652,
+        "narHash": "sha256-4oOAl0274ymmnZi2P/BcunyHfBxtjIoBHWrse3wNiMw=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "de66f53e3c6ba84f5ee62bb260c24b5ace9c2e73",
+        "rev": "43e9d50497d20d59be22c6d79e08c385d68fd51f",
         "type": "github"
       },
       "original": {
@@ -166,11 +166,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1783370751,
-        "narHash": "sha256-E+3MIMvKuo9k+K+qLQ9YXzsBzkgHuyVLnsEbN2DFfuc=",
+        "lastModified": 1783582157,
+        "narHash": "sha256-EteIu2AVVbxzkBnBKjrbdknbpjxBkWTMNg02rXj4mgU=",
         "owner": "nixos",
         "repo": "nixos-hardware",
-        "rev": "662bd6e312d2c8b212e32cb377abaee190749320",
+        "rev": "968980fba2c290b5529025636474eae8457b854c",
         "type": "github"
       },
       "original": {
