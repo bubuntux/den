@@ -74,9 +74,17 @@
           modesetting.enable = lib.mkDefault true;
           nvidiaSettings = lib.mkDefault true;
 
+          # finegrained (RTD3 dynamic power management, NVreg_DynamicPowerManagement=0x02)
+          # is off: it made nvidia_uvm's boot-time init block ~10s on an RTD3 power
+          # transition. Because the kernel serializes module insertion, that stall
+          # queued audio/sensors/camera behind it and gated sysinit.target -- ~15s of
+          # the boot. `enable` stays on: it only preserves VRAM across system
+          # suspend/resume (no boot cost) and PRIME offload is unaffected either way.
+          # The dGPU no longer auto-suspends to D3cold when idle (small idle-power
+          # cost, already largely negated by waybar's periodic nvidia-smi polling).
           powerManagement = {
             enable = lib.mkDefault true;
-            finegrained = lib.mkDefault true;
+            finegrained = lib.mkDefault false;
           };
 
           prime = {
