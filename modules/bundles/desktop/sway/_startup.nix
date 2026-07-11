@@ -35,6 +35,14 @@ pkgs: {
         command = "${pkgs.sway}/bin/swaymsg 'output * power off'";
         resumeCommand = "${pkgs.sway}/bin/swaymsg 'output * power on'";
       }
+      # Suspend when left idle. logind no longer suspends on lid-close (sway owns
+      # the lid), so this is what actually sleeps the machine once it's been
+      # closed/idle a while. power-profile-auto only runs swayidle on battery, so
+      # this never fires while docked on AC.
+      {
+        timeout = 900;
+        command = "${pkgs.systemd}/bin/systemctl suspend";
+      }
     ];
   };
 
