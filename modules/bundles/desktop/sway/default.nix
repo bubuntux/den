@@ -39,28 +39,6 @@ in
           }) m.workspaces
         ) (lib.filter (m: m.workspaces != [ ]) config.monitors)
       );
-
-      # Enable/disable the internal laptop panel(s) directly from sway's lid
-      # switch. This host docks in clamshell mode (lid closed): the kanshi
-      # `docked` profiles only match when eDP-1 is absent, so the panel must be
-      # off while docked. Letting sway toggle it on lid state means opening the
-      # lid to go laptop-only re-enables eDP-1 immediately and deterministically,
-      # instead of hoping a kanshi profile re-match fires on the hotplug (which
-      # left the screen black). --locked so it works under swaylock; --reload so
-      # the current lid state is reapplied on config reload.
-      internalOutputs = lib.filter (m: lib.hasPrefix "eDP" m.name) config.monitors;
-      lidBindswitches = lib.optionalAttrs (internalOutputs != [ ]) {
-        "lid:on" = {
-          locked = true;
-          reload = true;
-          action = lib.concatMapStringsSep "; " (m: "output ${m.name} disable") internalOutputs;
-        };
-        "lid:off" = {
-          locked = true;
-          reload = true;
-          action = lib.concatMapStringsSep "; " (m: "output ${m.name} enable") internalOutputs;
-        };
-      };
     in
     {
       # Note: monitors module must be imported by the parent NixOS module
@@ -122,9 +100,6 @@ in
 
           keybindings = lib.mkOptionDefault keybindings;
           modes = modes;
-
-          # Toggle the internal panel with the laptop lid (see lidBindswitches)
-          bindswitches = lidBindswitches;
 
           # Bars - use waybar
           bars = [ ];
@@ -310,11 +285,10 @@ in
         ];
       };
 
-      # Sway owns the lid via bindswitch (toggling the internal panel), so stop
-      # logind from acting on it. With the default `suspend`, unplugging the
-      # external monitors while docked+lid-closed made logind treat the machine
-      # as undocked and suspend mid-transition. `ignore` leaves lid handling to
-      # sway; swayidle (battery only) still suspends after an idle timeout.
+      # This host docks in clamshell (lid closed): never suspend on the lid.
+      # (The lid switch is also disabled in the BIOS so the internal panel stays
+      # available; this is the OS-side belt-and-suspenders.) swayidle still
+      # suspends on idle (battery only) as the real sleep trigger.
       services.logind.settings.Login.HandleLidSwitch = "ignore";
 
       # PAM configuration for swaylock

@@ -25,8 +25,14 @@
       {
         home-manager.sharedModules = [
           {
+            # Externals are matched by identity ("make model serial"), not the
+            # DP-N connector name: the Thunderbolt dock enumerates them on a
+            # different DP port each time (DP-5/7, DP-6/8, DP-6/9, ...), so any
+            # port-name-based profile only matches some of the time. Identity is
+            # stable, so a single docked profile now works regardless of port.
             monitors = [
-              # Built-in laptop display (undocked use; off when docked with lid closed)
+              # Built-in laptop display — used only undocked (kanshi disables it
+              # while docked; see the internal-panel handling in kanshi.nix).
               {
                 name = "eDP-1";
                 width = 1920;
@@ -44,9 +50,9 @@
                   "10"
                 ];
               }
-              # Left external — portrait, workspaces 1-3
+              # Left external — portrait
               {
-                name = "DP-5";
+                name = "Dell Inc. DELL U2722DE J85KV83";
                 width = 2560;
                 height = 1440;
                 transform = "270";
@@ -56,34 +62,9 @@
                   "3"
                 ];
               }
+              # Right external — landscape
               {
-                name = "DP-6";
-                width = 2560;
-                height = 1440;
-                transform = "270";
-                workspaces = [
-                  "1"
-                  "2"
-                  "3"
-                ];
-              }
-              # Right external — landscape, workspaces 4-0
-              {
-                name = "DP-7";
-                width = 2560;
-                height = 1440;
-                workspaces = [
-                  "4"
-                  "5"
-                  "6"
-                  "7"
-                  "8"
-                  "9"
-                  "10"
-                ];
-              }
-              {
-                name = "DP-8";
+                name = "Dell Inc. DELL U2722DE 1B5KV83";
                 width = 2560;
                 height = 1440;
                 workspaces = [
@@ -101,12 +82,8 @@
             monitorProfiles = {
               laptop = [ "eDP-1" ];
               docked = {
-                "DP-5" = "0,0";
-                "DP-7" = "1440,669";
-              };
-              docked2 = {
-                "DP-6" = "0,0";
-                "DP-8" = "1440,669";
+                "Dell Inc. DELL U2722DE J85KV83" = "0,0";
+                "Dell Inc. DELL U2722DE 1B5KV83" = "1440,669";
               };
             };
           }
