@@ -110,18 +110,6 @@
           # graphical session -- ntpd-rs / geoclue simply retry once the link is up.
           systemd.services.NetworkManager-wait-online.enable = false;
 
-          # Auto-login bbtux straight into sway via greetd's initial_session. The
-          # tuigreet greeter (default_session, defined in the sway bundle) still
-          # appears on later logouts. `command = "sway"` resolves to the same
-          # home-manager sway wrapper the greeter launches today (execs
-          # sway-unwrapped --unsupported-gpu). Trade-off: no login password is
-          # typed, so gnome-keyring is not auto-unlocked -- keyring-backed apps
-          # prompt once per session.
-          services.greetd.settings.initial_session = {
-            command = "sway";
-            user = "bbtux";
-          };
-
           boot.initrd.availableKernelModules = [
             "xhci_pci"
             "ahci"

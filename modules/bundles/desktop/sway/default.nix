@@ -333,12 +333,14 @@ in
       security.pam.services.greetd.enableGnomeKeyring = true;
       security.pam.services.login.enableGnomeKeyring = true;
 
-      # Enable greetd with tuigreet
+      # Enable greetd with tuigreet. --remember pre-fills the last logged-in
+      # username (so on a single-user host you only type the password, keeping
+      # gnome-keyring auto-unlock); --remember-session keeps the chosen session.
       services.greetd = {
         enable = true;
         settings = {
           default_session = {
-            command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd sway";
+            command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --cmd sway";
             user = "greeter";
           };
         };
