@@ -31,8 +31,11 @@
             # port-name-based profile only matches some of the time. Identity is
             # stable, so a single docked profile now works regardless of port.
             monitors = [
-              # Built-in laptop display — used only undocked (kanshi disables it
-              # while docked; see the internal-panel handling in kanshi.nix).
+              # Built-in laptop display. Auxiliary monitor: workspaces 1-3 live
+              # here whenever it's on (office setup, or undocked where 4-10 fall
+              # back to it since their externals are absent). kanshi disables it
+              # entirely when docked at home; see the internal-panel handling in
+              # kanshi.nix.
               {
                 name = "eDP-1";
                 width = 1920;
@@ -41,13 +44,6 @@
                   "1"
                   "2"
                   "3"
-                  "4"
-                  "5"
-                  "6"
-                  "7"
-                  "8"
-                  "9"
-                  "10"
                 ];
               }
               # Left external — portrait
@@ -77,6 +73,23 @@
                   "10"
                 ];
               }
+              # Office external — single 1440p monitor, laptop stacked below it.
+              # Claims workspaces 4-10 like the home landscape display; the two are
+              # never connected at the same time, so no assignment conflict.
+              {
+                name = "Dell Inc. DELL U2724DE 2KT7QF4";
+                width = 2560;
+                height = 1440;
+                workspaces = [
+                  "4"
+                  "5"
+                  "6"
+                  "7"
+                  "8"
+                  "9"
+                  "10"
+                ];
+              }
             ];
 
             monitorProfiles = {
@@ -84,6 +97,12 @@
               docked = {
                 "Dell Inc. DELL U2722DE J85KV83" = "0,0";
                 "Dell Inc. DELL U2722DE 1B5KV83" = "1440,669";
+              };
+              # Office: external on top, laptop centered underneath it (the 1920px
+              # panel centered under the 2560px external -> x = (2560-1920)/2 = 320).
+              office = {
+                "Dell Inc. DELL U2724DE 2KT7QF4" = "0,0";
+                "eDP-1" = "320,1440";
               };
             };
           }
