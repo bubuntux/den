@@ -123,6 +123,12 @@
           home.homeDirectory = "/home/juliogm";
           targets.genericLinux.enable = true;
 
+          # Standalone (non-NixOS) juliogm uses zsh exclusively, so opt out of
+          # the bash config that bundle-base enables for every user. The work
+          # container keeps bash (it may be needed there), so this override
+          # lives here rather than in the shared user-juliogm home module.
+          programs.bash.enable = lib.mkForce false;
+
           sops.age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
           sops.secrets.git_config.sopsFile = "${self}/secrets/juliogm.yaml";
           sops.secrets.jj_config.sopsFile = "${self}/secrets/juliogm.yaml";
