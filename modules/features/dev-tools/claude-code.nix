@@ -31,8 +31,10 @@
           - Reference code as `file_path:line_number`
 
           ## Version Control (jj)
-          - Use jj, not git, for version control (`jj st`, `jj diff`, `jj describe`)
+          - Always prefer jj over git; use jj for every version-control operation (`jj st`, `jj diff`, `jj commit`)
           - Show the diff and proposed change description before you commit
+          - When I say "commit", run `jj commit` (the commit command that finalizes the change) — NOT `jj describe`, which only sets the message
+          - Commit only — NEVER push. "Commit" never implies push: after `jj commit`, stop. Do not run `jj git push` (or `git push`), move bookmarks to remotes, or open/merge PRs unless I explicitly say "push"
 
           ## Principles
           - Simplicity first: minimal, targeted changes; root causes over patches
