@@ -30,12 +30,6 @@
           - Prefer Markdown when presenting or writing down information
           - Reference code as `file_path:line_number`
 
-          ## Version Control (jj)
-          - Always prefer jj over git; use jj for every version-control operation (`jj st`, `jj diff`, `jj commit`)
-          - Show the diff and proposed change description before you commit
-          - When I say "commit", run `jj commit` (the commit command that finalizes the change) — NOT `jj describe`, which only sets the message
-          - Commit only — NEVER push. "Commit" never implies push: after `jj commit`, stop. Do not run `jj git push` (or `git push`), move bookmarks to remotes, or open/merge PRs unless I explicitly say "push"
-
           ## Principles
           - Simplicity first: minimal, targeted changes; root causes over patches
           - Verify before done: prove it works (tests, logs, real output)
@@ -48,6 +42,13 @@
           - Review correctness: check edge cases, error paths, and assumptions before calling it done
           - Watch for side effects: trace what else a change touches; flag any state, I/O, or ordering effects
           - Don't break existing flows: preserve current behavior and interfaces unless the change explicitly requires otherwise
+
+          ## Version Control (jj)
+          - Always prefer jj over git; use jj for every version-control operation (`jj st`, `jj diff`, `jj commit`)
+          - Show the diff and proposed change description before you commit
+          - When I say "commit", run `jj commit` (the commit command that finalizes the change) — NOT `jj describe`, which only sets the message
+          - Commit only — NEVER push. "Commit" never implies push: after `jj commit`, stop. Do not run `jj git push` (or `git push`), move bookmarks to remotes, or open/merge PRs unless I explicitly say "push"
+
         '';
 
       };
