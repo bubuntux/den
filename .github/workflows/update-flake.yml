@@ -98,33 +98,25 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
         with:
-          name: update-data
-      - uses: actions/download-artifact@v8
-        with:
           pattern: error-*
           path: errors
         continue-on-error: true
+      # Detection only: new-hash is re-applied downstream from the output
+      # string, so update-data no longer needs to carry a patched file.
       - id: heal
         uses: ./.github/actions/caddy-heal
-      - name: Re-upload artifact with patched file
-        if: steps.heal.outputs.matched == 'true'
-        uses: actions/upload-artifact@v7
         with:
-          name: update-data
-          overwrite: true
-          path: |
-            flake.lock
-            modules/features/network/reverse-proxy.nix
-            update-output.log
-            check-before.log
-            check-after.log
+          patch: false
   heal-build:
     needs: [update, heal]
     if: >-
       always() && needs.heal.outputs.matched == 'true'
     uses: ./.github/workflows/_build.yml
     with:
+      # update-data carries the freshly bumped flake.lock; caddy-hash re-applies
+      # the refreshed plugin hash on top of it (as a string, not a file).
       artifact-name: update-data
+      caddy-hash: ${{ needs.heal.outputs.new-hash }}
       upload-error-logs: true
       fail-fast: false
     secrets:
@@ -145,6 +137,14 @@ jobs:
           pattern: error-*
           path: errors
         continue-on-error: true
+      # Re-apply the refreshed hash into the checked-out tree so the commit /
+      # PR steps below pick it up. Runs whenever a drift was detected, even if
+      # heal-build later failed, so a review PR still shows the attempted fix.
+      - name: Apply refreshed caddy hash
+        if: needs.heal.outputs.matched == 'true'
+        uses: ./.github/actions/caddy-heal
+        with:
+          hash: ${{ needs.heal.outputs.new-hash }}
       - name: Decide outcome
         id: decide
         run: |

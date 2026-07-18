@@ -56,21 +56,19 @@ jobs:
           pattern: error-*
           path: errors
         continue-on-error: true
+      # Detection only: we just need new-hash. The rebuild and commit re-apply
+      # it from that output string, so there is no patched file to shuttle.
       - id: heal
         uses: ./.github/actions/caddy-heal
-      - name: Upload patched file
-        if: steps.heal.outputs.matched == 'true'
-        uses: actions/upload-artifact@v7
         with:
-          name: heal-data
-          path: modules/features/network/reverse-proxy.nix
+          patch: false
   heal-build:
     needs: heal
     if: >-
       always() && needs.heal.outputs.matched == 'true'
     uses: ./.github/workflows/_build.yml
     with:
-      artifact-name: heal-data
+      caddy-hash: ${{ needs.heal.outputs.new-hash }}
       upload-error-logs: true
       fail-fast: false
     secrets:
@@ -91,9 +89,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
           token: ${{ github.token }}
-      - uses: actions/download-artifact@v8
+      - name: Apply refreshed caddy hash
+        uses: ./.github/actions/caddy-heal
         with:
-          name: heal-data
+          hash: ${{ needs.heal.outputs.new-hash }}
       - name: Commit and push fix
         run: |
           git config user.name "github-actions[bot]"

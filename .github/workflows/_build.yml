@@ -14,6 +14,14 @@ on:
         description: 'Stop remaining builds when one fails'
         type: boolean
         default: true
+      caddy-hash:
+        description: >-
+          When set, patch the caddy.withPlugins hash in reverse-proxy.nix to
+          this value before building. Used by the self-heal rebuild to verify a
+          refreshed hash. Passed as a plain string so it can never suffer the
+          artifact-path flattening that broke the old file-shuttling heal.
+        type: string
+        default: ''
     secrets:
       CACHIX_AUTH_TOKEN:
         required: true
@@ -74,6 +82,11 @@ jobs:
           large-packages: false
           docker-images: true
           swap-storage: true
+      - name: Apply refreshed caddy hash
+        if: inputs.caddy-hash != ''
+        uses: ./.github/actions/caddy-heal
+        with:
+          hash: ${{ inputs.caddy-hash }}
       - name: Build NixOS configuration
         run: |
           set -o pipefail

@@ -23,6 +23,15 @@ inputs:
       summary and doesn't have the file checked out.
     required: false
     default: 'true'
+  hash:
+    description: >-
+      A known `sha256-...` hash to apply directly, skipping log detection.
+      Set this on the rebuild/commit side to re-apply the hash the detection
+      side already found — the hash travels as a plain job output string,
+      never through an artifact (whose single-file path gets flattened).
+      When empty, the action detects the hash from the build logs instead.
+    required: false
+    default: ''
 
 outputs:
   matched:
@@ -37,7 +46,18 @@ runs:
   steps:
     - id: detect
       shell: bash
+      env:
+        SUPPLIED_HASH: ${{ inputs.hash }}
       run: |
+        # Caller supplied the hash directly (rebuild/commit side): trust it
+        # and skip log scanning entirely. This is the path that avoids the
+        # fragile artifact round-trip.
+        if [ -n "$SUPPLIED_HASH" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "new-hash=$SUPPLIED_HASH" >> "$GITHUB_OUTPUT"
+          echo "Applying caller-supplied caddy hash: \`$SUPPLIED_HASH\`" >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
         # Require BOTH a caddy-src-with-plugins reference AND a
         # `got: sha256-...` line in the same log file. Stops us from
         # grabbing a hash from some unrelated FOD that happened to fail
