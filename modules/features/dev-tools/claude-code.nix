@@ -40,6 +40,14 @@
           - Simplicity first: minimal, targeted changes; root causes over patches
           - Verify before done: prove it works (tests, logs, real output)
           - Scope discipline: note unrelated issues, don't fix them
+
+          ## Code Quality
+          - Readability first: code should read clearly; match the surrounding style, naming, and idioms
+          - Be nit-picky about names: variables, functions, and types should say what they are; no vague or abbreviated names
+          - Placement matters: put functions, methods, and definitions where a reader would expect them; keep related code together
+          - Review correctness: check edge cases, error paths, and assumptions before calling it done
+          - Watch for side effects: trace what else a change touches; flag any state, I/O, or ordering effects
+          - Don't break existing flows: preserve current behavior and interfaces unless the change explicitly requires otherwise
         '';
 
       };
