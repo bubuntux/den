@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Allow kicking a run by hand from the Actions tab — e.g. to refresh a stale
+  # badge after a github-actions[bot] commit (GITHUB_TOKEN pushes don't trigger
+  # CI) or to re-verify main without a dummy commit.
+  workflow_dispatch:
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
