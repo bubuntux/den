@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1784379898,
-        "narHash": "sha256-KmZ6m2K3Xr+Be0xE0loW46Ee7rWzrT82tblDNBkKzHM=",
+        "lastModified": 1784539657,
+        "narHash": "sha256-178oPQYHMJXFS/O+BDtiyP2XIKwmp+Ofz0tM9BUfWDM=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "36f16570de2015c0f0ce94ba9e391bd703c9ffb7",
+        "rev": "557631b655c961637cfc3d4e19a69bbc11495621",
         "type": "github"
       },
       "original": {
@@ -197,11 +197,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1784453100,
-        "narHash": "sha256-pMp70Dx62xa8XFOLvrcCLSyw22HCEoYyYd5W+bUfqsc=",
-        "rev": "b471514bed69eff5255c8e63c1f80e5fe56c616f",
+        "lastModified": 1784494590,
+        "narHash": "sha256-WoqtTvxsJd6qKjMMiJpGnBR1hKgKBpd4jk9gTRUfi5M=",
+        "rev": "472e4428b5aee60be7ac35c03662ebb36c901edd",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1037466.b471514bed69/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1037691.472e4428b5ae/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
