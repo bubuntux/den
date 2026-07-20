@@ -30,6 +30,11 @@
         xdg
       ];
 
+      # No desktop icons for this user (work container / standalone), so skip
+      # the Desktop folder by pointing it at $HOME (same trick as the Sway
+      # bundle). Avoids xdg.userDirs.createDirectories making a stray ~/Desktop.
+      xdg.userDirs.desktop = config.home.homeDirectory;
+
       # Prevent HM from managing settings.json as a read-only symlink,
       # so Claude Code plugins can write to it imperatively.
       programs.claude-code.settings = lib.mkForce { };
