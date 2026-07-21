@@ -16,8 +16,12 @@
         inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
       ];
 
-      # Backlight control (programs.light was removed from nixpkgs)
-      environment.systemPackages = [ pkgs.brightnessctl ];
+      environment.systemPackages = [
+        # Backlight control (programs.light was removed from nixpkgs)
+        pkgs.brightnessctl
+        # Interactive battery viewer
+        pkgs.batmon
+      ];
 
       # Power management
       powerManagement.enable = true;
