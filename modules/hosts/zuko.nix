@@ -90,6 +90,32 @@
                   "10"
                 ];
               }
+              # Office (dual) — landscape on top. Workspaces 4-7; shares those
+              # numbers with the home/single-office externals above, which are
+              # never connected at the same time as this pair.
+              {
+                name = "Dell Inc. DELL P2418D 29J0P8AO03XT";
+                width = 2560;
+                height = 1440;
+                workspaces = [
+                  "4"
+                  "5"
+                  "6"
+                  "7"
+                ];
+              }
+              # Office (dual) — portrait on the right. Workspaces 8-10.
+              {
+                name = "Dell Inc. DELL P2418D 29J0P8AO1E9T";
+                width = 2560;
+                height = 1440;
+                transform = "90";
+                workspaces = [
+                  "8"
+                  "9"
+                  "10"
+                ];
+              }
             ];
 
             monitorProfiles = {
@@ -103,6 +129,15 @@
               office = {
                 "Dell Inc. DELL U2724DE 2KT7QF4" = "0,0";
                 "eDP-1" = "320,1440";
+              };
+              # Office (dual): landscape external on top, laptop right-aligned
+              # beneath it (right edge at x=2560 -> x = 2560-1920 = 640), and a
+              # tall portrait external on the right spanning both (1440 wide after
+              # the 270 rotation, so it sits at x=2560, right of the landscape).
+              office-dual = {
+                "Dell Inc. DELL P2418D 29J0P8AO03XT" = "0,0";
+                "eDP-1" = "640,1440";
+                "Dell Inc. DELL P2418D 29J0P8AO1E9T" = "2560,0";
               };
             };
           }
