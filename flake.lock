@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1784614936,
-        "narHash": "sha256-19j8TmVqGus7g49KCAR46ejc5Two6jcRw2VYVkDUNqo=",
+        "lastModified": 1784645331,
+        "narHash": "sha256-uTYQuH/z4Kf1jYKmMwUAhr2zs+WTIMSdd1WaYEuFC6o=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "493b45323dd3163fb561792b9e091de3d4966709",
+        "rev": "fae975d565b6c1752e3f4795c499fb3951039777",
         "type": "github"
       },
       "original": {
@@ -112,11 +112,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1784565253,
-        "narHash": "sha256-CxHSL02W7hNyoXFAthMgxCmxY3VdIOvYv802b8EO810=",
+        "lastModified": 1784646228,
+        "narHash": "sha256-peX6ZHEeH1mx2Z0kQNGcx6EH7/G4P66JYEQJnqva/MM=",
         "owner": "helix-editor",
         "repo": "helix",
-        "rev": "9fed2f03a17cf48191b21b8e7c7cc873ce66c997",
+        "rev": "19c0a0ed5a9bd807c8d8b798d53a85ccd2c2034d",
         "type": "github"
       },
       "original": {
