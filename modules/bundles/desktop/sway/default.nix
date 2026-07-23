@@ -3,12 +3,6 @@
   ...
 }:
 let
-  # NixOS wallpaper
-  wallpaper = builtins.fetchurl {
-    url = "https://github.com/NixOS/nixos-artwork/blob/63f68a917f4e8586c5d35e050cdaf1309832272d/wallpapers/nix-wallpaper-binary-black_8k.png?raw=true";
-    sha256 = "331120bf35a676a31e23919e23a1f3722eb277988be383435f22903aec3e7cb6";
-  };
-
   # Modifier key
   mod = "Mod4";
 in
@@ -22,6 +16,11 @@ in
       ...
     }:
     let
+      # Desktop + lock-screen wallpaper. nixos-artwork is archived upstream, but
+      # nixpkgs still ships these wallpapers; gnomeFilePath points straight at the
+      # PNG in the store (cache-backed, no eval-time network fetch).
+      wallpaper = pkgs.nixos-artwork.wallpapers.binary-black.gnomeFilePath;
+
       # Import configuration fragments (curried functions, underscore prefix to avoid import-tree)
       keybindings = import ./_keybindings.nix pkgs mod;
       rules = import ./_rules.nix;
@@ -112,6 +111,18 @@ in
       # Swayidle configuration
       services.swayidle = startup.swayidle;
 
+      # Lock screen: show the wallpaper instead of a blank/white screen. Every
+      # swaylock invocation (the swayidle events above and the (l)ock mode key)
+      # reads this generated ~/.config/swaylock/config, so none of them need to
+      # pass an image flag.
+      programs.swaylock = {
+        enable = true;
+        settings = {
+          image = wallpaper;
+          scaling = "fill";
+        };
+      };
+
       # Mako notification daemon
       services.mako = startup.mako;
 
@@ -186,7 +197,6 @@ in
         waybar
         slurp
         warpd
-        swaylock
         swayidle
         sway-contrib.grimshot
         wl-clipboard
