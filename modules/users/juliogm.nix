@@ -14,9 +14,7 @@
     }:
     let
       jsonFormat = pkgs.formats.json { };
-      claudeBaseSettings = import "${self}/modules/features/dev-tools/_claude-settings.nix" {
-        inherit pkgs;
-      };
+      claudeBaseSettings = import "${self}/modules/features/dev-tools/_claude-settings.nix" { };
       settingsFile = jsonFormat.generate "claude-base-settings.json" (
         claudeBaseSettings // { "$schema" = "https://json.schemastore.org/claude-code-settings.json"; }
       );

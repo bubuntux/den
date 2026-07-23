@@ -18,7 +18,7 @@
             config.allowUnfree = true;
           }).claude-code;
 
-        settings = import ./_claude-settings.nix { inherit pkgs; };
+        settings = import ./_claude-settings.nix { };
 
         # Global CLAUDE.md — applies to all projects
         context = ''
