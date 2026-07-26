@@ -72,11 +72,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1784889347,
-        "narHash": "sha256-S5UlFzBm9B2A/C2Tqc6OEvOYtHMNmRMEY+2q0bGC1+c=",
+        "lastModified": 1785022523,
+        "narHash": "sha256-dwtnIXo6V3gG03xXNZihC7KiqlAUzlOgowNKkVz8G4A=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "24eaccab187678b59b5743631e1400acffdb7663",
+        "rev": "9e4d5f51110356271e420dc9c05fd33c608aafb0",
         "type": "gitlab"
       },
       "original": {
@@ -197,11 +197,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1784842214,
-        "narHash": "sha256-0npKUOIuNDfxaekHy2v+caG7MChxGGJWNAY20vxoTqw=",
-        "rev": "91cc1fdf6831e29b6c98768e721a72241f3d0797",
+        "lastModified": 1784872115,
+        "narHash": "sha256-+GlACcQGqWOKfXKmy+KXCvbl7lKTmM5mZM16zmwTCic=",
+        "rev": "335f0738cb2fa9708f3f428e39d2eae975d1338d",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1040818.91cc1fdf6831/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1040892.335f0738cb2f/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
