@@ -72,11 +72,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1785022523,
-        "narHash": "sha256-dwtnIXo6V3gG03xXNZihC7KiqlAUzlOgowNKkVz8G4A=",
+        "lastModified": 1785081421,
+        "narHash": "sha256-BaXNYzo1oAM8ZGu/Ja/CQ3Hc/Za+p3uNeKcYXeOKRIs=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "9e4d5f51110356271e420dc9c05fd33c608aafb0",
+        "rev": "4f946175c0a9b0ae012671e4c6d55f845191f0a1",
         "type": "gitlab"
       },
       "original": {
