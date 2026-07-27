@@ -12,6 +12,14 @@
       profile-wife
       inputs.nixos-hardware.nixosModules.common-cpu-amd
       inputs.nixos-hardware.nixosModules.common-gpu-amd
+
+      profile-gaming
+      profile-work
+      profile-developer
+      vpn
+      user-bbtux
+      loupe
+
       (
         {
           config,

@@ -119,6 +119,21 @@
       config,
       ...
     }:
+    let
+      # Host user that owns the container's home mount. The home directory and
+      # uid are derived from the user config rather than hardcoded, so the
+      # container's socket paths, home mount and secret ownership line up with
+      # whatever uid this account has on the host running the module.
+      workUser = "bbtux";
+      workHome = config.users.users.${workUser}.home;
+      workUid = config.users.users.${workUser}.uid;
+      workDir = "${workHome}/work";
+      # Host user's XDG runtime dir, where the graphical session sockets live.
+      workRuntimeDir = "/run/user/${toString workUid}";
+      # Wayland socket name of the host session. Compositor-dependent (GNOME
+      # uses wayland-0); adjust if a host session exposes a different display.
+      waylandDisplay = "wayland-0";
+    in
     {
       # Polkit rules for container management
       security.polkit.extraConfig = ''
@@ -146,24 +161,29 @@
       # Sops secrets for juliogm (decrypted on host, bind-mounted into container)
       sops.secrets.ssh_config = {
         sopsFile = "${self}/secrets/juliogm.yaml";
-        owner = "bbtux";
+        owner = workUser;
       };
       sops.secrets.git_config = {
         sopsFile = "${self}/secrets/juliogm.yaml";
-        owner = "bbtux";
+        owner = workUser;
       };
       sops.secrets.jj_config = {
         sopsFile = "${self}/secrets/juliogm.yaml";
-        owner = "bbtux";
+        owner = workUser;
       };
       sops.secrets.ssh_private_key = {
         sopsFile = "${self}/secrets/juliogm.yaml";
-        owner = "bbtux";
+        owner = workUser;
       };
       sops.secrets.ssh_public_key = {
         sopsFile = "${self}/secrets/juliogm.yaml";
-        owner = "bbtux";
+        owner = workUser;
       };
+      # Ensure the container's home mount point exists on the host
+      systemd.tmpfiles.rules = [
+        "d ${workDir} 0755 ${workUser} users -"
+      ];
+
       # Network configuration for container
       boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
       networking.firewall.trustedInterfaces = [ "ve-+" ];
@@ -187,22 +207,22 @@
 
         bindMounts = {
           "wayland" = {
-            hostPath = "/run/user/1000/wayland-1";
-            mountPoint = "/mnt/wayland-1";
+            hostPath = "${workRuntimeDir}/${waylandDisplay}";
+            mountPoint = "/mnt/${waylandDisplay}";
             isReadOnly = false;
           };
           "pulse" = {
-            hostPath = "/run/user/1000/pulse/native";
+            hostPath = "${workRuntimeDir}/pulse/native";
             mountPoint = "/mnt/pulse";
             isReadOnly = false;
           };
           "pipewire" = {
-            hostPath = "/run/user/1000/pipewire-0";
+            hostPath = "${workRuntimeDir}/pipewire-0";
             mountPoint = "/mnt/pipewire-0";
             isReadOnly = false;
           };
           "dbus" = {
-            hostPath = "/run/user/1000/bus";
+            hostPath = "${workRuntimeDir}/bus";
             mountPoint = "/mnt/bus";
             isReadOnly = false;
           };
@@ -232,7 +252,7 @@
             isReadOnly = false;
           };
           "home" = {
-            hostPath = "/home/bbtux/work";
+            hostPath = workDir;
             mountPoint = "/home/juliogm";
             isReadOnly = false;
           };
@@ -329,6 +349,11 @@
               user-juliogm
             ];
 
+            # Align the container user's uid with the host work user so the
+            # bind-mounted session sockets and sops secrets (owned by the host
+            # uid) are readable inside the container.
+            users.users.juliogm.uid = lib.mkForce workUid;
+
             # Disable pam_lastlog2 for login service — it fails inside nspawn
             # containers and causes machinectl shell sessions to exit immediately
             # TODO: remove once fixed upstream https://github.com/NixOS/nixpkgs/issues/501050
@@ -340,6 +365,13 @@
               pipewire.enable = lib.mkForce false;
               pulseaudio.enable = lib.mkForce false;
             };
+
+            # WARP login completes by having the browser open a
+            # com.cloudflare.warp:// deep link that hands the auth token to
+            # warp-cli. Register the handler cloudflare-warp ships so the
+            # browser can find it instead of failing with "no application".
+            xdg.mime.defaultApplications."x-scheme-handler/com.cloudflare.warp" =
+              "com.cloudflare.WarpCli.desktop";
 
             environment.systemPackages = with pkgs; [
               cloudflare-warp
@@ -413,19 +445,19 @@
               PIPEWIRE_REMOTE = "unix:/mnt/pipewire-0";
               PULSE_SERVER = "unix:/mnt/pulse";
               DBUS_SESSION_BUS_ADDRESS = "unix:path=/mnt/bus";
-              WAYLAND_DISPLAY = "/mnt/wayland-1";
-              XDG_RUNTIME_DIR = "/run/user/1000";
+              WAYLAND_DISPLAY = "/mnt/${waylandDisplay}";
+              XDG_RUNTIME_DIR = workRuntimeDir;
             };
 
             systemd.tmpfiles.rules = [
-              "d /run/user/1000 0700 juliogm users -"
+              "d ${workRuntimeDir} 0700 juliogm users -"
               "d /home/juliogm/.ssh 0700 juliogm users -"
               "L+ /home/juliogm/.ssh/id_rsa - - - - /run/secrets-host/ssh_private_key"
               "L+ /home/juliogm/.ssh/id_rsa.pub - - - - /run/secrets-host/ssh_public_key"
               # Symlink so host portal FileChooser paths resolve inside the container
-              # (host portal returns /home/bbtux/work/... but container has /home/juliogm/...)
-              "d /home/bbtux 0755 juliogm users -"
-              "L+ /home/bbtux/work - - - - /home/juliogm"
+              # (host portal returns ${workDir}/... but container has /home/juliogm/...)
+              "d ${workHome} 0755 juliogm users -"
+              "L+ ${workDir} - - - - /home/juliogm"
             ];
 
             networking = {
