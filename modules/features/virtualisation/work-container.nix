@@ -130,9 +130,13 @@
       workDir = "${workHome}/work";
       # Host user's XDG runtime dir, where the graphical session sockets live.
       workRuntimeDir = "/run/user/${toString workUid}";
-      # Wayland socket name of the host session. Compositor-dependent (GNOME
-      # uses wayland-0); adjust if a host session exposes a different display.
-      waylandDisplay = "wayland-0";
+      # Where that runtime dir is mounted inside the container. Mounted whole
+      # rather than socket-by-socket: the compositor picks its socket name with
+      # wl_display_add_socket_auto, so it is wayland-0 on one boot and
+      # wayland-1 on the next, and a per-socket bind also goes stale whenever
+      # the compositor restarts. The container keeps its own XDG_RUNTIME_DIR;
+      # this is only the window onto the host session.
+      hostSessionDir = "/mnt/host-session";
     in
     {
       # Polkit rules for container management
@@ -206,24 +210,10 @@
         additionalCapabilities = [ "CAP_SYS_ADMIN" ];
 
         bindMounts = {
-          "wayland" = {
-            hostPath = "${workRuntimeDir}/${waylandDisplay}";
-            mountPoint = "/mnt/${waylandDisplay}";
-            isReadOnly = false;
-          };
-          "pulse" = {
-            hostPath = "${workRuntimeDir}/pulse/native";
-            mountPoint = "/mnt/pulse";
-            isReadOnly = false;
-          };
-          "pipewire" = {
-            hostPath = "${workRuntimeDir}/pipewire-0";
-            mountPoint = "/mnt/pipewire-0";
-            isReadOnly = false;
-          };
-          "dbus" = {
-            hostPath = "${workRuntimeDir}/bus";
-            mountPoint = "/mnt/bus";
+          # Wayland, PipeWire, PulseAudio and the session bus in one mount.
+          "host-session" = {
+            hostPath = workRuntimeDir;
+            mountPoint = hostSessionDir;
             isReadOnly = false;
           };
           "udev" = {
@@ -441,13 +431,31 @@
               XDG_CURRENT_DESKTOP = "sway";
               JAVA_TOOL_OPTIONS = "-Dawt.toolkit.name=WLToolkit";
 
-              PIPEWIRE_RUNTIME_DIR = "/mnt";
-              PIPEWIRE_REMOTE = "unix:/mnt/pipewire-0";
-              PULSE_SERVER = "unix:/mnt/pulse";
-              DBUS_SESSION_BUS_ADDRESS = "unix:path=/mnt/bus";
-              WAYLAND_DISPLAY = "/mnt/${waylandDisplay}";
+              PIPEWIRE_RUNTIME_DIR = hostSessionDir;
+              PIPEWIRE_REMOTE = "unix:${hostSessionDir}/pipewire-0";
+              PULSE_SERVER = "unix:${hostSessionDir}/pulse/native";
+              DBUS_SESSION_BUS_ADDRESS = "unix:path=${hostSessionDir}/bus";
               XDG_RUNTIME_DIR = workRuntimeDir;
             };
+
+            # WAYLAND_DISPLAY can't join the list above: the host socket's name
+            # is only known at runtime. Point it at the one socket in the
+            # mounted session dir (an absolute path here, so the container's own
+            # XDG_RUNTIME_DIR is left out of it). extraInit runs after
+            # environment.variables, and every entry point into the container
+            # uses a login shell, so this reaches machinectl sessions and
+            # desktop launchers alike. A caller that already exported the
+            # variable wins.
+            environment.extraInit = ''
+              if [ -z "''${WAYLAND_DISPLAY:-}" ]; then
+                for socket in ${hostSessionDir}/wayland-[0-9]*; do
+                  if [ -S "$socket" ]; then
+                    export WAYLAND_DISPLAY="$socket"
+                    break
+                  fi
+                done
+              fi
+            '';
 
             systemd.tmpfiles.rules = [
               "d ${workRuntimeDir} 0700 juliogm users -"
