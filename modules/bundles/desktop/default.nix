@@ -74,6 +74,7 @@ in
       imports = with self.homeModules; [
         mpv
         templates
+        tidal-hifi
         xdg
       ];
 
@@ -92,7 +93,6 @@ in
         qpwgraph # PipeWire patchbay (route audio to multiple devices)
         gimp-with-plugins # image editor
         simple-scan # scanner
-        tidal-hifi # music streaming
       ];
     };
 
