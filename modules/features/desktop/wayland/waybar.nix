@@ -257,67 +257,116 @@
           jq
         ];
         text = ''
-          hwmon="/sys/devices/platform/coretemp.0/hwmon"
-          hwmon_dir=""
-          for d in "$hwmon"/hwmon*; do
-            [ -d "$d" ] && hwmon_dir="$d" && break
+          # Print a friendly name for an hwmon driver; unknown drivers keep
+          # their raw name so a new machine still shows something useful.
+          sensor_name() {
+            case "$1" in
+              coretemp|k10temp|zenpower|cpu_thermal) echo "CPU" ;;
+              amdgpu)         echo "AMD GPU" ;;
+              nouveau)        echo "NVIDIA GPU" ;;
+              i915|xe)        echo "Intel GPU" ;;
+              nvme)           echo "NVMe" ;;
+              spd5118|jc42)   echo "Memory" ;;
+              dell_smm|thinkpad) echo "Board" ;;
+              iwlwifi*)       echo "WiFi" ;;
+              acpitz)         echo "ACPI" ;;
+              *)              echo "$1" ;;
+            esac
+          }
+
+          # CPU sensors come from different drivers per platform: coretemp on
+          # Intel, k10temp/zenpower on AMD, cpu_thermal on ARM. acpitz is the
+          # last resort — it reports a board sensor rather than the die.
+          cpu_hwmon=""
+          for driver in coretemp k10temp zenpower cpu_thermal acpitz; do
+            for hwmon in /sys/class/hwmon/hwmon*; do
+              [ -r "$hwmon/name" ] || continue
+              if [ "$(cat "$hwmon/name")" = "$driver" ]; then
+                cpu_hwmon="$hwmon"
+                break 2
+              fi
+            done
           done
 
-          if [ -z "$hwmon_dir" ]; then
-            echo '{"text": "󰔏 N/A", "tooltip": "No coretemp sensor found"}'
+          # The bar shows the die/package reading; per-core sensors and every
+          # other device go in the tooltip.
+          cpu_input=""
+          for preferred in Tdie Package Tctl CPU; do
+            for label_file in "$cpu_hwmon"/temp*_label; do
+              [ -f "$label_file" ] || continue
+              label=$(cat "$label_file")
+              # Prefix match, so "Package id 0" matches "Package"
+              if [ "''${label#"$preferred"}" != "$label" ]; then
+                cpu_input="''${label_file%_label}_input"
+                break 2
+              fi
+            done
+          done
+          # Unlabeled drivers (acpitz, cpu_thermal) expose a single temp1_input
+          if [ -z "$cpu_input" ] && [ -n "$cpu_hwmon" ]; then
+            cpu_input="$cpu_hwmon/temp1_input"
+          fi
+
+          if [ -z "$cpu_input" ] || [ ! -r "$cpu_input" ]; then
+            echo '{"text": "󰔏 N/A", "tooltip": "No CPU temperature sensor found"}'
             exit 0
           fi
 
-          # Read package temp (temp1) for the bar display
-          pkg_temp=$(cat "$hwmon_dir/temp1_input" 2>/dev/null || echo "0")
-          pkg_c=$((pkg_temp / 1000))
+          cpu_c=$(( $(cat "$cpu_input") / 1000 ))
+          tooltip="CPU: ''${cpu_c}°C"
 
-          # Build tooltip with all sensors
-          tooltip="CPU Package: ''${pkg_c}°C"
-
-          # Core temps from coretemp
-          for label_file in "$hwmon_dir"/temp*_label; do
+          # Remaining sensors on the CPU chip: per-core on Intel, Tccd* on AMD
+          for label_file in "$cpu_hwmon"/temp*_label; do
             [ -f "$label_file" ] || continue
-            label=$(cat "$label_file")
-            # Skip the package line (already shown as header)
-            case "$label" in Package*) continue ;; esac
-            input_file="''${label_file/_label/_input}"
-            temp=$(cat "$input_file" 2>/dev/null || echo "0")
-            temp_c=$((temp / 1000))
-            tooltip="$tooltip"$'\n'"  $label: ''${temp_c}°C"
+            input_file="''${label_file%_label}_input"
+            [ "$input_file" = "$cpu_input" ] && continue
+            [ -r "$input_file" ] || continue
+            tooltip="$tooltip"$'\n'"  $(cat "$label_file"): $(( $(cat "$input_file") / 1000 ))°C"
           done
 
-          # Other interesting thermal zones
+          # Every other hwmon device that reports a temperature
+          for hwmon in /sys/class/hwmon/hwmon*; do
+            [ "$hwmon" = "$cpu_hwmon" ] && continue
+            [ -r "$hwmon/name" ] || continue
+            device=$(sensor_name "$(cat "$hwmon/name")")
+            for input_file in "$hwmon"/temp*_input; do
+              [ -r "$input_file" ] || continue
+              label_file="''${input_file%_input}_label"
+              if [ -f "$label_file" ]; then
+                name="$device $(cat "$label_file")"
+              else
+                name="$device"
+              fi
+              tooltip="$tooltip"$'\n'"$name: $(( $(cat "$input_file") / 1000 ))°C"
+            done
+          done
+
+          # Thermal zones cover sensors with no hwmon entry (WiFi, skin, charger)
           for zone_dir in /sys/class/thermal/thermal_zone*; do
-            [ -d "$zone_dir" ] || continue
-            type=$(cat "$zone_dir/type" 2>/dev/null) || continue
-            temp=$(cat "$zone_dir/temp" 2>/dev/null || echo "0")
-            temp_c=$((temp / 1000))
-            # Skip coretemp (already shown) and uninteresting zones
+            [ -r "$zone_dir/type" ] || continue
+            type=$(cat "$zone_dir/type")
+            # Skip zones already reported through hwmon and generic sensors
             case "$type" in
-              x86_pkg_temp|TCPU|TCPU_PCI|INT3400*) continue ;;
+              acpitz|x86_pkg_temp|TCPU|TCPU_PCI|INT3400*|SEN*) continue ;;
             esac
-            # Use friendly names
             case "$type" in
-              iwlwifi*) name="WiFi" ;;
-              TSKN)     name="Skin" ;;
-              TMEM)     name="Memory" ;;
-              CHRG)     name="Charger" ;;
-              SEN*)     continue ;;  # skip generic unnamed sensors
-              *)        name="$type" ;;
+              TSKN) name="Skin" ;;
+              TMEM) name="Memory" ;;
+              CHRG) name="Charger" ;;
+              *)    name=$(sensor_name "$type") ;;
             esac
-            tooltip="$tooltip"$'\n'"$name: ''${temp_c}°C"
+            tooltip="$tooltip"$'\n'"$name: $(( $(cat "$zone_dir/temp") / 1000 ))°C"
           done
 
           # Determine warning class
           class=""
-          if [ "$pkg_c" -ge 80 ]; then
+          if [ "$cpu_c" -ge 80 ]; then
             class="critical"
-          elif [ "$pkg_c" -ge 60 ]; then
+          elif [ "$cpu_c" -ge 60 ]; then
             class="warning"
           fi
 
-          jq -nc --arg text "󰔏 ''${pkg_c}°C" --arg tooltip "$tooltip" --arg class "$class" \
+          jq -nc --arg text "󰔏 ''${cpu_c}°C" --arg tooltip "$tooltip" --arg class "$class" \
             '{text: $text, tooltip: $tooltip, class: $class}'
         '';
       };
