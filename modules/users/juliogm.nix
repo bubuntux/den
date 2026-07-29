@@ -39,11 +39,21 @@
 
       # Write Nix-defined settings as a mutable file, merging with any
       # existing imperative changes (plugins, etc.) on each activation.
+      #
+      # jq's `*` gives precedence to its right operand, so the Nix base goes
+      # last: keys this module defines are reasserted on every activation,
+      # while imperative top-level keys it doesn't define (plugin state,
+      # onboarding flags) survive. With the operands the other way round the
+      # on-disk file wins and no edit to _claude-settings.nix ever reaches this
+      # user again. Note `*` replaces arrays rather than concatenating, which
+      # is what we want for permissions: Nix owns the policy, and Claude Code
+      # records per-project "don't ask again" grants in that project's
+      # .claude/settings.local.json rather than here.
       home.activation.claudeCodeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         target="$HOME/.claude/settings.json"
         mkdir -p "$HOME/.claude"
         if [ -f "$target" ] && [ ! -L "$target" ]; then
-          ${pkgs.jq}/bin/jq -s '.[0] * .[1]' \
+          ${pkgs.jq}/bin/jq -s '.[1] * .[0]' \
             "${settingsFile}" "$target" \
             > "$target.tmp"
           mv "$target.tmp" "$target"
