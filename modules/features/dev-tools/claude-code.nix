@@ -30,7 +30,7 @@
           - Skip AI fluff: no preambles, no restating my request, no recapping what you just did, no unsolicited caveats. Explain only when I ask
           - Emojis are fine but not preferred; use sparingly
           - Prefer Markdown when presenting or writing down information
-          - Reference code as `file_path:line_number`
+          - Reference code as `file_path:line_number`; when the code comes from elsewhere (upstream repo, docs, issue, man page), link to that source too
 
           ## Principles
           - Simplicity first: minimal, targeted changes; root causes over patches
