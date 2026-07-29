@@ -18,6 +18,7 @@
       bundle-base
       auto-upgrade
       boot
+      hardware-diagnostics
       networking
       sops
       sudors
