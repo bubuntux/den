@@ -16,14 +16,30 @@ in
   # Surface thinking summaries in the transcript view
   showThinkingSummaries = true;
 
-  # Allow non-destructive operations by default
+  # Allow non-destructive operations by default.
+  #
+  # `auto` sends every action that isn't a read or a working-directory edit to a
+  # separate classifier model instead of prompting. It approves routine work and
+  # blocks escalation: `curl | bash`, force push, prod deploys, exfiltration,
+  # destroying files that predate the session. This is what keeps the session
+  # quiet — the `allow` list below is now an optimization that skips the
+  # classifier round-trip for the commands used most in this repo.
+  #
+  # Only honored from ~/.claude/settings.json, which is exactly what this module
+  # writes; Claude Code ignores `auto` from a project's `.claude/settings.json`
+  # so a checked-out repo can't grant itself auto mode. Needs Opus 4.6+ /
+  # Sonnet 4.6+ / Fable 5 — if unavailable the session silently falls back to
+  # `default` (prompt on first use), which asks *more* than `acceptEdits` did.
   permissions = {
-    defaultMode = "acceptEdits";
+    defaultMode = "auto";
     allow = [
       # File reading and searching
       "Read"
       "Glob"
       "Grep"
+      "Bash(grep:*)"
+      "Bash(rg:*)"
+      "Bash(sed -n:*)"
 
       # Web tools
       "WebSearch"
@@ -32,6 +48,17 @@ in
       # MCP servers
       "mcp__nixos__nix"
       "mcp__nixos__nix_versions"
+
+      # Read-only jj (the preferred VCS; see the global context below)
+      "Bash(jj st:*)"
+      "Bash(jj status:*)"
+      "Bash(jj diff:*)"
+      "Bash(jj log:*)"
+      "Bash(jj show:*)"
+      "Bash(jj evolog:*)"
+      "Bash(jj op log:*)"
+      "Bash(jj file list:*)"
+      "Bash(jj bookmark list:*)"
 
       # Read-only git (canonical `<cmd>:*` prefix syntax)
       "Bash(git log:*)"
@@ -45,6 +72,10 @@ in
       "Bash(git ls-files:*)"
       "Bash(git blame:*)"
 
+      # Syncing before edits is the documented first step in this repo
+      "Bash(git pull:*)"
+      "Bash(git fetch:*)"
+
       # Read-only filesystem
       "Bash(ls:*)"
       "Bash(tree:*)"
@@ -57,8 +88,38 @@ in
       "Bash(nix flake metadata:*)"
       "Bash(nix eval:*)"
       "Bash(nix search:*)"
+      "Bash(nix path-info:*)"
       "Bash(nix --version)"
+
+      # Nix builds and checks: sandboxed by the daemon, write only ./result
+      "Bash(nix build:*)"
+      "Bash(nix flake check:*)"
+      "Bash(nix fmt:*)"
+
+      # Read-only service and log inspection
+      "Bash(journalctl:*)"
+      "Bash(systemctl status:*)"
+      "Bash(systemctl list-units:*)"
+      "Bash(systemctl --user status:*)"
+      "Bash(systemctl --user list-units:*)"
     ];
+
+    # Hard checkpoints. `ask` forces a prompt in every mode, including `auto`,
+    # so unlike a "don't push" stated in conversation these cannot be lost to
+    # context compaction.
+    ask = [
+      # Publishing is always an explicit, separate instruction
+      "Bash(git push:*)"
+      "Bash(jj git push:*)"
+      "Bash(gh pr create:*)"
+      "Bash(gh pr merge:*)"
+
+      # System activation and store cleanup change state outside the repo
+      "Bash(sudo nixos-rebuild:*)"
+      "Bash(nix-collect-garbage:*)"
+      "Bash(sudo nix-collect-garbage:*)"
+    ];
+
     deny = [
       # Environment and secret files (recursive)
       "Read(**/.env)"
