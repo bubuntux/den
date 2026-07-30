@@ -54,10 +54,13 @@ nix flake update
 The configuration flows: **Features → Bundles → Profiles → Hosts**
 
 ```
-Bundles  →  Profiles  →  Hosts
-   ↑     ↗     ↑      ↗    ↑
-Features    Hardware     Users
+Features ──→ Bundles ──→ Profiles ──→ Hosts
+    │                     ↑   ↑          ↑
+    └─────────────────────┘   │          │
+                            Users     Hardware
 ```
+
+Note the direction of two edges that are easy to get backwards: **users are imported by profiles**, not by hosts (a role knows who operates the machine), and **hardware is imported by hosts**, not by profiles.
 
 - **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, `options.nix` for `den.desktop`, `session/` for the desktop environments, `login/` for the display managers, `wayland/` for compositor-specific pieces: foot, kanshi, waybar), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
@@ -79,7 +82,7 @@ The recommended import direction for each layer. When a change doesn't follow th
 | **Features** | Other features (sparingly) | Bundles, profiles, hosts, users |
 | **Bundles** | Features and other bundles | Profiles, hosts, users |
 | **Profiles** | Bundles, features, users, and other profiles | Hosts |
-| **Hosts** | Profiles, hardware, and users | Features, bundles directly |
+| **Hosts** | Profiles (one or more) and hardware | Bundles, users, feature *stacks* |
 | **Users** | Features and profiles (home modules only) | Bundles, hosts |
 | **Hardware** | External hardware modules (nixos-hardware) | Features, bundles, profiles, hosts, users |
 
@@ -128,9 +131,12 @@ Writing `media-plumbing` also caught a bug in the check rather than the code —
 | Brings its own bundle | yes (`bundle-host` / `bundle-desktop`) | no |
 | Brings its own users | yes | no |
 | Composes | capabilities, and features | features |
-| Imported by | exactly one per host | roles |
 
-The payoff is that **every host file is one role plus hardware** and nothing else:
+This is a description, not a restriction. **A host may import as many profiles as it needs** — `imports = [ profile-laptop profile-developer ]` is perfectly good, and is what zuko and katara did before they were collapsed. The rule is narrower than "one role per host":
+
+> When two hosts would list the same set of profiles, name that set as a role.
+
+That is the only reason `profile-workstation` exists: katara and zuko were repeating an identical nine-module list. A one-off combination needs no role — just import the capabilities.
 
 ```nix
 # hosts/appa/default.nix          # hosts/zuko/default.nix
@@ -139,7 +145,7 @@ imports = [ profile-nas           imports = [ profile-workstation
                                               droidcam cachix-push ];
 ```
 
-When a host starts listing bundles, users, or bare features, that config belongs in its role instead. (`appa` used to import `bundle-host` and `user-bbtux` directly; both moved into `profile-nas`, which is where `profile-workstation` already kept them.)
+What a host should *not* accumulate is config that belongs to a role: bundles, users, or a whole stack of features. (`appa` used to import `bundle-host` and `user-bbtux` directly; both moved into `profile-nas`, where `profile-workstation` already kept them.) A single feature that only makes sense on one machine is fine — zuko imports `droidcam` and `cachix-push` because no other host wants them.
 
 ### Naming Conventions
 

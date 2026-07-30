@@ -1,6 +1,6 @@
 # den
 
-[![NixOS](https://img.shields.io/badge/NixOS-unstable-blue?logo=nixos)](https://nixos.org)
+[![NixOS](https://img.shields.io/badge/NixOS-26.05-blue?logo=nixos)](https://nixos.org)
 [![Flake](https://img.shields.io/badge/Nix-Flake-informational?logo=nixos)](https://nixos.wiki/wiki/Flakes)
 [![Home Manager](https://img.shields.io/badge/Home%20Manager-enabled-blue?logo=nixos)](https://github.com/nix-community/home-manager)
 [![CI](https://github.com/bubuntux/den/actions/workflows/ci.yml/badge.svg)](https://github.com/bubuntux/den/actions/workflows/ci.yml)
@@ -11,13 +11,19 @@ architecture powered by [flake-parts](https://flake.parts/) and the
 
 ## Overview
 
-Every `.nix` file in this repository is a self-contained
-[flake-parts](https://github.com/hercules-ci/flake-parts) module
-implementing a single feature. Files are auto-discovered via
+Every `.nix` file in this repository is a
+[flake-parts](https://github.com/hercules-ci/flake-parts) module publishing
+one or more modules under `flake.modules.nixos.*` / `flake.modules.homeManager.*`.
+Files are auto-discovered via
 [import-tree](https://github.com/vic/import-tree) and
 [flake-file](https://github.com/vic/flake-file), so there is no manual
 import list to maintain — just add a file and it becomes part of the
 configuration.
+
+Several files may also contribute to the *same* module name, which is how
+each host is assembled from small pieces:
+`hosts/zuko/{default,hardware,monitors}.nix` all define
+`flake.modules.nixos.zuko`.
 
 ## Hosts
 
@@ -26,25 +32,55 @@ Hosts are named after Avatar: The Last Airbender characters.
 | Host | Hardware | Role |
 | --- | --- | --- |
 | **zuko** | Dell Precision 5680 (Intel/NVIDIA) | Primary dev laptop — Sway, gaming, work container, development |
-| **katara** | AMD laptop | Family laptop — GNOME desktop |
-| **appa** | Intel Pentium Silver J5040 | NAS — media server |
+| **katara** | AMD laptop | Family computer |
+| **appa** | Intel Pentium Silver J5040 | NAS — media server, reverse proxy, backups |
 
 ## Module Hierarchy
 
 ```
-Bundles  →  Profiles  →  Hosts
-   ↑     ↗     ↑      ↗    ↑
-Features    Hardware     Users
+Features ──→ Bundles ──→ Profiles ──→ Hosts
+    │                     ↑   ↑          ↑
+    └─────────────────────┘   │          │
+                            Users     Hardware
 ```
 
+Users are imported by profiles, not by hosts — a role knows who operates the
+machine. Profiles may compose other profiles, a host may import as many
+profiles as it needs, and a host may add a feature that only makes sense on
+that one machine (zuko's `droidcam`, `cachix-push`).
+
 - **`modules/features/`** — Software and service configurations
-- **`modules/bundles/`** — Reusable aggregates of related features
-- **`modules/profiles/`** — High-level roles combining bundles and
-  features
-- **`modules/hosts/`** — Per-machine configurations
+- **`modules/bundles/`** — Reusable aggregates: `bundle-base` (container-safe
+  foundation), `bundle-host` (adds what a real machine needs),
+  `bundle-desktop`
+- **`modules/profiles/`** — Whole-machine **roles** (`workstation`, `nas`,
+  `wife`) and composable **capabilities** (`laptop`, `developer`, `gaming`,
+  `work`); a role is just a named set of capabilities that more than one host
+  wanted
+- **`modules/hosts/`** — Per-machine configuration: the profiles it needs plus
+  hardware
 - **`modules/users/`** — User account definitions
 - **`modules/hardware/`** — Device and hardware configurations
-- **`modules/core/`** — Infrastructure glue
+- **`modules/core/`** — Infrastructure glue, including the flake checks
+
+## Desktop
+
+Desktop environment and login manager are chosen independently, so a host can
+install several environments and let each user pick one at the greeter:
+
+```nix
+den.desktop = {
+  environments = [ "sway" "gnome" ];  # both installed, both selectable
+  loginManager = "greetd";            # greetd | gdm | lightdm | none
+  users.bbtux = "sway";               # whose config each user gets
+};
+services.displayManager.defaultSession = "sway";
+```
+
+Adding an environment means one file under `modules/features/desktop/session/`;
+adding a login manager, one file under `modules/features/desktop/login/`.
+Invalid combinations are rejected at build time by assertions, which the
+`desktop-rejects` flake check keeps honest.
 
 ## Usage
 
@@ -90,8 +126,17 @@ home-manager switch --flake github:bubuntux/den#<user> --refresh
 # Test a host in a QEMU VM
 nix run .#<hostname>-vm
 
+# Build a host without applying it
+nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
+
 # Validate, format, and update
 nix flake check
 nix fmt
 nix flake update
 ```
+
+`nix flake check` is evaluation-only — formatting plus four checks that verify
+the desktop combinations, that invalid ones are refused, that no unexpected
+systemd directives appear on the units this repo configures, and that the media
+service registry generates what it claims. Host builds are left to CI, which
+builds each host in its own job.
