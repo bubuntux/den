@@ -55,8 +55,8 @@ Features    Hardware     Users
 ```
 
 - **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, `options.nix` for `den.desktop`, `session/` for the desktop environments, `login/` for the display managers, `wayland/` for compositor-specific pieces: foot, kanshi, waybar), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
-- **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines both `bundle-base` (container-safe foundation: fonts, home-manager, locale, nix) and `bundle-host` (extends base with auto-upgrade, boot, networking). `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
-- **`modules/profiles/`**: High-level roles combining bundles and features (laptop, developer, gaming, nas, wife, work, workstation)
+- **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
+- **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `wife`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
 - **`modules/users/`**: User account definitions that bridge NixOS and Home Manager; imported by hosts or profiles
 - **`modules/hardware/`**: Device and hardware configurations (audio, bluetooth, printing, dell-precision-5680)
@@ -82,6 +82,30 @@ Two rules carry real weight here:
 
 - **A feature must never import a bundle or profile.** This is the one violation that bites: `nixos.sway` used to import `bundle-desktop`, which imports `bundle-host`, which `profile-laptop` also imports. That diamond made `bundle-host` apply twice and was the source of the duplicate-package bugs the `key` convention now prevents. If a feature seems to need a bundle, the dependency belongs the other way round — the bundle should import the feature and gate it on an option.
 - **A profile may compose other profiles**, one level, when a role genuinely is the union of other roles: `profile-workstation` = laptop + gaming + work + developer + desktop. The alternative is repeating that list in every host file. Don't use it to sneak a feature into a host through a profile that doesn't mean anything.
+
+### Roles vs capabilities
+
+`modules/profiles/` holds two kinds of module. They look alike and compose differently, so keep the distinction in mind when adding one:
+
+| | **Role** | **Capability** |
+|---|---|---|
+| Describes | a whole machine | one aspect of a machine |
+| Examples | `nas`, `workstation`, `wife` | `laptop`, `developer`, `gaming`, `work` |
+| Brings its own bundle | yes (`bundle-host` / `bundle-desktop`) | no |
+| Brings its own users | yes | no |
+| Composes | capabilities, and features | features |
+| Imported by | exactly one per host | roles |
+
+The payoff is that **every host file is one role plus hardware** and nothing else:
+
+```nix
+# hosts/appa/default.nix          # hosts/zuko/default.nix
+imports = [ profile-nas           imports = [ profile-workstation
+            <nixos-hardware …> ];             dell-precision-5680
+                                              droidcam cachix-push ];
+```
+
+When a host starts listing bundles, users, or bare features, that config belongs in its role instead. (`appa` used to import `bundle-host` and `user-bbtux` directly; both moved into `profile-nas`, which is where `profile-workstation` already kept them.)
 
 ### Naming Conventions
 

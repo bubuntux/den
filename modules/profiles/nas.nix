@@ -5,6 +5,12 @@
     {
       key = "den:nixos.profile-nas";
       imports = with self.modules.nixos; [
+        # A NAS is a whole-machine role, so it brings the machine foundation and
+        # its operator, the way profile-workstation does. Hosts then add only
+        # hardware.
+        bundle-host
+        user-bbtux
+
         bazarr
         cloudflare-ddns
         crowdsec

@@ -23,9 +23,7 @@
     {
       key = "den:nixos.appa#host";
       imports = with self.modules.nixos; [
-        bundle-host
         profile-nas
-        user-bbtux
         inputs.nixos-hardware.nixosModules.common-cpu-intel
         inputs.nixos-hardware.nixosModules.common-pc-ssd
       ];
