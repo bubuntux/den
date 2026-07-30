@@ -58,6 +58,11 @@ in
           # Folders open in thunar for users of *this* session; a GNOME user on
           # the same host keeps nautilus. See features/desktop/thunar.nix.
           thunar
+          # Stops swayidle at login when on AC. Lives with the rest of the AC
+          # logic in features/system/power-profile-auto.nix, but it is swayidle's
+          # companion, so the session is what pulls it in -- on a host without
+          # sway there is no swayidle for it to inhibit.
+          power-profile-auto
           # dictation
         ];
         wayland.windowManager.sway = {

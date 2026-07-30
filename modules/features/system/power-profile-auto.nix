@@ -1,4 +1,4 @@
-{ self, ... }:
+_:
 let
   # Succeeds when an AC adapter is plugged in. Detection is by power-supply
   # *type*, never by device name: the adapter enumerates differently per machine
@@ -29,7 +29,8 @@ in
       in
       {
         key = "den:homeManager.power-profile-auto";
-        # Stop swayidle on login when on AC.
+        # Stop swayidle on login when on AC. Imported by homeManager.sway rather
+        # than pushed at every user; see the note on the nixos half below.
         #
         # Ordered against graphical-session.target explicitly, like every other
         # unit in the session (swayidle, waybar, network-manager-applet). That is
@@ -81,7 +82,18 @@ in
       in
       {
         key = "den:nixos.power-profile-auto";
-        home-manager.sharedModules = [ self.modules.homeManager.power-profile-auto ];
+
+        # Deliberately no `home-manager.sharedModules` for the module above: its
+        # unit exists to stop swayidle, so pushing it at every user put an
+        # idle-inhibit-init on GNOME users too, where it can only fail. The Sway
+        # session imports it instead, which is what scopes it per user. GNOME
+        # needs none of it -- gnome-settings-daemon runs its own idle and power
+        # policy, and this file's system half already sets the profile.
+        #
+        # The loop below is the one part that cannot be scoped that way: a system
+        # service cannot know which session each logged-in user is running, so it
+        # asks every one of them and swallows the failure for those without
+        # swayidle.
 
         # Run at boot to set the initial profile and on every AC state change
         systemd.services.power-profile-auto = {
