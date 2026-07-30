@@ -33,11 +33,13 @@
 
           # Deliberately NOT setting useTextGreeter. It looks right for a TUI
           # greeter -- it keeps systemd boot messages off the screen -- but it
-          # also hands systemd TTYPath=/dev/tty1 with TTYReset, TTYVHangup and
-          # TTYVTDisallocate, and greetd already owns that VT via
-          # `[terminal] vt = 1`. Both managing the same VT leaves tuigreet
-          # drawing its clock header onto a console whose geometry has been
-          # reset underneath it: a black screen with the time and nothing else.
+          # hands systemd TTYPath=/dev/tty1 with TTYReset, TTYVHangup and
+          # TTYVTDisallocate while greetd already owns that VT via
+          # `[terminal] vt = 1`. It was added here by mistake during the DE/DM
+          # split and removed after a machine came up to a clock on a black
+          # screen; a VM test since renders the same with and without it, so the
+          # causal link is unproven. It stays off because it was never part of
+          # the working config, not because it is known to break anything.
 
           # --sessions/--xsessions point at every session registered by the
           # enabled environments, so adding a DE to den.desktop.environments is
