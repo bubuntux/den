@@ -35,7 +35,39 @@
     in
     {
       key = "den:nixos.qbittorrent";
-      imports = [ self.modules.nixos.vpn-confinement ];
+      imports = with self.modules.nixos; [
+        media-registry
+        vpn-confinement
+      ];
+
+      den.media.services.qbittorrent = {
+        port = webuiPort;
+        # 0002 so files land 0664 / dirs 0775 -- combined with the setgid bit on
+        # /mnt/media/*, radarr/sonarr (also in the media group) can rename files
+        # out of qbittorrent's per-torrent subdirs after the download completes.
+        # Default systemd umask 0022 strips group-write and breaks the handoff.
+        umask = "0002";
+        # Runs inside the wg netns, so the qbittorrent.wg alias and Caddy's
+        # upstream both resolve to the namespace address rather than the bridge.
+        namespace = "wg";
+        inNamespace = true;
+        # Active downloads + libtorrent disk caches have been observed near
+        # 1.3 GB on appa. CPUWeight=50 -- pure background work, must yield to
+        # streams. The natpmp sidecar runs in this same slice via systemd's
+        # parent-service grouping.
+        #
+        # cpuQuota one core: hash checks and torrent rechecks are the most
+        # reliable way to spike this service, and weight alone only helps under
+        # contention. A hard cap prevents a recheck teaming up with an Immich
+        # backfill / *arr scan to saturate every core.
+        resources = {
+          memoryHigh = "8%";
+          memoryMax = "15%";
+          cpuWeight = 50;
+          ioWeight = 50;
+          cpuQuota = "100%";
+        };
+      };
 
       services.qbittorrent = {
         enable = true;
@@ -170,60 +202,16 @@
         };
       };
 
-      users.users.qbittorrent.extraGroups = [ "media" ];
-
-      # 0002 so files land 0664 / dirs 0775 -- combined with the setgid
-      # bit on /mnt/media/*, radarr/sonarr (also in the media group) can
-      # rename files out of qbittorrent's per-torrent subdirs after the
-      # download completes. Default systemd umask 0022 strips group-write
-      # and breaks the handoff.
-      systemd.services.qbittorrent.serviceConfig.UMask = lib.mkForce "0002";
-
-      # Defer service start until /mnt/media is mounted -- DefaultSavePath
-      # lives under it. Without this the unit can start before the disk
-      # mounts, writing torrents into the root fs and shadowing the mount.
-      systemd.services.qbittorrent.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
-
-      # Resource caps (percent-of-RAM scales with hardware upgrades).
-      # Active downloads + libtorrent disk caches have been observed near
-      # 1.3 GB on appa. CPUWeight=50 — pure background work, must yield to
-      # streams. The natpmp sidecar runs in this same slice via systemd's
-      # parent-service grouping.
-      #
-      # CPUQuota=100% (1 core absolute): hash checks and torrent rechecks
-      # are the most reliable way to spike this service. Weight alone only
-      # helps under contention; a hard cap prevents a recheck from teaming
-      # up with an Immich backfill / *arr scan to saturate every core.
-      systemd.services.qbittorrent.serviceConfig = {
-        MemoryHigh = "8%";
-        MemoryMax = "15%";
-        CPUWeight = 50;
-        CPUQuota = "100%";
-        IOWeight = 50;
-      };
-
       # Seed the downloads directory with the same setgid/group layout as
       # the rest of /mnt/media so handoffs to the *arrs work out of the box.
       systemd.tmpfiles.rules = [
         "d ${defaultSavePath} 02775 qbittorrent media - -"
       ];
 
-      services.reverse-proxy.routes.qbittorrent = {
-        port = webuiPort;
-        # vpn-confinement DNATs LAN-arriving traffic in PREROUTING, but
-        # Caddy on the same host dials over loopback and bypasses that
-        # rewrite. Point Caddy directly at the namespace veth IP.
-        upstreamAddr = config.vpnNamespaces.wg.namespaceAddress;
-        aliases = [
-          "qb"
-          "torrent"
-        ];
-      };
-
-      # On-box alias so host-side services can dial qbittorrent without
-      # hardcoding the namespace IP — same PREROUTING/OUTPUT reason as
-      # the Caddy comment above. Use `http://qbittorrent.wg:8080`.
-      networking.hosts.${config.vpnNamespaces.wg.namespaceAddress} = [ "qbittorrent.wg" ];
+      services.reverse-proxy.routes.qbittorrent.aliases = [
+        "qb"
+        "torrent"
+      ];
 
       systemd.services.qbittorrent.vpnConfinement = {
         enable = true;
@@ -354,12 +342,5 @@
         '';
       };
 
-      virtualisation.vmVariant.virtualisation.forwardPorts = [
-        {
-          from = "host";
-          host.port = webuiPort;
-          guest.port = webuiPort;
-        }
-      ];
     };
 }

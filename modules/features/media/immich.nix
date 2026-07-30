@@ -1,3 +1,4 @@
+{ self, ... }:
 {
   flake.modules.nixos.immich =
     { lib, ... }:
@@ -20,6 +21,20 @@
     in
     {
       key = "den:nixos.immich";
+      imports = [ self.modules.nixos.media-registry ];
+
+      den.media.services.immich = {
+        inherit port;
+        unit = "immich-server";
+        # Library lives on /mnt/data/immich, not the shared /mnt/media tree, so
+        # no `media` group and a different mount to wait for.
+        mediaGroup = false;
+        requiresMounts = [ mediaLocation ];
+        # Caps are applied to the whole system-immich slice below rather than to
+        # a single unit, so the registry leaves cgroup settings alone here.
+        resources = null;
+      };
+
       services.immich = {
         enable = true;
         host = "0.0.0.0";
@@ -75,15 +90,15 @@
         IOWeight = 100;
       };
 
-      # Refuse to start immich-server if the mediaLocation mount is missing.
-      # On 2026-05-22 the systemd-fsck for /mnt/data was SIGTERMed mid-journal-
-      # recovery on boot, the mount unit went inactive, and immich-server
-      # happily started anyway — writing uploads to the (empty) /mnt/data
-      # stub on the root filesystem and leaving the real library on the RAID
-      # array invisible. RequiresMountsFor pulls in the mount unit's
-      # Requires + After and fails the service if the mount can't activate.
+      # The registry's requiresMounts above is what refuses to start
+      # immich-server when the mediaLocation mount is missing. On 2026-05-22 the
+      # systemd-fsck for /mnt/data was SIGTERMed mid-journal-recovery on boot,
+      # the mount unit went inactive, and immich-server happily started anyway —
+      # writing uploads to the (empty) /mnt/data stub on the root filesystem and
+      # leaving the real library on the RAID array invisible. RequiresMountsFor
+      # pulls in the mount unit's Requires + After and fails the service if the
+      # mount can't activate.
       systemd.services.immich-server = {
-        unitConfig.RequiresMountsFor = mediaLocation;
         # Suppress core dumps. When the slice OOM-killed the ML worker on
         # 2026-05-22, systemd-coredump tried to write a multi-GB core file
         # and saturated the disk for 11 min, hanging logins and TTY getties.
@@ -127,7 +142,6 @@
       ];
 
       services.reverse-proxy.routes.immich = {
-        inherit port;
         aliases = [ "photos" ];
         public = true;
         # Rate-limit the login endpoint (5/IP/min defaults).
@@ -140,13 +154,5 @@
           }
         '';
       };
-
-      virtualisation.vmVariant.virtualisation.forwardPorts = [
-        {
-          from = "host";
-          host.port = port;
-          guest.port = port;
-        }
-      ];
     };
 }

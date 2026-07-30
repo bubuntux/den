@@ -1,52 +1,36 @@
+{ self, ... }:
 {
   flake.modules.nixos.bazarr =
-    { config, lib, ... }:
+    _:
     let
       port = 6767;
     in
     {
       key = "den:nixos.bazarr";
+      imports = [ self.modules.nixos.media-registry ];
+
       services.bazarr = {
         enable = true;
         openFirewall = true;
         listenPort = port;
       };
 
-      users.users.bazarr.extraGroups = [ "media" ];
-
-      # 0002 so subtitle files bazarr writes alongside media land 0664
-      # and remain editable by radarr/sonarr (also in the media group).
-      systemd.services.bazarr.serviceConfig.UMask = lib.mkForce "0002";
-
-      # Subtitles get written next to media on /mnt/media; defer start
-      # until that disk is mounted.
-      systemd.services.bazarr.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
-
-      # Resource caps (percent-of-RAM scales with hardware upgrades).
-      # Python; modest steady-state. CPUWeight=50 — background subtitle
-      # downloads should always yield to interactive streams.
-      systemd.services.bazarr.serviceConfig = {
-        MemoryHigh = "4%";
-        MemoryMax = "8%";
-        CPUWeight = 50;
-        IOWeight = 50;
-      };
-
-      services.reverse-proxy.routes.bazarr = {
+      den.media.services.bazarr = {
         inherit port;
-        aliases = [ "subs" ];
+        # 0002 so subtitle files bazarr writes alongside media land 0664 and
+        # remain editable by radarr/sonarr (also in the media group).
+        umask = "0002";
+        namespace = "wg";
+        # Python; modest steady-state. CPUWeight=50 -- background subtitle
+        # downloads should always yield to interactive streams.
+        resources = {
+          memoryHigh = "4%";
+          memoryMax = "8%";
+          cpuWeight = 50;
+          ioWeight = 50;
+        };
       };
 
-      # .wg alias so prowlarr (inside the wg netns) can dial us by name —
-      # see sonarr.nix for the full rationale.
-      networking.hosts.${config.vpnNamespaces.wg.bridgeAddress} = [ "bazarr.wg" ];
-
-      virtualisation.vmVariant.virtualisation.forwardPorts = [
-        {
-          from = "host";
-          host.port = port;
-          guest.port = port;
-        }
-      ];
+      services.reverse-proxy.routes.bazarr.aliases = [ "subs" ];
     };
 }

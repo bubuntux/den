@@ -1,3 +1,4 @@
+{ self, ... }:
 {
   flake.modules.nixos.jellyfin =
     _:
@@ -9,6 +10,8 @@
     in
     {
       key = "den:nixos.jellyfin";
+      imports = [ self.modules.nixos.media-registry ];
+
       services.jellyfin = {
         enable = true;
         openFirewall = true;
@@ -19,27 +22,26 @@
       # before opening the device even when the device perms would already
       # permit access, so without these groups the encoder silently falls back
       # to software transcoding -- which on a Pentium Silver pegs the CPU
-      # during trickplay / chapter image generation.
+      # during trickplay / chapter image generation. (`media` comes from the
+      # registry.)
       users.users.jellyfin.extraGroups = [
-        "media"
         "render"
         "video"
       ];
 
-      # Library scans / playback all hit /mnt/media; defer start until
-      # the disk mounts so Jellyfin doesn't index an empty mountpoint.
-      systemd.services.jellyfin.unitConfig.RequiresMountsFor = [ "/mnt/media" ];
-
-      # Resource caps (percent-of-RAM scales with hardware upgrades).
-      # Transcoding sessions can burst memory; cap above observed ~700 MB
-      # peak so live streams don't get OOM-killed mid-playback.
-      # CPUWeight=150 (default 100) wins CPU contention over scanners and
-      # downloaders — real-time playback timing must beat bulk work.
-      systemd.services.jellyfin.serviceConfig = {
-        MemoryHigh = "8%";
-        MemoryMax = "15%";
-        CPUWeight = 150;
-        IOWeight = 150;
+      den.media.services.jellyfin = {
+        inherit port;
+        extraVmPorts = [ httpsPort ];
+        # Transcoding sessions can burst memory; cap above observed ~700 MB peak
+        # so live streams don't get OOM-killed mid-playback. CPUWeight=150
+        # (default 100) wins CPU contention over scanners and downloaders --
+        # real-time playback timing must beat bulk work.
+        resources = {
+          memoryHigh = "8%";
+          memoryMax = "15%";
+          cpuWeight = 150;
+          ioWeight = 150;
+        };
       };
 
       # Catches actual auth failures from Jellyfin's own log stream — slow
@@ -55,7 +57,6 @@
       ];
 
       services.reverse-proxy.routes.jellyfin = {
-        inherit port;
         aliases = [
           "jf"
           "media"
@@ -71,23 +72,8 @@
         '';
       };
 
-      virtualisation.vmVariant.virtualisation = {
-        # Jellyfin 10.10+ refuses to start with <2 GiB free at its data dir.
-        # In production the data lives on /mnt/data; in the VM it falls back to /.
-        diskSize = 4096;
-
-        forwardPorts = [
-          {
-            from = "host";
-            host.port = port;
-            guest.port = port;
-          }
-          {
-            from = "host";
-            host.port = httpsPort;
-            guest.port = httpsPort;
-          }
-        ];
-      };
+      # Jellyfin 10.10+ refuses to start with <2 GiB free at its data dir.
+      # In production the data lives on /mnt/data; in the VM it falls back to /.
+      virtualisation.vmVariant.virtualisation.diskSize = 4096;
     };
 }

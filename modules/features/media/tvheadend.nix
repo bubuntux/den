@@ -121,17 +121,41 @@
     in
     {
       key = "den:nixos.tvheadend";
-      imports = [ self.modules.nixos.vpn-confinement-tvh ];
+      imports = with self.modules.nixos; [
+        media-registry
+        vpn-confinement-tvh
+      ];
+
+      den.media.services.tvheadend = {
+        inherit port;
+        # The service is the podman unit, not a native `tvheadend.service`.
+        unit = "podman-tvheadend";
+        # Recordings + EPG cache live under /mnt/media and /mnt/config; defer
+        # container start until both mount so a missed mount doesn't write into
+        # the underlying root fs and shadow the bind later.
+        requiresMounts = [
+          "/mnt/config"
+          "/mnt/media"
+        ];
+        # Mirrors jellyfin/plex: real-time streaming wins CPU contention over
+        # scanners and downloaders. Tvheadend's memory footprint is modest
+        # (sub-200MB observed in the lscr image) but cap above that so a buggy
+        # EPG grabber can't drift unbounded.
+        resources = {
+          memoryHigh = "5%";
+          memoryMax = "10%";
+          cpuWeight = 150;
+          ioWeight = 150;
+        };
+      };
 
       users.users.tvheadend = {
         isSystemUser = true;
         group = "tvheadend";
         # video: read /dev/dvb adapter nodes (host udev rule sets GROUP=video).
-        # media: write into /mnt/media/recordings alongside the *arr stack.
-        extraGroups = [
-          "video"
-          "media"
-        ];
+        # (`media`, for writing into /mnt/media/recordings alongside the *arr
+        # stack, comes from the registry.)
+        extraGroups = [ "video" ];
         inherit uid;
       };
       users.groups.tvheadend.gid = gid;
@@ -226,26 +250,6 @@
         }
       ];
 
-      # Recordings + EPG cache live under /mnt/media; defer container start
-      # until both disks mount so a missed mount doesn't write into the
-      # underlying root fs and shadow the bind later.
-      systemd.services.podman-tvheadend = {
-        unitConfig.RequiresMountsFor = [
-          "/mnt/config"
-          "/mnt/media"
-        ];
-        # Resource caps mirror jellyfin/plex: real-time streaming wins CPU
-        # contention over scanners and downloaders. Tvheadend's memory
-        # footprint is modest (sub-200MB observed in the lscr image) but
-        # cap above that so a buggy EPG grabber can't drift unbounded.
-        serviceConfig = {
-          MemoryHigh = "5%";
-          MemoryMax = "10%";
-          CPUWeight = 150;
-          IOWeight = 150;
-        };
-      };
-
       systemd.tmpfiles.rules = [
         "d /mnt/config/tvheadend 0750 tvheadend tvheadend - -"
         # Setgid so new recordings inherit the media group -- matches the
@@ -255,17 +259,8 @@
       ];
 
       services.reverse-proxy.routes.tvheadend = {
-        inherit port;
         aliases = [ "tv" ];
         # public defaults to false -- LAN-only, matches the *arr admin UIs.
       };
-
-      virtualisation.vmVariant.virtualisation.forwardPorts = [
-        {
-          from = "host";
-          host.port = port;
-          guest.port = port;
-        }
-      ];
     };
 }
