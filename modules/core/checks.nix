@@ -4,9 +4,19 @@
   # proved formatting and nothing else -- no host was built and no assertion was
   # ever exercised. These checks close that gap:
   #
-  #   host-<name>        the host actually builds
   #   desktop-matrix     the DE/DM combinations produce the expected config
   #   desktop-rejects    the invalid combinations are refused
+  #   unit-shape         no surprise systemd directives on units we configure
+  #   media-plumbing     den.media.services really generates what it claims
+  #
+  # All of them are evaluation-only on purpose. Host builds deliberately do NOT
+  # live here: .github/workflows/_build.yml already builds every host in a
+  # matrix with per-host error logs, and ci.yml gates `build` on `check` while
+  # `heal` triggers on `build` failing. Building hosts inside `nix flake check`
+  # therefore moves a caddy-hash drift from `build` (failure -> heal runs) to
+  # `check` (failure -> build skipped -> heal never runs), disabling the caddy
+  # self-heal. Build a host with
+  # `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`.
   #
   # The desktop checks matter most. den.desktop's assertions are the only thing
   # standing between a typo and a machine that boots without a way to log in,
@@ -20,15 +30,9 @@
       ...
     }:
     let
-      # --- host builds -------------------------------------------------------
-
       compatibleHosts = lib.filterAttrs (
         _: cfg: cfg.config.nixpkgs.system == system
       ) self.nixosConfigurations;
-
-      hostChecks = lib.mapAttrs' (
-        name: cfg: lib.nameValuePair "host-${name}" cfg.config.system.build.toplevel
-      ) compatibleHosts;
 
       # --- desktop probes ----------------------------------------------------
 
@@ -317,6 +321,170 @@
 
       failures = lib.concatMap checkCase cases ++ lib.concatMap checkReject rejects;
 
+      # --- unit shape --------------------------------------------------------
+      #
+      # The fingerprint used to verify the desktop refactor compared evaluated
+      # option *values*. It would have caught a changed ExecStart, and was blind
+      # to *added* [Service] directives -- which is exactly how
+      # services.greetd.useTextGreeter slipped in and left the greeter drawing a
+      # clock onto a console systemd had reset underneath it.
+      #
+      # So pin the set of directive *names* per section, not their values: store
+      # paths and package versions live in values, and pinning those would make
+      # this fire on every `nix flake update`. Only units this repo configures
+      # directly are listed; nixpkgs-owned units would just churn.
+      directivesOf =
+        text:
+        let
+          # Unit text carries string context from the store paths inside it, and
+          # that context propagates into anything derived from it -- including
+          # attribute names, which Nix rejects. Only names are kept here, so
+          # dropping the context is safe.
+          lines = map builtins.unsafeDiscardStringContext (
+            lib.filter (l: l != "") (lib.splitString "\n" text)
+          );
+          step =
+            acc: line:
+            if lib.hasPrefix "[" line then
+              acc // { section = lib.removeSuffix "]" (lib.removePrefix "[" line); }
+            else
+              let
+                # Hyphens matter: systemd's X- extension directives use them.
+                m = builtins.match "([A-Za-z0-9_-]+)=.*" line;
+              in
+              if m == null then
+                acc
+              else
+                acc
+                // {
+                  found = acc.found // {
+                    ${acc.section} = lib.unique ((acc.found.${acc.section} or [ ]) ++ [ (builtins.head m) ]);
+                  };
+                };
+          result = lib.foldl' step {
+            section = "?";
+            found = { };
+          } lines;
+        in
+        lib.mapAttrs (_: lib.sort (a: b: a < b)) result.found;
+
+      unitShapes = [
+        {
+          name = "greetd.service on a sway/greetd host";
+          modules = [
+            {
+              den.desktop = {
+                environments = [ "sway" ];
+                loginManager = "greetd";
+                users.bbtux = "sway";
+              };
+              services.displayManager.defaultSession = "sway";
+            }
+            self.modules.nixos.bundle-desktop
+          ];
+          unit = c: c.systemd.units."greetd.service".text;
+          # Baseline taken from the pre-refactor unit. The TTY family
+          # (TTYPath, TTYReset, TTYVHangup, TTYVTDisallocate, StandardInput,
+          # StandardOutput, StandardError) is absent on purpose -- that is the
+          # useTextGreeter regression this check exists to catch.
+          expect = {
+            Unit = [
+              "After"
+              "Conflicts"
+              "Wants"
+            ];
+            Service = [
+              "Environment"
+              "ExecStart"
+              "IgnoreSIGPIPE"
+              "KeyringMode"
+              "Restart"
+              "SendSIGHUP"
+              "TimeoutStopSec"
+              "Type"
+              "X-RestartIfChanged"
+            ];
+            Install = [ "WantedBy" ];
+          };
+        }
+      ];
+
+      checkShape =
+        case:
+        let
+          got = directivesOf (case.unit (probe case.modules));
+          sections = lib.unique (lib.attrNames got ++ lib.attrNames case.expect);
+        in
+        lib.concatMap (
+          s:
+          let
+            g = got.${s} or [ ];
+            e = case.expect.${s} or [ ];
+            added = lib.subtractLists e g;
+            removed = lib.subtractLists g e;
+          in
+          lib.optional (added != [ ]) "${case.name}: [${s}] gained ${toString added}"
+          ++ lib.optional (removed != [ ]) "${case.name}: [${s}] lost ${toString removed}"
+        ) sections;
+
+      # --- media registry ----------------------------------------------------
+      #
+      # Properties over every den.media.services entry rather than a golden
+      # snapshot, so a service added later is covered automatically. This is the
+      # permanent version of the throwaway diff that caught immich's
+      # RequiresMountsFor changing shape.
+      mediaFailures =
+        let
+          c = self.nixosConfigurations.appa.config;
+          svc = c.den.media.services;
+        in
+        lib.concatMap (
+          name:
+          let
+            s = svc.${name};
+            unit = c.systemd.services.${s.unit} or { };
+            sc = unit.serviceConfig or { };
+            route = c.services.reverse-proxy.routes.${name} or null;
+            ns = if s.namespace == null then null else c.vpnNamespaces.${s.namespace};
+            addr = if s.inNamespace then ns.namespaceAddress else ns.bridgeAddress;
+            forwarded = map (f: f.guest.port) c.virtualisation.vmVariant.virtualisation.forwardPorts;
+          in
+          lib.optional (
+            s.mediaGroup && s.user != null && !lib.elem "media" c.users.users.${s.user}.extraGroups
+          ) "${name}: mediaGroup is set but ${s.user} is not in the media group"
+          ++ lib.optional (
+            s.umask != null && (sc.UMask or null) != s.umask
+          ) "${name}: umask ${s.umask} did not reach ${s.unit} (got ${toString (sc.UMask or "unset")})"
+          # Containment, not equality: the upstream service modules add their own
+          # state directories to RequiresMountsFor (jellyfin contributes three),
+          # so all we can assert is that everything we asked for is in there.
+          ++ map (m: "${name}: requiresMounts ${m} did not reach ${s.unit}") (
+            lib.subtractLists (unit.unitConfig.RequiresMountsFor or [ ]) s.requiresMounts
+          )
+          ++ lib.optional (
+            s.resources != null
+            && (
+              (sc.MemoryHigh or null) != s.resources.memoryHigh
+              || (sc.MemoryMax or null) != s.resources.memoryMax
+              || (sc.CPUWeight or null) != s.resources.cpuWeight
+              || (sc.IOWeight or null) != s.resources.ioWeight
+              || (sc.CPUQuota or null) != s.resources.cpuQuota
+            )
+          ) "${name}: resource caps did not reach ${s.unit}"
+          ++ lib.optional (
+            s.proxy && (route == null || route.port != s.port)
+          ) "${name}: proxy route missing or has the wrong port"
+          ++ lib.optional (
+            s.proxy && s.inNamespace && route.upstreamAddr != ns.namespaceAddress
+          ) "${name}: in-namespace service is not proxied to the namespace address"
+          ++ lib.optional (
+            s.namespace != null && !lib.elem "${name}.wg" (c.networking.hosts.${addr} or [ ])
+          ) "${name}: ${name}.wg alias missing at ${addr}"
+          ++ lib.optional (
+            !lib.elem s.port forwarded
+          ) "${name}: port ${toString s.port} is not forwarded in the VM build"
+        ) (lib.attrNames svc);
+
       mkCheck =
         name: found:
         if found == [ ] then
@@ -325,9 +493,14 @@
           throw "${name}: ${toString (lib.length found)} failure(s)\n  ${lib.concatStringsSep "\n  " found}";
     in
     {
-      checks = hostChecks // {
+      checks = {
         desktop-matrix = mkCheck "desktop-matrix" (lib.concatMap checkCase cases);
         desktop-rejects = mkCheck "desktop-rejects" (lib.concatMap checkReject rejects);
+        unit-shape = mkCheck "unit-shape" (lib.concatMap checkShape unitShapes);
+      }
+      # appa is the only host with media services, and only on its own system.
+      // lib.optionalAttrs (compatibleHosts ? appa) {
+        media-plumbing = mkCheck "media-plumbing" mediaFailures;
       };
     };
 }

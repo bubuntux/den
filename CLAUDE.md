@@ -32,13 +32,13 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 # Test a host in QEMU VM (e.g., katara)
 nix run .#katara-vm
 
-# Validate everything: formatting, all three host builds, and the desktop
-# checks. Takes a few minutes because it really does build the hosts.
+# Validate: formatting plus the desktop, unit-shape and media checks.
+# Evaluation-only (~2 min: the desktop probes are ten NixOS evaluations).
+# It does not build hosts -- see the Checks section for why.
 nix flake check
 
-# Run one check on its own (much faster than the full run)
+# Run one check on its own
 nix build .#checks.x86_64-linux.desktop-matrix
-nix build .#checks.x86_64-linux.host-zuko
 
 # Format code
 nix fmt
@@ -94,15 +94,28 @@ Two rules carry real weight here:
 
 | check | what it proves |
 |-------|----------------|
-| `host-zuko` / `host-katara` / `host-appa` | the host still builds |
 | `desktop-matrix` | five DE/login-manager combinations produce the expected config |
 | `desktop-rejects` | five invalid combinations are refused |
+| `unit-shape` | no surprise systemd directives on units this repo configures |
+| `media-plumbing` | `den.media.services` really generates what it claims, for every entry |
+
+All four are **evaluation-only**. Host builds deliberately do *not* live here, even though `nix flake check` is the obvious place for them: `.github/workflows/_build.yml` already builds every host in a matrix with per-host error logs, and `ci.yml` gates `build` on `check` while `heal` fires on `build` *failing*. A host build inside `checks` moves a caddy-hash drift from `build` (fails → heal runs) to `check` (fails → build skipped → heal never runs), silently disabling the caddy self-heal. Build a host by hand instead:
+
+```bash
+nix build .#nixosConfigurations.<host>.config.system.build.toplevel
+```
 
 The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps ten NixOS evaluations affordable.
 
-**Adding a case** means appending to `cases` (with an `expect` attrset, and optionally `cmdContains` to assert on the greeter command line) or to `rejects` (which passes when evaluation throws *or* any assertion reports false).
+`unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
-**When adding or changing an assertion, prove the check bites.** Break the thing on purpose, confirm the check fails with a message that names the problem, then revert. A check that has never failed is not known to work: all three of these were validated that way — removing `den.desktop.sessionCommands.sway` made `desktop-matrix` report the missing `--cmd sway`; neutralising the environment-membership assertion made `desktop-rejects` report "was accepted, expected rejection"; dropping LightDM's `services.xserver.enable` failed on both the assertion and the expectation.
+`media-plumbing` asserts properties over every `den.media.services` entry rather than a golden snapshot, so a service added later is covered for free. Note that `requiresMounts` is checked by *containment*, not equality — the upstream service modules add their own state directories to `RequiresMountsFor` (jellyfin contributes three).
+
+**Adding a case** means appending to `cases` (with an `expect` attrset, and optionally `cmdContains` to assert on the greeter command line), to `rejects` (which passes when evaluation throws *or* any assertion reports false), or to `unitShapes`.
+
+**When adding or changing a check, prove it bites.** Break the thing on purpose, confirm the check fails with a message that names the problem, then revert. A check that has never failed is not known to work. Every check here was validated that way: removing `den.desktop.sessionCommands.sway` made `desktop-matrix` report the missing `--cmd sway`; neutralising the environment-membership assertion made `desktop-rejects` report "was accepted, expected rejection"; dropping LightDM's `services.xserver.enable` failed on both the assertion and the expectation; re-enabling `useTextGreeter` made `unit-shape` list all seven directives it adds; breaking the registry's umask and namespace-address derivation made `media-plumbing` name the affected services.
+
+Writing `media-plumbing` also caught a bug in the check rather than the code — asserting list equality on `RequiresMountsFor` failed for four services because upstream contributes its own entries. Expect that: a new check's first failure is as likely to be its own fault as the code's.
 
 ### Roles vs capabilities
 
@@ -193,7 +206,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
   1. Run `nix fmt` to ensure consistent code style
   1. Stage files with `git add` (the flake only sees tracked files)
 
-- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is slow (minutes) because it genuinely builds every host; run a single check by name while iterating
+- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is evaluation-only, but still takes ~2 min because the desktop probes are ten NixOS evaluations; run a single check by name while iterating. Host builds are CI's job (see **Checks**)
 
 - **Committing**: Always present changes and proposed commit message to the user for explicit approval before committing
 
