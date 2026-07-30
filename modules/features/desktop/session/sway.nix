@@ -283,10 +283,12 @@ in
         key = "den:nixos.sway";
         imports = with self.modules.nixos; [
           desktop-options
-          power-profile-auto
+          # Sway ships no bar and no output manager of its own; these two are
+          # what make it a usable session, so they belong here. thunar and
+          # power-profile-auto are not sway-specific and live in bundle-desktop
+          # and profile-laptop respectively.
           waybar
           kanshi
-          thunar
         ];
 
         config = lib.mkIf (lib.elem "sway" config.den.desktop.environments) {
@@ -311,12 +313,6 @@ in
           # Sway's session exec is a bare `sway`, so it can serve as greetd's
           # fallback / autologin command. See den.desktop.sessionCommands.
           den.desktop.sessionCommands.sway = "sway";
-
-          # This host docks in clamshell (lid closed): never suspend on the lid.
-          # (The lid switch is also disabled in the BIOS so the internal panel stays
-          # available; this is the OS-side belt-and-suspenders.) swayidle still
-          # suspends on idle (battery only) as the real sleep trigger.
-          services.logind.settings.Login.HandleLidSwitch = "ignore";
 
           # PAM configuration for swaylock
           security.pam.services.swaylock = { };

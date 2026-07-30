@@ -13,6 +13,8 @@
         self.modules.nixos.printing
         self.modules.nixos.wifi-home
         self.modules.nixos.bundle-host
+        # Battery/AC profile switching -- a laptop concern, not a sway one.
+        self.modules.nixos.power-profile-auto
         inputs.nixos-hardware.nixosModules.common-pc-laptop
         inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
       ];

@@ -108,6 +108,8 @@ in
       imports = with self.modules.nixos; [
         bundle-host
         theme
+        # File manager: DE-agnostic, so it sits here rather than in a session.
+        thunar
 
         desktop-options
         # environments
