@@ -54,7 +54,7 @@ that one machine (zuko's `droidcam`, `cachix-push`).
   foundation), `bundle-host` (adds what a real machine needs),
   `bundle-desktop`
 - **`modules/profiles/`** — Whole-machine **roles** (`workstation`, `nas`,
-  `wife`) and composable **capabilities** (`laptop`, `developer`, `gaming`,
+  `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`,
   `work`); a role is just a named set of capabilities that more than one host
   wanted
 - **`modules/hosts/`** — Per-machine configuration: the profiles it needs plus
@@ -65,21 +65,16 @@ that one machine (zuko's `droidcam`, `cachix-push`).
 
 ## Desktop
 
-Desktop environment and login manager are chosen independently, so a host can
-install several environments and let each user pick one at the greeter:
+Desktop environment and login manager are chosen independently through
+`den.desktop`, so a host can install several environments at once and let each
+user pick one at the greeter. Which environments are installed and which
+environment each user gets are contributed additively, so several profiles can
+each ask for one; the greeter and the preselected session are whole-machine
+settings and belong to the host.
 
-```nix
-den.desktop = {
-  environments = [ "sway" "gnome" ];  # both installed, both selectable
-  loginManager = "greetd";            # greetd | gdm | lightdm | none
-  users.bbtux = "sway";               # whose config each user gets
-};
-services.displayManager.defaultSession = "sway";
-```
-
-Adding an environment means one file under `modules/features/desktop/session/`;
-adding a login manager, one file under `modules/features/desktop/login/`.
-Invalid combinations are rejected at build time by assertions, which the
+Each environment is one file under `modules/features/desktop/session/` and each
+login manager one file under `modules/features/desktop/login/`. Invalid
+combinations are refused at build time by assertions, which the
 `desktop-rejects` flake check keeps honest.
 
 ## Usage

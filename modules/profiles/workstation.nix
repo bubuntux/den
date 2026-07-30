@@ -18,16 +18,14 @@
       loupe
     ];
 
-    # Desktop selection. environments and loginManager are independent: add
-    # "gnome" to environments to install it alongside sway and pick between them
-    # at the greeter, or switch loginManager to gdm/lightdm without touching
-    # either session.
+    # Only the additive desktop settings; the greeter and the default session
+    # are single-valued whole-machine policy and live on the host, so a host can
+    # combine this with another role (katara pairs it with profile-family)
+    # without two profiles fighting over one value.
     den.desktop = {
       environments = [ "sway" ];
-      loginManager = "greetd";
       users.bbtux = "sway";
     };
-    services.displayManager.defaultSession = "sway";
 
     # Both workstations dock in clamshell (lid closed): never suspend on the lid.
     # (The lid switch is also disabled in the BIOS so the internal panel stays

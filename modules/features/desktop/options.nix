@@ -34,10 +34,15 @@
             "sway"
             "gnome"
           ];
+          # Two profiles on one host may both ask for the same environment
+          # (katara gets "sway" from profile-workstation and profile-family);
+          # list definitions concatenate, so collapse the duplicates.
+          apply = lib.unique;
           description = ''
             Desktop environments to install. Every entry registers its own
             session, so several can coexist on one host and be chosen at the
-            greeter.
+            greeter. Contributed additively, so several profiles may each ask
+            for one.
           '';
         };
 

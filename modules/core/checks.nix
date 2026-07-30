@@ -75,10 +75,12 @@
         hmUsers = lib.sort (a: b: a < b) (lib.attrNames c.home-manager.users);
         greeterCmd =
           if c.services.greetd.enable then c.services.greetd.settings.default_session.command else "";
-        # Regression guard, not a preference: enabling this gives systemd
-        # TTYReset/TTYVHangup/TTYVTDisallocate on /dev/tty1, which greetd already
-        # owns via `[terminal] vt = 1`. The result is a greeter that draws its
-        # clock and nothing else. See the comment in login/greetd.nix.
+        # Pinned because it was not in the original config and was added by
+        # accident during the DE/DM split, not because it is proven harmful --
+        # a VM test with and without it renders identically. It hands systemd
+        # TTYReset/TTYVHangup/TTYVTDisallocate on /dev/tty1, which greetd
+        # already owns via `[terminal] vt = 1`, so it stays off until something
+        # demonstrates it is needed. See the comment in login/greetd.nix.
         useTextGreeter = c.services.greetd.useTextGreeter;
       };
 
@@ -200,20 +202,67 @@
           };
         }
         {
-          name = "profile-wife: gnome on gdm with autologin";
+          # A family-only machine. The greeter and autologin are supplied here
+          # rather than by the profile, which is how a real host does it: those
+          # are single-valued, so a profile that named them could not be
+          # combined with another role.
+          name = "profile-family alone: gnome on gdm with autologin";
           modules = [
             self.modules.nixos.bundle-host
-            self.modules.nixos.profile-wife
+            self.modules.nixos.profile-family
+            {
+              den.desktop.loginManager = "gdm";
+              services.displayManager.defaultSession = "gnome";
+              services.displayManager.autoLogin = {
+                enable = true;
+                user = "shari";
+              };
+            }
           ];
           expect = {
-            sessions = [ "gnome" ];
+            sessions = [
+              "gnome"
+              "sway"
+            ];
             greetd = false;
             gdm = true;
-            sway = false;
             gnome = true;
             autoLoginUser = "shari";
-            hmUsers = [ "shari" ];
+            hmUsers = [
+              "bbtux"
+              "shari"
+            ];
           };
+        }
+        {
+          # katara's shape: two roles on one machine, one greeter. Proves the
+          # additive settings merge instead of colliding.
+          name = "profile-family + profile-workstation on one host";
+          modules = [
+            self.modules.nixos.bundle-host
+            self.modules.nixos.profile-family
+            self.modules.nixos.profile-workstation
+            {
+              den.desktop.loginManager = "greetd";
+              services.displayManager.defaultSession = "sway";
+            }
+          ];
+          expect = {
+            sessions = [
+              "gnome"
+              "sway"
+            ];
+            greetd = true;
+            gdm = false;
+            sway = true;
+            gnome = true;
+            useTextGreeter = false;
+            hmUsers = [
+              "bbtux"
+              "shari"
+            ];
+          };
+          cmdContains = "--cmd sway";
         }
       ];
 

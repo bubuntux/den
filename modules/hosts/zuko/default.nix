@@ -25,5 +25,11 @@
 
     networking.hostName = "zuko";
     system.stateVersion = "25.11";
+
+    # Whole-machine desktop policy. Which environments are installed comes from
+    # the profiles; which greeter presents them, and what it preselects, is the
+    # host's call.
+    den.desktop.loginManager = "greetd";
+    services.displayManager.defaultSession = "sway";
   };
 }

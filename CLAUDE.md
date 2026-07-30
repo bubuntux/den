@@ -64,7 +64,7 @@ Note the direction of two edges that are easy to get backwards: **users are impo
 
 - **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, `options.nix` for `den.desktop`, `session/` for the desktop environments, `login/` for the display managers, `wayland/` for compositor-specific pieces: foot, kanshi, waybar), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
-- **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `wife`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
+- **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
 - **`modules/users/`**: User account definitions that bridge NixOS and Home Manager; imported by hosts or profiles
 - **`modules/hardware/`**: Device and hardware configurations (audio, bluetooth, printing, dell-precision-5680)
@@ -127,7 +127,7 @@ Writing `media-plumbing` also caught a bug in the check rather than the code —
 | | **Role** | **Capability** |
 |---|---|---|
 | Describes | a whole machine | one aspect of a machine |
-| Examples | `nas`, `workstation`, `wife` | `laptop`, `developer`, `gaming`, `work` |
+| Examples | `nas`, `workstation`, `family` | `laptop`, `developer`, `gaming`, `work` |
 | Brings its own bundle | yes (`bundle-host` / `bundle-desktop`) | no |
 | Brings its own users | yes | no |
 | Composes | capabilities, and features | features |
@@ -139,11 +139,15 @@ This is a description, not a restriction. **A host may import as many profiles a
 That is the only reason `profile-workstation` exists: katara and zuko were repeating an identical nine-module list. A one-off combination needs no role — just import the capabilities.
 
 ```nix
-# hosts/appa/default.nix          # hosts/zuko/default.nix
-imports = [ profile-nas           imports = [ profile-workstation
-            <nixos-hardware …> ];             dell-precision-5680
-                                              droidcam cachix-push ];
+# hosts/appa/default.nix          # hosts/katara/default.nix
+imports = [ profile-nas           imports = [ profile-family
+            <nixos-hardware …> ];             profile-workstation
+                                              <nixos-hardware …> ];
 ```
+
+katara imports two roles at once, which works because everything a role
+contributes to the desktop is additive — see **Desktop Environments and Login
+Managers** for which settings a profile may set and which belong to the host.
 
 What a host should *not* accumulate is config that belongs to a role: bundles, users, or a whole stack of features. (`appa` used to import `bundle-host` and `user-bbtux` directly; both moved into `profile-nas`, where `profile-workstation` already kept them.) A single feature that only makes sense on one machine is fine — zuko imports `droidcam` and `cachix-push` because no other host wants them.
 
@@ -237,14 +241,34 @@ Import-tree already gives file-granular opt-in, so a module's *existence* is the
 
 `den.desktop` (declared in `features/desktop/options.nix`) keeps the two choices independent. Each session module only registers a session via `services.displayManager.sessionPackages`; each login manager only reads that list. So a session never implies a greeter, and swapping greeters never touches the sessions.
 
+Which of the settings a **profile** may set and which belong to the **host** follows from whether the option merges:
+
+| setting | mergeable? | set by |
+|---|---|---|
+| `den.desktop.environments` | yes, lists concatenate (`apply = lib.unique`) | profiles |
+| `den.desktop.users` | yes, attrsets merge | profiles |
+| `den.desktop.loginManager` | no, single value | host |
+| `services.displayManager.defaultSession` | no, single value | host |
+| `services.displayManager.autoLogin.*` | no, single value | host |
+
+A profile that named its own greeter could not be combined with another role — the module system would report conflicting definitions. So roles contribute what they install and the host decides how it is presented:
+
 ```nix
-den.desktop = {
-  environments = [ "sway" "gnome" ];   # installs both; pick at the greeter
-  loginManager = "greetd";             # greetd | gdm | lightdm | none
-  users.bbtux = "sway";                # whose Home Manager config each user gets
+# profiles/family.nix              # profiles/workstation.nix
+den.desktop = {                    den.desktop = {
+  environments = [ "gnome" "sway" ]; environments = [ "sway" ];
+  users = {                          users.bbtux = "sway";
+    shari = "gnome";               };
+    bbtux = "sway";
+  };
 };
+
+# hosts/katara/default.nix -- imports both roles, then picks one greeter
+den.desktop.loginManager = "greetd";
 services.displayManager.defaultSession = "sway";
 ```
+
+katara is the worked example: two roles, both environments installed, and greetd remembering per user so shari lands in GNOME and bbtux in Sway.
 
 - **To add an environment**: create `features/desktop/session/<name>.nix` gated on `lib.elem "<name>" config.den.desktop.environments`, add the name to the `environments` and `users` enums, and import it from `bundle-desktop`. Publish `den.desktop.sessionCommands.<name>` if the session can be launched by a bare command — greetd needs it for its fallback and autologin paths, since greetd ignores `services.displayManager.defaultSession` upstream. GNOME deliberately publishes none.
 - **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.

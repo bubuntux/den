@@ -16,7 +16,11 @@
   # own `key`.
   flake.modules.nixos.katara = {
     key = "den:nixos.katara#host";
+    # Two roles: the family desktop it is for, and the workstation stack it also
+    # carries. Their additive desktop settings merge, so the machine installs
+    # both GNOME and Sway and every user gets the environment named for them.
     imports = with self.modules.nixos; [
+      profile-family
       profile-workstation
       inputs.nixos-hardware.nixosModules.common-cpu-amd
       inputs.nixos-hardware.nixosModules.common-gpu-amd
@@ -24,5 +28,11 @@
 
     networking.hostName = "katara";
     system.stateVersion = "25.11";
+
+    # Whole-machine desktop policy: one greeter for two roles. greetd lists
+    # every installed session and remembers the choice per user, so shari lands
+    # in GNOME and bbtux in Sway without autologin picking for them.
+    den.desktop.loginManager = "greetd";
+    services.displayManager.defaultSession = "sway";
   };
 }
