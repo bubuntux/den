@@ -1,5 +1,7 @@
 { self, ... }:
 {
+  # Container-safe foundation: no bootloader, no networking, no secrets. The
+  # machine-only additions live in bundles/host.nix as bundle-host.
   flake.modules = {
     nixos.bundle-base = {
       key = "den:nixos.bundle-base";
@@ -12,22 +14,6 @@
 
       home-manager.sharedModules = with self.modules.homeManager; [
         bundle-base
-      ];
-    };
-
-    nixos.bundle-host = {
-      key = "den:nixos.bundle-host";
-      imports = with self.modules.nixos; [
-        bundle-base
-        auto-upgrade
-        boot
-        hardware-diagnostics
-        networking
-        sops
-        sudors
-        ntpdrs
-        dirty-frag-mitigation
-        zsh
       ];
     };
 
