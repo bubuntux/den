@@ -10,7 +10,7 @@
       bundle-base
       auto-upgrade
       boot
-      hardware-diagnostics
+      diagnostics
       networking
       sops
       sudo-rs

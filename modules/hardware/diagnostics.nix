@@ -1,10 +1,10 @@
 _: {
   # Tools for inspecting what the kernel actually enumerated, needed whenever a
   # device is missing rather than misconfigured (docks, GPUs, USB peripherals).
-  flake.modules.nixos.hardware-diagnostics =
+  flake.modules.nixos.diagnostics =
     { pkgs, ... }:
     {
-      key = "den:nixos.hardware-diagnostics";
+      key = "den:nixos.diagnostics";
       environment.systemPackages = with pkgs; [
         # Bus enumeration
         pciutils # lspci
