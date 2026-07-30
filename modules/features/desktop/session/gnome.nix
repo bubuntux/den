@@ -51,9 +51,25 @@
     # GNOME keeps nearly all user state in GSettings/dconf rather than dotfiles,
     # so this is thin. It exists so den.desktop.users can name "gnome" the way
     # it names "sway", and so GNOME-specific user config has an obvious home.
-    homeManager.gnome = {
-      key = "den:homeManager.gnome";
-      dconf.enable = true;
-    };
+    homeManager.gnome =
+      { lib, ... }:
+      {
+        key = "den:homeManager.gnome";
+        dconf = {
+          enable = true;
+
+          # Night Light is GNOME's blue-light filter, and it ships disabled. It
+          # takes the temperature Sway's gammastep uses
+          # (features/desktop/night-light.nix) so a machine running both looks
+          # the same after dark. Leave the schedule alone: it defaults to
+          # automatic, which per GNOME's schema calculates sunrise and sunset
+          # "from the current location" -- the same location services gammastep
+          # reads, so both desktops turn warm at the same time.
+          settings."org/gnome/settings-daemon/plugins/color" = {
+            night-light-enabled = true;
+            night-light-temperature = lib.hm.gvariant.mkUint32 self.lib.nightLightKelvin;
+          };
+        };
+      };
   };
 }

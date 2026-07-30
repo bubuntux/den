@@ -136,13 +136,15 @@ in
         # Waybar (started via systemd service)
         programs.waybar.enable = true;
 
-        # Gammastep for screen color temperature (night light)
+        # Gammastep for screen color temperature (night light). Daytime stays at
+        # gammastep's neutral 6500K; the night value is shared with GNOME's
+        # Night Light (features/desktop/night-light.nix).
         services.gammastep = {
           enable = true;
           provider = "geoclue2";
           temperature = {
             day = 6500;
-            night = 4000;
+            night = self.lib.nightLightKelvin;
           };
         };
 
