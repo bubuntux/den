@@ -31,11 +31,14 @@
 
     # Whole-machine desktop policy: one greeter for two roles. GDM rather than
     # greetd because this machine is shared -- it presents a graphical user list
-    # and session picker instead of a keyboard-only TUI, and being GNOME's own
-    # greeter it remembers each user's last session through accountsservice, so
-    # shari lands in GNOME and bbtux in Sway. Keyring auto-unlock still works:
-    # GDM derives its PAM config from security.pam.services.login
-    # .enableGnomeKeyring, which the sway session module sets.
+    # and session picker instead of a keyboard-only TUI, and it remembers each
+    # user's last session afterwards. That memory is accountsservice state in
+    # /var/lib/AccountsService/users/<name>, not configuration: every user's
+    # *first* login uses defaultSession below, so bbtux -- whose
+    # den.desktop.users entry is sway -- starts in GNOME until he picks Sway
+    # once from the session menu. Keyring auto-unlock still works: GDM derives
+    # its PAM config from security.pam.services.login.enableGnomeKeyring, which
+    # the sway session module sets.
     den.desktop.loginManager = "gdm";
     services.displayManager.defaultSession = "gnome";
   };
