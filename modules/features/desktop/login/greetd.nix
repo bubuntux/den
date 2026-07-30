@@ -30,8 +30,14 @@
       config = lib.mkIf (cfg.loginManager == "greetd") {
         services.greetd = {
           enable = true;
-          # tuigreet is a TUI: without this, systemd boot messages scribble over it.
-          useTextGreeter = true;
+
+          # Deliberately NOT setting useTextGreeter. It looks right for a TUI
+          # greeter -- it keeps systemd boot messages off the screen -- but it
+          # also hands systemd TTYPath=/dev/tty1 with TTYReset, TTYVHangup and
+          # TTYVTDisallocate, and greetd already owns that VT via
+          # `[terminal] vt = 1`. Both managing the same VT leaves tuigreet
+          # drawing its clock header onto a console whose geometry has been
+          # reset underneath it: a black screen with the time and nothing else.
 
           # --sessions/--xsessions point at every session registered by the
           # enabled environments, so adding a DE to den.desktop.environments is

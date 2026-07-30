@@ -71,6 +71,11 @@
         hmUsers = lib.sort (a: b: a < b) (lib.attrNames c.home-manager.users);
         greeterCmd =
           if c.services.greetd.enable then c.services.greetd.settings.default_session.command else "";
+        # Regression guard, not a preference: enabling this gives systemd
+        # TTYReset/TTYVHangup/TTYVTDisallocate on /dev/tty1, which greetd already
+        # owns via `[terminal] vt = 1`. The result is a greeter that draws its
+        # clock and nothing else. See the comment in login/greetd.nix.
+        useTextGreeter = c.services.greetd.useTextGreeter;
       };
 
       cases = [
@@ -96,6 +101,7 @@
             sway = true;
             gnome = false;
             hmUsers = [ "bbtux" ];
+            useTextGreeter = false;
           };
           # Preserves the pre-split behaviour: greetd ignores defaultSession
           # upstream, so den.desktop.sessionCommands has to supply --cmd.
@@ -134,6 +140,7 @@
               "bbtux"
               "shari"
             ];
+            useTextGreeter = false;
           };
           # Per-user session memory is what lets two users land in different
           # desktops from the same greeter.
