@@ -53,6 +53,7 @@
       missingSkills = lib.subtractLists (lib.attrNames skills) enabledSkills;
     in
     {
+      key = "den:homeManager.gws";
       home.packages = [
         inputs.gws.packages.${pkgs.stdenv.hostPlatform.system}.default
         pkgs.google-cloud-sdk

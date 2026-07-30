@@ -212,6 +212,7 @@ in
         ...
       }:
       {
+        key = "den:nixos.firefox";
         programs.firefox = {
           enable = true;
           package = pkgs.firefox;
@@ -365,7 +366,8 @@ in
         home-manager.sharedModules = [ self.modules.homeManager.firefox ];
       };
 
-    homeManager.firefox = _: {
+    homeManager.firefox = {
+      key = "den:homeManager.firefox";
       xdg.mimeApps.defaultApplications = {
         "text/html" = "firefox.desktop";
         "x-scheme-handler/http" = "firefox.desktop";

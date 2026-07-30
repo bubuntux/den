@@ -7,6 +7,7 @@
       ...
     }:
     {
+      key = "den:nixos.crowdsec-bouncers";
       # Firewall bouncer: drops banned IPs at the nftables layer. Protocol-
       # agnostic — catches port scans, SSH brute force, and anything else
       # that never touches Caddy. registerBouncer.enable wires it up to the

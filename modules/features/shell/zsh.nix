@@ -5,6 +5,7 @@
     homeManager.zsh =
       { config, lib, ... }:
       {
+        key = "den:homeManager.zsh";
         programs.zsh = {
           enable = true;
           # Adopt the upcoming XDG default (dotfiles in ~/.config/zsh) instead of
@@ -68,6 +69,7 @@
     nixos.zsh =
       { pkgs, ... }:
       {
+        key = "den:nixos.zsh";
         programs.zsh = {
           enable = true;
           # Home Manager runs compinit in each user's .zshrc, after the per-user
@@ -79,16 +81,7 @@
         };
         users.defaultUserShell = pkgs.zsh;
 
-        # Wrap in an attrset with an explicit key so Home Manager deduplicates
-        # this sharedModule when bundle-host is reached through multiple NixOS
-        # import paths (e.g. profile-laptop and bundle-desktop). Without it the
-        # module applies twice, doubling additive options like initContent.
-        home-manager.sharedModules = [
-          {
-            key = "homeModules.zsh";
-            imports = [ self.modules.homeManager.zsh ];
-          }
-        ];
+        home-manager.sharedModules = [ self.modules.homeManager.zsh ];
       };
   };
 }

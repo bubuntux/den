@@ -5,6 +5,7 @@
       port = 7878;
     in
     {
+      key = "den:nixos.radarr";
       services.radarr = {
         enable = true;
         openFirewall = true;

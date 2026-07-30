@@ -7,6 +7,7 @@
       port = 32400;
     in
     {
+      key = "den:nixos.plex";
       services.plex = {
         enable = true;
         openFirewall = true;

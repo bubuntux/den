@@ -28,6 +28,7 @@ in
         '';
       in
       {
+        key = "den:homeManager.power-profile-auto";
         # Stop swayidle on login when on AC.
         #
         # Ordered against graphical-session.target explicitly, like every other
@@ -79,6 +80,7 @@ in
         '';
       in
       {
+        key = "den:nixos.power-profile-auto";
         home-manager.sharedModules = [ self.modules.homeManager.power-profile-auto ];
 
         # Run at boot to set the initial profile and on every AC state change

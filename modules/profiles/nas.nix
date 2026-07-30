@@ -3,6 +3,7 @@
   flake.modules.nixos.profile-nas =
     { lib, ... }:
     {
+      key = "den:nixos.profile-nas";
       imports = with self.modules.nixos; [
         bazarr
         cloudflare-ddns

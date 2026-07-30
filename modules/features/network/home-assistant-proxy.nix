@@ -17,6 +17,7 @@
     # Without this, HA rejects the X-Forwarded-* headers and the UI shows
     # every client as the caddy host's IP.
     {
+      key = "den:nixos.home-assistant-proxy";
       services.reverse-proxy.routes.home-assistant = {
         port = 8123;
         upstreamAddr = "192.168.5.2";

@@ -8,6 +8,7 @@
     homeManager.theme =
       { pkgs, ... }:
       {
+        key = "den:homeManager.theme";
         # GTK theme
         gtk = {
           enable = true;
@@ -61,6 +62,7 @@
     nixos.theme =
       { ... }:
       {
+        key = "den:nixos.theme";
         home-manager.sharedModules = [ self.modules.homeManager.theme ];
       };
   };

@@ -5,6 +5,7 @@
       dockerEnabled = config.virtualisation.docker.enable;
     in
     {
+      key = "den:nixos.podman";
       virtualisation.podman = {
         enable = true;
         autoPrune.enable = true;

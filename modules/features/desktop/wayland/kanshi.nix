@@ -105,6 +105,7 @@ in
         profiles = concatLists (mapAttrsToList profileToKanshi config.monitorProfiles);
       in
       {
+        key = "den:homeManager.kanshi";
         # Note: monitors module must be imported by the parent NixOS module
         services.kanshi = {
           enable = true;
@@ -116,6 +117,7 @@ in
     nixos.kanshi =
       { ... }:
       {
+        key = "den:nixos.kanshi";
         home-manager.sharedModules = [ self.modules.homeManager.kanshi ];
       };
   };

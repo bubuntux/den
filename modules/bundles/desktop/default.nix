@@ -72,6 +72,7 @@ in
     homeManager.bundle-desktop =
       { pkgs, ... }:
       {
+        key = "den:homeManager.bundle-desktop";
         imports = with self.modules.homeManager; [
           mpv
           templates
@@ -98,7 +99,8 @@ in
       };
 
     # NixOS module for desktop environments
-    nixos.bundle-desktop = _: {
+    nixos.bundle-desktop = {
+      key = "den:nixos.bundle-desktop";
       imports = with self.modules.nixos; [
         bundle-host
         theme

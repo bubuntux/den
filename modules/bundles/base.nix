@@ -1,7 +1,8 @@
 { self, ... }:
 {
   flake.modules = {
-    nixos.bundle-base = _: {
+    nixos.bundle-base = {
+      key = "den:nixos.bundle-base";
       imports = with self.modules.nixos; [
         fonts
         home-manager
@@ -14,7 +15,8 @@
       ];
     };
 
-    nixos.bundle-host = _: {
+    nixos.bundle-host = {
+      key = "den:nixos.bundle-host";
       imports = with self.modules.nixos; [
         bundle-base
         auto-upgrade
@@ -32,6 +34,7 @@
     homeManager.bundle-base =
       { pkgs, ... }:
       {
+        key = "den:homeManager.bundle-base";
         imports = with self.modules.homeManager; [
           home-manager
           fonts

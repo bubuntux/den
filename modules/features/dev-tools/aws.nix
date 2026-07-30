@@ -59,6 +59,7 @@
       missingSkills = lib.subtractLists (lib.attrNames skills) enabledSkills;
     in
     {
+      key = "den:homeManager.aws";
       home.packages = [ pkgs.awscli2 ];
 
       # An upstream rename would otherwise silently drop the skill.

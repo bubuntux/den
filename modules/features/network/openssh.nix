@@ -3,6 +3,7 @@
   flake.modules.nixos.openssh =
     { lib, ... }:
     {
+      key = "den:nixos.openssh";
       services.openssh = {
         enable = true;
         openFirewall = false;

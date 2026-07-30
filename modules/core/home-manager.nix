@@ -12,23 +12,18 @@
     nixos.home-manager =
       { ... }:
       {
+        key = "den:nixos.home-manager";
         imports = [ inputs.home-manager.nixosModules.home-manager ];
         home-manager = {
           useGlobalPkgs = true;
           useUserPackages = true;
           backupFileExtension = "bkp";
-          sharedModules = [
-            # Wrap in attrsets with explicit keys for deduplication when
-            # this module is reached through multiple NixOS import paths
-            {
-              key = "homeModules.home-manager";
-              imports = [ self.modules.homeManager.home-manager ];
-            }
-          ];
+          sharedModules = [ self.modules.homeManager.home-manager ];
         };
       };
 
-    homeManager.home-manager = _: {
+    homeManager.home-manager = {
+      key = "den:homeManager.home-manager";
       home.stateVersion = "25.11";
       programs.home-manager.enable = true;
       services.home-manager.autoExpire = {

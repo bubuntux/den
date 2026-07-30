@@ -5,6 +5,7 @@
     homeManager.claude-code =
       { pkgs, ... }:
       {
+        key = "den:homeManager.claude-code";
         programs.claude-code = {
           enable = true;
 
@@ -61,6 +62,7 @@
     nixos.claude-code =
       { pkgs, ... }:
       {
+        key = "den:nixos.claude-code";
         environment.systemPackages = [ pkgs.claude-code ];
 
         # Add home-manager claude-code module to shared modules

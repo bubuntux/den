@@ -5,7 +5,8 @@
 {
   # Home Manager module for user bbtux
   flake.modules = {
-    homeManager.user-bbtux = _: {
+    homeManager.user-bbtux = {
+      key = "den:homeManager.user-bbtux";
       # Git user configuration
       programs.git.settings.user = {
         name = "Julio Gutierrez";
@@ -34,6 +35,7 @@
         ifGroupExist = groups: builtins.filter (group: builtins.hasAttr group config.users.groups) groups;
       in
       {
+        key = "den:nixos.user-bbtux";
         users.users.bbtux = {
           isNormalUser = true;
           # Pinned so it is known at build time: the work container derives its

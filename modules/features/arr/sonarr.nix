@@ -5,6 +5,7 @@
       port = 8989;
     in
     {
+      key = "den:nixos.sonarr";
       services.sonarr = {
         enable = true;
         openFirewall = true;

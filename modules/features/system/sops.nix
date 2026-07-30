@@ -8,6 +8,7 @@
     nixos.sops =
       { lib, ... }:
       {
+        key = "den:nixos.sops";
         imports = [ inputs.sops-nix.nixosModules.sops ];
         sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
         home-manager.sharedModules = [ self.modules.homeManager.sops ];
@@ -38,7 +39,8 @@
         };
       };
 
-    homeManager.sops = _: {
+    homeManager.sops = {
+      key = "den:homeManager.sops";
       imports = [ inputs.sops-nix.homeManagerModules.sops ];
     };
 

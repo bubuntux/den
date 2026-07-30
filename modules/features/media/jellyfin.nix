@@ -8,6 +8,7 @@
       httpsPort = 8920;
     in
     {
+      key = "den:nixos.jellyfin";
       services.jellyfin = {
         enable = true;
         openFirewall = true;

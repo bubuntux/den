@@ -2,6 +2,7 @@
   flake.modules.homeManager.git =
     { pkgs, ... }:
     {
+      key = "den:homeManager.git";
       home.packages = [ pkgs.lazygit ];
 
       programs = {

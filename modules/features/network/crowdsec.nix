@@ -15,6 +15,7 @@
           config.services.crowdsec.settings.console.configuration;
     in
     {
+      key = "den:nixos.crowdsec";
       imports = [ self.modules.nixos.sops ];
 
       # Console enrollment key (optional). Add to secrets/appa.yaml:

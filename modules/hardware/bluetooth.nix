@@ -2,6 +2,7 @@ _: {
   flake.modules.nixos.bluetooth =
     { lib, pkgs, ... }:
     {
+      key = "den:nixos.bluetooth";
       services.blueman.enable = true;
       hardware.bluetooth = {
         enable = lib.mkDefault true;

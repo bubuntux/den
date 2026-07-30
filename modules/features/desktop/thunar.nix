@@ -10,6 +10,7 @@ in
     nixos.thunar =
       { pkgs, ... }:
       {
+        key = "den:nixos.thunar";
         services.gvfs.enable = true; # Mount, trash, and other functionalities
         services.tumbler.enable = true; # Thumbnail support for images
         programs.thunar = {
@@ -24,7 +25,8 @@ in
         home-manager.sharedModules = [ self.modules.homeManager.thunar ];
       };
 
-    homeManager.thunar = _: {
+    homeManager.thunar = {
+      key = "den:homeManager.thunar";
       xdg.mimeApps.defaultApplications = mimeDefaults;
     };
   };

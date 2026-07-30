@@ -20,7 +20,8 @@
     ];
   };
 
-  flake.modules.nixos.networking = _: {
+  flake.modules.nixos.networking = {
+    key = "den:nixos.networking";
     networking = {
       # hostName = "${host}"; TODO
       nftables.enable = true;

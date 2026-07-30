@@ -101,6 +101,7 @@
       };
     in
     {
+      key = "den:homeManager.dictation";
       home.packages = [ dictate ];
 
       # Toggle: press to start recording, press again to transcribe + type.

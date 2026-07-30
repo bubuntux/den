@@ -36,12 +36,14 @@ in
     nixos.loupe =
       { pkgs, ... }:
       {
+        key = "den:nixos.loupe";
         environment.systemPackages = [ pkgs.loupe ];
         xdg.mime.defaultApplications = mimeDefaults;
         home-manager.sharedModules = [ self.modules.homeManager.loupe ];
       };
 
-    homeManager.loupe = _: {
+    homeManager.loupe = {
+      key = "den:homeManager.loupe";
       xdg.mimeApps.defaultApplications = mimeDefaults;
     };
   };

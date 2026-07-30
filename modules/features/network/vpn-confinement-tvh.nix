@@ -3,6 +3,7 @@
   flake.modules.nixos.vpn-confinement-tvh =
     { config, ... }:
     {
+      key = "den:nixos.vpn-confinement-tvh";
       imports = [
         self.modules.nixos.sops
         inputs.vpn-confinement.nixosModules.default

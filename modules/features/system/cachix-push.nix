@@ -3,6 +3,7 @@
   flake.modules.nixos.cachix-push =
     { config, pkgs, ... }:
     {
+      key = "den:nixos.cachix-push";
       imports = [ self.modules.nixos.sops ];
 
       sops.secrets.cachix_auth_token = {

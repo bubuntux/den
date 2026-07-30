@@ -36,6 +36,7 @@ in
   flake.modules.homeManager.mpv =
     { pkgs, ... }:
     {
+      key = "den:homeManager.mpv";
       xdg.mimeApps.defaultApplications = mimeDefaults;
 
       programs.mpv = {

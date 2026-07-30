@@ -5,6 +5,7 @@
       port = 6767;
     in
     {
+      key = "den:nixos.bazarr";
       services.bazarr = {
         enable = true;
         openFirewall = true;

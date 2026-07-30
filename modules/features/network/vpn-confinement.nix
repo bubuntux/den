@@ -5,6 +5,7 @@
   flake.modules.nixos.vpn-confinement =
     { config, ... }:
     {
+      key = "den:nixos.vpn-confinement";
       imports = [
         self.modules.nixos.sops
         inputs.vpn-confinement.nixosModules.default

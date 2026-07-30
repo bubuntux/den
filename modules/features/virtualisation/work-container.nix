@@ -32,6 +32,7 @@
         zoom-work-open = mkUriOpener "zoom-work-open" "zoom-web-open";
       in
       {
+        key = "den:homeManager.work-container";
         home = {
           shellAliases = {
             work = "sudo systemctl start container@work.service && machinectl -q shell juliogm@work";
@@ -140,6 +141,7 @@
         hostSessionDir = "/mnt/host-session";
       in
       {
+        key = "den:nixos.work-container";
         # Polkit rules for container management
         security.polkit.extraConfig = ''
           polkit.addRule(function(action, subject) {

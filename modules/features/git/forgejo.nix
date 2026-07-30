@@ -7,6 +7,7 @@
       sshPort = 2222;
     in
     {
+      key = "den:nixos.forgejo";
       # Forgejo's log format is gitea-compatible. labels.type = "gitea"
       # routes journald entries to LePresidente/gitea-logs (which filters
       # by program == 'gitea').

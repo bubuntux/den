@@ -3,6 +3,7 @@
   flake.modules.nixos.cloudflare-ddns =
     { config, lib, ... }:
     {
+      key = "den:nixos.cloudflare-ddns";
       imports = [ self.modules.nixos.sops ];
 
       sops.secrets.cloudflare_ddns = {

@@ -2,6 +2,7 @@
   flake.modules.homeManager.jujutsu =
     { pkgs, ... }:
     {
+      key = "den:homeManager.jujutsu";
       home.packages = [ pkgs.jj-starship ];
 
       programs.jujutsu = {

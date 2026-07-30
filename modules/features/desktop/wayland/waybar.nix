@@ -374,6 +374,7 @@
 
       in
       {
+        key = "den:homeManager.waybar";
         programs.waybar = {
           enable = true;
           systemd.enable = true;
@@ -916,6 +917,7 @@
     nixos.waybar =
       { ... }:
       {
+        key = "den:nixos.waybar";
         home-manager.sharedModules = [ self.modules.homeManager.waybar ];
       };
   };

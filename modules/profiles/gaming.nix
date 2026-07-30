@@ -18,6 +18,7 @@
       };
     in
     {
+      key = "den:nixos.profile-gaming";
       # Steam with recommended options
       programs.steam = {
         enable = true;

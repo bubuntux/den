@@ -82,6 +82,7 @@
       routes = lib.concatStrings (lib.mapAttrsToList mkRoute cfg.routes);
     in
     {
+      key = "den:nixos.reverse-proxy";
       imports = [ self.modules.nixos.sops ];
 
       options.services.reverse-proxy = {

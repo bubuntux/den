@@ -16,6 +16,7 @@
       nvidiaPackage = config.hardware.nvidia.package;
     in
     {
+      key = "den:nixos.dell-precision-5680";
       imports = [
         inputs.nixos-hardware.nixosModules.common-hidpi
         inputs.nixos-hardware.nixosModules.common-pc-ssd

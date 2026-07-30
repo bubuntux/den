@@ -1,5 +1,6 @@
 {
-  flake.modules.homeManager.difftastic = _: {
+  flake.modules.homeManager.difftastic = {
+    key = "den:homeManager.difftastic";
     programs.difftastic = {
       enable = true;
 

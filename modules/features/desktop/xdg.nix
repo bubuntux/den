@@ -1,5 +1,6 @@
 {
-  flake.modules.homeManager.xdg = _: {
+  flake.modules.homeManager.xdg = {
+    key = "den:homeManager.xdg";
     # GTK/glib apps and `xdg-mime` rewrite mimeapps.list in place, replacing
     # Home Manager's symlink with a regular file. HM then backs that file up on
     # the next switch and aborts as soon as a `.bkp` from an earlier switch is

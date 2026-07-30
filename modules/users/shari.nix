@@ -5,12 +5,14 @@
     homeManager.user-shari =
       { pkgs, ... }:
       {
+        key = "den:homeManager.user-shari";
         home.packages = [ pkgs.google-chrome ];
       };
 
     nixos.user-shari =
       { config, ... }:
       {
+        key = "den:nixos.user-shari";
         sops.secrets.shari_password_hash = {
           sopsFile = "${self}/secrets/shari.yaml";
           neededForUsers = true;

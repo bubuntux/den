@@ -41,6 +41,7 @@ in
         );
       in
       {
+        key = "den:homeManager.sway";
         # Note: monitors module must be imported by the parent NixOS module
         imports = with self.modules.homeManager; [
           foot
@@ -272,6 +273,7 @@ in
         };
       in
       {
+        key = "den:nixos.sway";
         imports = with self.modules.nixos; [
           bundle-desktop
           power-profile-auto

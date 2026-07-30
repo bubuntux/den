@@ -3,6 +3,7 @@
   flake.modules.nixos.wifi-work =
     { config, ... }:
     {
+      key = "den:nixos.wifi-work";
       imports = [ self.modules.nixos.sops ];
 
       sops.secrets.wifi_work_ssid = {

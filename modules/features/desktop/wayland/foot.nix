@@ -1,5 +1,6 @@
 {
-  flake.modules.homeManager.foot = _: {
+  flake.modules.homeManager.foot = {
+    key = "den:homeManager.foot";
     programs.foot = {
       enable = true;
       settings = {

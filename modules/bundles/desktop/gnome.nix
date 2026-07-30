@@ -3,6 +3,7 @@
   flake.modules.nixos.gnome =
     { pkgs, ... }:
     {
+      key = "den:nixos.gnome";
       imports = with self.modules.nixos; [
         bundle-desktop
       ];

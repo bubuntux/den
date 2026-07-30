@@ -1,5 +1,6 @@
 {
-  flake.modules.nixos.boot = _: {
+  flake.modules.nixos.boot = {
+    key = "den:nixos.boot";
     boot = {
       loader = {
         timeout = 3;

@@ -120,6 +120,7 @@
       '';
     in
     {
+      key = "den:nixos.tvheadend";
       imports = [ self.modules.nixos.vpn-confinement-tvh ];
 
       users.users.tvheadend = {

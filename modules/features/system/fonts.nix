@@ -3,6 +3,7 @@
     nixos.fonts =
       { pkgs, ... }:
       {
+        key = "den:nixos.fonts";
         fonts = {
           fontDir.enable = true;
           # TODO bundle so it gets reused for home?
@@ -36,6 +37,7 @@
     homeManager.fonts =
       { pkgs, ... }:
       {
+        key = "den:homeManager.fonts";
         fonts.fontconfig.enable = true;
 
         home.packages = with pkgs; [

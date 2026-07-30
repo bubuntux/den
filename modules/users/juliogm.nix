@@ -21,6 +21,7 @@
         );
       in
       {
+        key = "den:homeManager.user-juliogm";
         imports = with self.modules.homeManager; [
           profile-developer
           aws
@@ -119,7 +120,8 @@
       };
 
     # NixOS module for user juliogm (used inside the work container)
-    nixos.user-juliogm = _: {
+    nixos.user-juliogm = {
+      key = "den:nixos.user-juliogm";
       # zsh as juliogm's login shell inside the container. Reuses the zsh feature
       # (single cached compinit, enableGlobalCompInit off, defaultUserShell = zsh)
       # and wires homeModules.zsh into the container via its sharedModules.

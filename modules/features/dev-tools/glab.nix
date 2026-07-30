@@ -11,6 +11,7 @@
   flake.modules.homeManager.glab =
     { pkgs, lib, ... }:
     {
+      key = "den:homeManager.glab";
       home.packages = [ pkgs.glab ];
 
       # glab ships agent skills in-repo (glab, glab-stack). Map each into

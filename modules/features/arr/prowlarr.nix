@@ -6,6 +6,7 @@
       port = 9696;
     in
     {
+      key = "den:nixos.prowlarr";
       imports = [ self.modules.nixos.vpn-confinement ];
 
       services.prowlarr = {

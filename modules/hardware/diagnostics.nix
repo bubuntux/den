@@ -4,6 +4,7 @@ _: {
   flake.modules.nixos.hardware-diagnostics =
     { pkgs, ... }:
     {
+      key = "den:nixos.hardware-diagnostics";
       environment.systemPackages = with pkgs; [
         # Bus enumeration
         pciutils # lspci

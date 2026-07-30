@@ -2,6 +2,7 @@
   flake.modules.nixos.locale =
     { lib, ... }:
     {
+      key = "den:nixos.locale";
       time.timeZone = lib.mkDefault null;
       services.automatic-timezoned.enable = true;
       services.geoclue2.enable = true;

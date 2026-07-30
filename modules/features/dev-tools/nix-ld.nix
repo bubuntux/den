@@ -1,5 +1,6 @@
 {
-  flake.modules.nixos.nix-ld = _: {
+  flake.modules.nixos.nix-ld = {
+    key = "den:nixos.nix-ld";
     programs.nix-ld.enable = true;
   };
 }

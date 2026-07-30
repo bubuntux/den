@@ -2,6 +2,7 @@
   flake.modules.nixos.audio =
     { lib, ... }:
     {
+      key = "den:nixos.audio";
       security.rtkit.enable = true;
       services = {
         pipewire = {

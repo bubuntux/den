@@ -2,6 +2,7 @@
   flake.modules.homeManager.tidal-hifi =
     { pkgs, ... }:
     {
+      key = "den:homeManager.tidal-hifi";
       home.packages = [
         # Tidal appends `--no-sandbox` itself when its `disableSandbox` setting is
         # on, but it does so from JS via app.commandLine.appendSwitch, which runs

@@ -3,6 +3,7 @@
   flake.modules.nixos.wifi-home =
     { config, ... }:
     {
+      key = "den:nixos.wifi-home";
       imports = [ self.modules.nixos.sops ];
 
       sops.secrets.wifi_home_ssid = {

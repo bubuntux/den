@@ -5,6 +5,7 @@
   flake.modules.nixos.profile-laptop =
     { pkgs, ... }:
     {
+      key = "den:nixos.profile-laptop";
       imports = [
         self.modules.nixos.audio
         self.modules.nixos.bluetooth

@@ -6,7 +6,8 @@ _: {
   # the IP/port the DroidCam phone app shows) or USB. The virtual camera is a normal
   # V4L2 node, so unlike the built-in IPU6 cam it is not zoomed and can be bound into
   # containers. v4l2loopback loads at boot, so a reboot is needed after first enabling.
-  flake.modules.nixos.droidcam = _: {
+  flake.modules.nixos.droidcam = {
+    key = "den:nixos.droidcam";
     programs.droidcam.enable = true;
 
     # Without exclusive_caps the loopback advertises both output and capture, and

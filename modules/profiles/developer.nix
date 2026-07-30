@@ -5,6 +5,7 @@
     homeManager.profile-developer =
       { pkgs, ... }:
       {
+        key = "den:homeManager.profile-developer";
         imports = with self.modules.homeManager; [
           bundle-base
           claude-code
@@ -27,7 +28,8 @@
       };
 
     # NixOS module for developer profile
-    nixos.profile-developer = _: {
+    nixos.profile-developer = {
+      key = "den:nixos.profile-developer";
       imports = with self.modules.nixos; [ nix-ld ];
 
       # Add home-manager profile-developer module to shared modules

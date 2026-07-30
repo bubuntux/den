@@ -62,6 +62,7 @@
       };
     in
     {
+      key = "den:nixos.restic";
       sops.secrets.restic_password.sopsFile = "${self}/secrets/appa.yaml";
       sops.secrets.rclone_gdrive_conf.sopsFile = "${self}/secrets/appa.yaml";
 

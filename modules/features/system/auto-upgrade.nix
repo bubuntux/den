@@ -3,6 +3,7 @@
     nixos.auto-upgrade =
       { config, lib, ... }:
       {
+        key = "den:nixos.auto-upgrade";
         # Tunable defaults — hosts can override any of these without mkForce.
         # Cautious profile: daily build, stage for next boot, never auto-reboot.
         # See modules/hosts/appa.nix for a more autonomous override (weekly,
@@ -41,6 +42,7 @@
         };
       in
       {
+        key = "den:homeManager.auto-upgrade";
         systemd.user.services.home-manager-auto-upgrade = {
           Unit = {
             Description = "Home Manager auto upgrade";
