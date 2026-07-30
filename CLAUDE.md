@@ -32,8 +32,13 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 # Test a host in QEMU VM (e.g., katara)
 nix run .#katara-vm
 
-# Validate all modules and configurations
+# Validate everything: formatting, all three host builds, and the desktop
+# checks. Takes a few minutes because it really does build the hosts.
 nix flake check
+
+# Run one check on its own (much faster than the full run)
+nix build .#checks.x86_64-linux.desktop-matrix
+nix build .#checks.x86_64-linux.host-zuko
 
 # Format code
 nix fmt
@@ -82,6 +87,22 @@ Two rules carry real weight here:
 
 - **A feature must never import a bundle or profile.** This is the one violation that bites: `nixos.sway` used to import `bundle-desktop`, which imports `bundle-host`, which `profile-laptop` also imports. That diamond made `bundle-host` apply twice and was the source of the duplicate-package bugs the `key` convention now prevents. If a feature seems to need a bundle, the dependency belongs the other way round — the bundle should import the feature and gate it on an option.
 - **A profile may compose other profiles**, one level, when a role genuinely is the union of other roles: `profile-workstation` = laptop + gaming + work + developer + desktop. The alternative is repeating that list in every host file. Don't use it to sneak a feature into a host through a profile that doesn't mean anything.
+
+### Checks
+
+`modules/core/checks.nix` defines what `nix flake check` verifies beyond formatting:
+
+| check | what it proves |
+|-------|----------------|
+| `host-zuko` / `host-katara` / `host-appa` | the host still builds |
+| `desktop-matrix` | five DE/login-manager combinations produce the expected config |
+| `desktop-rejects` | five invalid combinations are refused |
+
+The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps ten NixOS evaluations affordable.
+
+**Adding a case** means appending to `cases` (with an `expect` attrset, and optionally `cmdContains` to assert on the greeter command line) or to `rejects` (which passes when evaluation throws *or* any assertion reports false).
+
+**When adding or changing an assertion, prove the check bites.** Break the thing on purpose, confirm the check fails with a message that names the problem, then revert. A check that has never failed is not known to work: all three of these were validated that way — removing `den.desktop.sessionCommands.sway` made `desktop-matrix` report the missing `--cmd sway`; neutralising the environment-membership assertion made `desktop-rejects` report "was accepted, expected rejection"; dropping LightDM's `services.xserver.enable` failed on both the assertion and the expectation.
 
 ### Roles vs capabilities
 
@@ -172,7 +193,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
   1. Run `nix fmt` to ensure consistent code style
   1. Stage files with `git add` (the flake only sees tracked files)
 
-- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing
+- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is slow (minutes) because it genuinely builds every host; run a single check by name while iterating
 
 - **Committing**: Always present changes and proposed commit message to the user for explicit approval before committing
 
