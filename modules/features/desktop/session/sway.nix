@@ -42,8 +42,10 @@ in
       in
       {
         key = "den:homeManager.sway";
-        # Note: monitors module must be imported by the parent NixOS module
         imports = with self.modules.homeManager; [
+          # Declares the `monitors` option read above -- imported here rather
+          # than left to whoever pulls this module in.
+          monitors
           foot
           # dictation
         ];
@@ -213,7 +215,12 @@ in
 
     # NixOS module for system-level sway configuration
     nixos.sway =
-      { pkgs, ... }:
+      {
+        config,
+        pkgs,
+        lib,
+        ...
+      }:
       let
         # Screen-share picker for xdg-desktop-portal-wlr. wlroots can only capture
         # a whole monitor or a whole window (never an arbitrary region), so this
@@ -275,106 +282,94 @@ in
       {
         key = "den:nixos.sway";
         imports = with self.modules.nixos; [
-          bundle-desktop
+          desktop-options
           power-profile-auto
           waybar
           kanshi
           thunar
         ];
 
-        # Enable sway compositor
-        programs.sway = {
-          enable = true;
-          wrapperFeatures.gtk = true;
-          extraPackages = with pkgs; [
-            foot
-            wmenu
-            swaylock
-            swayidle
-            wl-clipboard
-            mako
-            grim
-            slurp
-          ];
-        };
-
-        # This host docks in clamshell (lid closed): never suspend on the lid.
-        # (The lid switch is also disabled in the BIOS so the internal panel stays
-        # available; this is the OS-side belt-and-suspenders.) swayidle still
-        # suspends on idle (battery only) as the real sleep trigger.
-        services.logind.settings.Login.HandleLidSwitch = "ignore";
-
-        # PAM configuration for swaylock
-        security.pam.services.swaylock = { };
-
-        # Real-time priority for users
-        security.pam.loginLimits = [
-          {
-            domain = "@users";
-            item = "rtprio";
-            type = "-";
-            value = 1;
-          }
-        ];
-
-        # XDG portal for screen sharing and file dialogs
-        xdg.portal = {
-          enable = true;
-          wlr = {
+        config = lib.mkIf (lib.elem "sway" config.den.desktop.environments) {
+          # `programs.sway.enable` registers the session with
+          # services.displayManager.sessionPackages, which is the only thing a
+          # login manager needs to offer it. No greeter is configured here.
+          programs.sway = {
             enable = true;
-            # xdg-desktop-portal-wlr draws no picker of its own; Firefox delegates
-            # screen-sharing entirely to the portal, so without a chooser its
-            # getDisplayMedia silently no-ops ("no output found"). screencastChooser
-            # (defined above) pops a rofi menu of monitors + windows. (Chrome works
-            # without a chooser because it draws its own source picker.)
-            settings.screencast = {
-              chooser_type = "simple";
-              chooser_cmd = "${screencastChooser}/bin/sway-screencast-chooser";
-              max_fps = 30;
-            };
+            wrapperFeatures.gtk = true;
+            extraPackages = with pkgs; [
+              foot
+              wmenu
+              swaylock
+              swayidle
+              wl-clipboard
+              mako
+              grim
+              slurp
+            ];
           };
-          extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-        };
 
-        # Required for sway and home-manager integration
-        security.polkit.enable = true;
+          # Sway's session exec is a bare `sway`, so it can serve as greetd's
+          # fallback / autologin command. See den.desktop.sessionCommands.
+          den.desktop.sessionCommands.sway = "sway";
 
-        # Keyring for secrets
-        services.gnome.gnome-keyring.enable = true;
+          # This host docks in clamshell (lid closed): never suspend on the lid.
+          # (The lid switch is also disabled in the BIOS so the internal panel stays
+          # available; this is the OS-side belt-and-suspenders.) swayidle still
+          # suspends on idle (battery only) as the real sleep trigger.
+          services.logind.settings.Login.HandleLidSwitch = "ignore";
 
-        # Auto-unlock the keyring at login so apps (e.g. Claude Code) don't prompt
-        security.pam.services.greetd.enableGnomeKeyring = true;
-        security.pam.services.login.enableGnomeKeyring = true;
+          # PAM configuration for swaylock
+          security.pam.services.swaylock = { };
 
-        # Enable greetd with tuigreet. --remember pre-fills the last logged-in
-        # username (so on a single-user host you only type the password, keeping
-        # gnome-keyring auto-unlock); --remember-session keeps the chosen session.
-        services.greetd = {
-          enable = true;
-          settings = {
-            default_session = {
-              command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --cmd sway";
-              user = "greeter";
+          # Real-time priority for users
+          security.pam.loginLimits = [
+            {
+              domain = "@users";
+              item = "rtprio";
+              type = "-";
+              value = 1;
+            }
+          ];
+
+          # XDG portal for screen sharing and file dialogs
+          xdg.portal = {
+            enable = true;
+            wlr = {
+              enable = true;
+              # xdg-desktop-portal-wlr draws no picker of its own; Firefox delegates
+              # screen-sharing entirely to the portal, so without a chooser its
+              # getDisplayMedia silently no-ops ("no output found"). screencastChooser
+              # (defined above) pops a rofi menu of monitors + windows. (Chrome works
+              # without a chooser because it draws its own source picker.)
+              settings.screencast = {
+                chooser_type = "simple";
+                chooser_cmd = "${screencastChooser}/bin/sway-screencast-chooser";
+                max_fps = 30;
+              };
             };
+            extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+          };
+
+          # Required for sway and home-manager integration
+          security.polkit.enable = true;
+
+          # Keyring for secrets
+          services.gnome.gnome-keyring.enable = true;
+
+          # Auto-unlock the keyring at login so apps (e.g. Claude Code) don't prompt
+          security.pam.services.login.enableGnomeKeyring = true;
+
+          # The blueman-applet unit ships no [Install] section, so nothing starts it
+          # at login. Full DEs (e.g. GNOME) autostart it via XDG, but sway
+          # has no XDG autostart -- bind it to the graphical session like waybar/mako
+          # so the Bluetooth tray icon actually appears. Scoped here (not in the
+          # shared bluetooth feature) to avoid a duplicate applet on GNOME hosts.
+          systemd.user.services.blueman-applet = {
+            wantedBy = [ "graphical-session.target" ];
+            partOf = [ "graphical-session.target" ];
+            after = [ "graphical-session.target" ];
           };
         };
-
-        # The blueman-applet unit ships no [Install] section, so nothing starts it
-        # at login. Full DEs (e.g. GNOME on katara) autostart it via XDG, but sway
-        # has no XDG autostart -- bind it to the graphical session like waybar/mako
-        # so the Bluetooth tray icon actually appears. Scoped here (not in the
-        # shared bluetooth feature) to avoid a duplicate applet on GNOME hosts.
-        systemd.user.services.blueman-applet = {
-          wantedBy = [ "graphical-session.target" ];
-          partOf = [ "graphical-session.target" ];
-          after = [ "graphical-session.target" ];
-        };
-
-        # Add home-manager sway module to shared modules
-        home-manager.sharedModules = [
-          self.modules.homeManager.monitors
-          self.modules.homeManager.sway
-        ];
       };
   };
 }

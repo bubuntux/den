@@ -17,7 +17,7 @@
       profile-developer
       vpn
       user-bbtux
-      sway
+      bundle-desktop
       firefox
       loupe
 
@@ -155,6 +155,17 @@
           # TODO
           networking.hostName = "katara";
           system.stateVersion = "25.11";
+
+          # Desktop selection. environments and loginManager are independent:
+          # add "gnome" to environments to install it alongside sway and pick
+          # between them at the greeter, or switch loginManager to gdm/lightdm
+          # without touching either session.
+          den.desktop = {
+            environments = [ "sway" ];
+            loginManager = "greetd";
+            users.bbtux = "sway";
+          };
+          services.displayManager.defaultSession = "sway";
 
           # Enable firmware updates
           services.fwupd.enable = true;

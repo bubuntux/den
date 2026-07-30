@@ -106,7 +106,9 @@ in
       in
       {
         key = "den:homeManager.kanshi";
-        # Note: monitors module must be imported by the parent NixOS module
+        # Declares the `monitors` / `monitorProfiles` options read above --
+        # imported here rather than left to whoever pulls this module in.
+        imports = [ self.modules.homeManager.monitors ];
         services.kanshi = {
           enable = true;
           settings = outputDefinitions ++ profiles;

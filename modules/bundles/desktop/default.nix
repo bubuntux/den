@@ -101,9 +101,22 @@ in
     # NixOS module for desktop environments
     nixos.bundle-desktop = {
       key = "den:nixos.bundle-desktop";
+      # Every environment and login manager is imported unconditionally; each is
+      # inert until den.desktop selects it. That keeps the choice a one-line edit
+      # on the host and means a session module never has to know which greeter
+      # is in use (or vice versa).
       imports = with self.modules.nixos; [
         bundle-host
         theme
+
+        desktop-options
+        # environments
+        sway
+        gnome
+        # login managers
+        login-greetd
+        login-gdm
+        login-lightdm
       ];
 
       # Enable networking
