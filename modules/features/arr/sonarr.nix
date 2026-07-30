@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.sonarr =
+  flake.modules.nixos.sonarr =
     { config, lib, ... }:
     let
       port = 8989;

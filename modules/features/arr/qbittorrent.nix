@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.qbittorrent =
+  flake.modules.nixos.qbittorrent =
     {
       config,
       lib,
@@ -34,7 +34,7 @@
         "@Variant(\\x00\\x00\\x00\\x0f\\x${hex2 b3}\\x${hex2 b2}\\x${hex2 b1}\\x${hex2 b0})";
     in
     {
-      imports = [ self.nixosModules.vpn-confinement ];
+      imports = [ self.modules.nixos.vpn-confinement ];
 
       services.qbittorrent = {
         enable = true;

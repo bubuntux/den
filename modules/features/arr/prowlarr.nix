@@ -1,12 +1,12 @@
 { self, ... }:
 {
-  flake.nixosModules.prowlarr =
+  flake.modules.nixos.prowlarr =
     { config, ... }:
     let
       port = 9696;
     in
     {
-      imports = [ self.nixosModules.vpn-confinement ];
+      imports = [ self.modules.nixos.vpn-confinement ];
 
       services.prowlarr = {
         enable = true;

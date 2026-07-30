@@ -1,9 +1,9 @@
 { self, ... }:
 {
-  flake.nixosModules.cachix-push =
+  flake.modules.nixos.cachix-push =
     { config, pkgs, ... }:
     {
-      imports = [ self.nixosModules.sops ];
+      imports = [ self.modules.nixos.sops ];
 
       sops.secrets.cachix_auth_token = {
         sopsFile = "${self}/secrets/zuko.yaml";

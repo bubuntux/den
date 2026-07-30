@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.restic =
+  flake.modules.nixos.restic =
     { config, ... }:
     # Nightly encrypted backups to Google Drive via the restic+rclone backend.
     # Restic doesn't support Drive natively; rclone exposes it as a generic

@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.locale =
+  flake.modules.nixos.locale =
     { lib, ... }:
     {
       time.timeZone = lib.mkDefault null;

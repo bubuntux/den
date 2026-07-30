@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.plex =
+  flake.modules.nixos.plex =
     _:
     # Upstream services.plex module has no port option; 32400 is the Plex
     # Media Server's hard-coded web port.

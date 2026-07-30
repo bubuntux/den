@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.jellyfin =
+  flake.modules.nixos.jellyfin =
     _:
     # Upstream services.jellyfin module has no port option; these are the
     # hard-coded HTTP/HTTPS ports baked into the Jellyfin binary.

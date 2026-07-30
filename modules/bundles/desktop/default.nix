@@ -68,48 +68,50 @@ let
 in
 {
   # Home Manager module for desktop environments
-  flake.homeModules.bundle-desktop =
-    { pkgs, ... }:
-    {
-      imports = with self.homeModules; [
-        mpv
-        templates
-        tidal-hifi
-        xdg
+  flake.modules = {
+    homeManager.bundle-desktop =
+      { pkgs, ... }:
+      {
+        imports = with self.modules.homeManager; [
+          mpv
+          templates
+          tidal-hifi
+          xdg
+        ];
+
+        targets.genericLinux.enable = true;
+        services.network-manager-applet.enable = true;
+
+        xdg.mimeApps.defaultApplications = okularDefaults;
+
+        # Desktop packages
+        home.packages = with pkgs; [
+          kdePackages.okular # PDF viewer
+          # Drop already-applied 5.11 patch; revert once unstable channel passes NixOS/nixpkgs@8927bc2ba3.
+          qalculate-gtk # Calculator
+          loupe # Image viewer
+          pwvucontrol # PipeWire volume control
+          qpwgraph # PipeWire patchbay (route audio to multiple devices)
+          gimp-with-plugins # image editor
+          simple-scan # scanner
+        ];
+      };
+
+    # NixOS module for desktop environments
+    nixos.bundle-desktop = _: {
+      imports = with self.modules.nixos; [
+        bundle-host
+        theme
       ];
 
-      targets.genericLinux.enable = true;
-      services.network-manager-applet.enable = true;
+      # Enable networking
+      networking.networkmanager.enable = true;
 
-      xdg.mimeApps.defaultApplications = okularDefaults;
+      # Disable NixOS Manual
+      documentation.nixos.enable = false;
 
-      # Desktop packages
-      home.packages = with pkgs; [
-        kdePackages.okular # PDF viewer
-        # Drop already-applied 5.11 patch; revert once unstable channel passes NixOS/nixpkgs@8927bc2ba3.
-        qalculate-gtk # Calculator
-        loupe # Image viewer
-        pwvucontrol # PipeWire volume control
-        qpwgraph # PipeWire patchbay (route audio to multiple devices)
-        gimp-with-plugins # image editor
-        simple-scan # scanner
-      ];
+      # Add home-manager bundle-desktop module to shared modules
+      home-manager.sharedModules = [ self.modules.homeManager.bundle-desktop ];
     };
-
-  # NixOS module for desktop environments
-  flake.nixosModules.bundle-desktop = _: {
-    imports = with self.nixosModules; [
-      bundle-host
-      theme
-    ];
-
-    # Enable networking
-    networking.networkmanager.enable = true;
-
-    # Disable NixOS Manual
-    documentation.nixos.enable = false;
-
-    # Add home-manager bundle-desktop module to shared modules
-    home-manager.sharedModules = [ self.homeModules.bundle-desktop ];
   };
 }

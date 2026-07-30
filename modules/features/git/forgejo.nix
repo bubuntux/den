@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.forgejo =
+  flake.modules.nixos.forgejo =
     { lib, ... }:
     let
       port = 3000;

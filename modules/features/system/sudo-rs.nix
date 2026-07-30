@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.sudors = _: {
+  flake.modules.nixos.sudors = _: {
     security.sudo.enable = false;
     security.sudo-rs = {
       enable = true;

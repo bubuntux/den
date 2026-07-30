@@ -1,5 +1,5 @@
 {
-  flake.homeModules.git =
+  flake.modules.homeManager.git =
     { pkgs, ... }:
     {
       home.packages = [ pkgs.lazygit ];

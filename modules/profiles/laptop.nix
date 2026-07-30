@@ -2,16 +2,16 @@
 {
   flake-file.inputs.nixos-hardware.url = "github:nixos/nixos-hardware";
 
-  flake.nixosModules.profile-laptop =
+  flake.modules.nixos.profile-laptop =
     { pkgs, ... }:
     {
       imports = [
-        self.nixosModules.audio
-        self.nixosModules.bluetooth
-        self.nixosModules.avahi
-        self.nixosModules.printing
-        self.nixosModules.wifi-home
-        self.nixosModules.bundle-host
+        self.modules.nixos.audio
+        self.modules.nixos.bluetooth
+        self.modules.nixos.avahi
+        self.modules.nixos.printing
+        self.modules.nixos.wifi-home
+        self.modules.nixos.bundle-host
         inputs.nixos-hardware.nixosModules.common-pc-laptop
         inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
       ];

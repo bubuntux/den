@@ -1,9 +1,9 @@
 { self, ... }:
 {
-  flake.nixosModules.profile-nas =
+  flake.modules.nixos.profile-nas =
     { lib, ... }:
     {
-      imports = with self.nixosModules; [
+      imports = with self.modules.nixos; [
         bazarr
         cloudflare-ddns
         crowdsec

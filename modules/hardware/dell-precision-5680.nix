@@ -5,7 +5,7 @@
 {
   flake-file.inputs.nixos-hardware.url = "github:nixos/nixos-hardware";
 
-  flake.nixosModules.dell-precision-5680 =
+  flake.modules.nixos.dell-precision-5680 =
     {
       lib,
       config,

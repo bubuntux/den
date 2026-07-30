@@ -1,7 +1,7 @@
 _: {
   # Tools for inspecting what the kernel actually enumerated, needed whenever a
   # device is missing rather than misconfigured (docks, GPUs, USB peripherals).
-  flake.nixosModules.hardware-diagnostics =
+  flake.modules.nixos.hardware-diagnostics =
     { pkgs, ... }:
     {
       environment.systemPackages = with pkgs; [

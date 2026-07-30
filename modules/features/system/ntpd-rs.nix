@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.ntpdrs = _: {
+  flake.modules.nixos.ntpdrs = _: {
     # Disable systemd-timesyncd in favor of ntpd-rs
     services.timesyncd.enable = false;
     services.ntpd-rs.enable = true;

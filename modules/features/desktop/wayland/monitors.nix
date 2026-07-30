@@ -7,7 +7,7 @@ let
 in
 {
   # Home Manager module for monitor configuration
-  flake.homeModules.monitors = _: {
+  flake.modules.homeManager.monitors = _: {
     options.monitors = mkOption {
       type = types.listOf (
         types.submodule {

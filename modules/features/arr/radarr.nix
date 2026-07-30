@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.radarr =
+  flake.modules.nixos.radarr =
     { config, lib, ... }:
     let
       port = 7878;

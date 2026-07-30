@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.openssh =
+  flake.modules.nixos.openssh =
     { lib, ... }:
     {
       services.openssh = {

@@ -1,9 +1,9 @@
 { self, ... }:
 {
-  flake.nixosModules.wifi-home =
+  flake.modules.nixos.wifi-home =
     { config, ... }:
     {
-      imports = [ self.nixosModules.sops ];
+      imports = [ self.modules.nixos.sops ];
 
       sops.secrets.wifi_home_ssid = {
         sopsFile = "${self}/secrets/common.yaml";

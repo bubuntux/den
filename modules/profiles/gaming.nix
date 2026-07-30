@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.profile-gaming =
+  flake.modules.nixos.profile-gaming =
     { pkgs, lib, ... }:
     let
       # Desktop entry for Steam with gamemode

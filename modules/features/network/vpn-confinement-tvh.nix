@@ -1,10 +1,10 @@
 { self, inputs, ... }:
 {
-  flake.nixosModules.vpn-confinement-tvh =
+  flake.modules.nixos.vpn-confinement-tvh =
     { config, ... }:
     {
       imports = [
-        self.nixosModules.sops
+        self.modules.nixos.sops
         inputs.vpn-confinement.nixosModules.default
       ];
 

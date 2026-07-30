@@ -1,5 +1,5 @@
 {
-  flake.homeModules.tidal-hifi =
+  flake.modules.homeManager.tidal-hifi =
     { pkgs, ... }:
     {
       home.packages = [

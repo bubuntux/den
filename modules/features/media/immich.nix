@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.immich =
+  flake.modules.nixos.immich =
     { lib, ... }:
     let
       port = 2283;

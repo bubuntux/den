@@ -1,9 +1,9 @@
 { self, ... }:
 {
-  flake.nixosModules.cloudflare-ddns =
+  flake.modules.nixos.cloudflare-ddns =
     { config, lib, ... }:
     {
-      imports = [ self.nixosModules.sops ];
+      imports = [ self.modules.nixos.sops ];
 
       sops.secrets.cloudflare_ddns = {
         sopsFile = "${self}/secrets/appa.yaml";

@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.vpn =
+  flake.modules.nixos.vpn =
     { pkgs, ... }:
     {
       networking.firewall.checkReversePath = "loose";

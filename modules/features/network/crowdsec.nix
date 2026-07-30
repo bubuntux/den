@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.crowdsec =
+  flake.modules.nixos.crowdsec =
     {
       config,
       lib,
@@ -15,7 +15,7 @@
           config.services.crowdsec.settings.console.configuration;
     in
     {
-      imports = [ self.nixosModules.sops ];
+      imports = [ self.modules.nixos.sops ];
 
       # Console enrollment key (optional). Add to secrets/appa.yaml:
       #

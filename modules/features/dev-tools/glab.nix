@@ -8,7 +8,7 @@
     flake = false;
   };
 
-  flake.homeModules.glab =
+  flake.modules.homeManager.glab =
     { pkgs, lib, ... }:
     {
       home.packages = [ pkgs.glab ];

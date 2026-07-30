@@ -7,7 +7,7 @@
     flake = false;
   };
 
-  flake.homeModules.aws =
+  flake.modules.homeManager.aws =
     { pkgs, lib, ... }:
     let
       # The toolkit ships ~90 skills covering nearly every AWS service. Enable

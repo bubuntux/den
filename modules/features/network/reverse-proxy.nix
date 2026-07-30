@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.reverse-proxy =
+  flake.modules.nixos.reverse-proxy =
     {
       config,
       lib,
@@ -82,7 +82,7 @@
       routes = lib.concatStrings (lib.mapAttrsToList mkRoute cfg.routes);
     in
     {
-      imports = [ self.nixosModules.sops ];
+      imports = [ self.modules.nixos.sops ];
 
       options.services.reverse-proxy = {
         enable = lib.mkEnableOption "Caddy reverse proxy with wildcard TLS";

@@ -7,7 +7,7 @@
   flake.nixosConfigurations.zuko = inputs.nixpkgs.lib.nixosSystem {
     specialArgs = { inherit self inputs; };
     system = "x86_64-linux";
-    modules = with self.nixosModules; [
+    modules = with self.modules.nixos; [
       profile-laptop
       profile-gaming
       profile-work

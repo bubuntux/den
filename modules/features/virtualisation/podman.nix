@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.podman =
+  flake.modules.nixos.podman =
     { config, ... }:
     let
       dockerEnabled = config.virtualisation.docker.enable;

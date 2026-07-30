@@ -204,171 +204,173 @@ let
   };
 in
 {
-  flake.nixosModules.firefox =
-    {
-      pkgs,
-      lib,
-      ...
-    }:
-    {
-      programs.firefox = {
-        enable = true;
-        package = pkgs.firefox;
+  flake.modules = {
+    nixos.firefox =
+      {
+        pkgs,
+        lib,
+        ...
+      }:
+      {
+        programs.firefox = {
+          enable = true;
+          package = pkgs.firefox;
 
-        # Allowlisted prefs, applied as tweakable defaults.
-        preferencesStatus = "default";
-        preferences = policyPrefs;
+          # Allowlisted prefs, applied as tweakable defaults.
+          preferencesStatus = "default";
+          preferences = policyPrefs;
 
-        # Non-allowlisted prefs, applied via autoconfig as tweakable defaults.
-        autoConfig = lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (
-            name: value: "defaultPref(${builtins.toJSON name}, ${builtins.toJSON value});"
-          ) autoConfigPrefs
-          ++ lib.mapAttrsToList (
-            name: value: "lockPref(${builtins.toJSON name}, ${builtins.toJSON value});"
-          ) lockedPrefs
-        );
+          # Non-allowlisted prefs, applied via autoconfig as tweakable defaults.
+          autoConfig = lib.concatStringsSep "\n" (
+            lib.mapAttrsToList (
+              name: value: "defaultPref(${builtins.toJSON name}, ${builtins.toJSON value});"
+            ) autoConfigPrefs
+            ++ lib.mapAttrsToList (
+              name: value: "lockPref(${builtins.toJSON name}, ${builtins.toJSON value});"
+            ) lockedPrefs
+          );
 
-        policies = {
-          # Canonical switches the Preferences policy can't set:
-          DisableTelemetry = true; # toolkit.telemetry.*, Normandy, Shield, datareporting
-          DisableFirefoxAccounts = true; # disables Sync / Mozilla account
-          Certificates.ImportEnterpriseRoots = false; # ignore OS/enterprise roots (mostly a no-op on Linux)
+          policies = {
+            # Canonical switches the Preferences policy can't set:
+            DisableTelemetry = true; # toolkit.telemetry.*, Normandy, Shield, datareporting
+            DisableFirefoxAccounts = true; # disables Sync / Mozilla account
+            Certificates.ImportEnterpriseRoots = false; # ignore OS/enterprise roots (mostly a no-op on Linux)
 
-          # Disable + hard-lock all AI features (authoritative kill switch,
-          # FF 149+). Flip Translations to "available" to allow local translation.
-          AIControls = {
-            Default = {
-              Value = "blocked";
-              Locked = true;
+            # Disable + hard-lock all AI features (authoritative kill switch,
+            # FF 149+). Flip Translations to "available" to allow local translation.
+            AIControls = {
+              Default = {
+                Value = "blocked";
+                Locked = true;
+              };
+              SidebarChatbot = {
+                Value = "blocked";
+                Locked = true;
+              };
+              SmartTabGroups = {
+                Value = "blocked";
+                Locked = true;
+              };
+              SmartWindow = {
+                Value = "blocked";
+                Locked = true;
+              };
+              LinkPreviewKeyPoints = {
+                Value = "blocked";
+                Locked = true;
+              };
+              PDFAltText = {
+                Value = "blocked";
+                Locked = true;
+              };
+              Translations = {
+                Value = "blocked";
+                Locked = true;
+              };
             };
-            SidebarChatbot = {
-              Value = "blocked";
-              Locked = true;
+
+            # Force-installed extensions (cannot be disabled/removed via the UI).
+            # LibreWolf bundles uBlock Origin; the rest are your requested set.
+            # `extra` per extension:
+            #   default_area   = "navbar" (pinned to main toolbar) | "menupanel" (overflow ≡ menu)
+            #   private_browsing = true  (allowed to run in private windows)
+            # default_area sets the DEFAULT placement (applied on fresh profiles).
+            ExtensionSettings =
+              let
+                amo = slug: "https://addons.mozilla.org/firefox/downloads/latest/${slug}/latest.xpi";
+                forced =
+                  slug: extra:
+                  {
+                    installation_mode = "force_installed";
+                    install_url = amo slug;
+                  }
+                  // extra;
+              in
+              {
+                "uBlock0@raymondhill.net" = forced "ublock-origin" {
+                  default_area = "navbar";
+                  private_browsing = true;
+                };
+                "78272b6fa58f4a1abaac99321d503a20@proton.me" = forced "proton-pass" {
+                  default_area = "navbar";
+                  private_browsing = true;
+                };
+                # Multi-Account Containers: create/manage containers + per-site
+                # assignments. NOTE: assignments are stored in-profile (UI only) —
+                # they cannot be declared here; set them once in its UI. Private
+                # windows don't use containers, so no private_browsing.
+                "@testpilot-containers" = forced "multi-account-containers" {
+                  default_area = "navbar";
+                };
+                "sponsorBlocker@ajay.app" = forced "sponsorblock" {
+                  default_area = "menupanel";
+                  private_browsing = true;
+                };
+                "myallychou@gmail.com" = forced "youtube-recommended-videos" {
+                  default_area = "menupanel";
+                  private_browsing = true;
+                };
+                # Facebook Container auto-traps all Meta domains (FB/IG/Messenger/WhatsApp/Threads).
+                "@contain-facebook" = forced "facebook-container" {
+                  default_area = "menupanel";
+                };
+                # Google Container: only dedicated option on AMO, unmaintained since 2021.
+                "@contain-google" = forced "google-container" {
+                  default_area = "menupanel";
+                };
+              };
+
+            # Strip first-run / onboarding / promo surfaces.
+            OverrideFirstRunPage = "";
+            OverridePostUpdatePage = "";
+            DisablePocket = true;
+            NoDefaultBookmarks = true;
+            UserMessaging = {
+              WhatsNew = false;
+              ExtensionRecommendations = false;
+              FeatureRecommendations = false;
+              UrlbarInterventions = false;
+              MoreFromMozilla = false;
+              SkipOnboarding = true;
             };
-            SmartTabGroups = {
-              Value = "blocked";
-              Locked = true;
-            };
-            SmartWindow = {
-              Value = "blocked";
-              Locked = true;
-            };
-            LinkPreviewKeyPoints = {
-              Value = "blocked";
-              Locked = true;
-            };
-            PDFAltText = {
-              Value = "blocked";
-              Locked = true;
-            };
-            Translations = {
-              Value = "blocked";
-              Locked = true;
-            };
+
+            # Preconfigure uBlock Origin's filter lists (declarative baseline).
+            # `adminSettings.selectedFilterLists` SEEDS the selection and re-seeds
+            # only when this list changes, so you can still toggle lists in the
+            # uBO UI and keep them. For a hard-enforced set that resets on every
+            # start instead, replace `adminSettings.selectedFilterLists` with
+            # `toOverwrite.filterLists` (same list).
+            "3rdparty".Extensions."uBlock0@raymondhill.net".adminSettings.selectedFilterLists = [
+              "user-filters"
+              "ublock-filters"
+              "ublock-badware"
+              "ublock-privacy"
+              "ublock-unbreak"
+              "ublock-quick-fixes"
+              "easylist"
+              "easyprivacy"
+              "plowe-0"
+              "urlhaus-1"
+              "adguard-spyware-url"
+              "fanboy-cookiemonster"
+              "ublock-annoyances"
+            ];
           };
-
-          # Force-installed extensions (cannot be disabled/removed via the UI).
-          # LibreWolf bundles uBlock Origin; the rest are your requested set.
-          # `extra` per extension:
-          #   default_area   = "navbar" (pinned to main toolbar) | "menupanel" (overflow ≡ menu)
-          #   private_browsing = true  (allowed to run in private windows)
-          # default_area sets the DEFAULT placement (applied on fresh profiles).
-          ExtensionSettings =
-            let
-              amo = slug: "https://addons.mozilla.org/firefox/downloads/latest/${slug}/latest.xpi";
-              forced =
-                slug: extra:
-                {
-                  installation_mode = "force_installed";
-                  install_url = amo slug;
-                }
-                // extra;
-            in
-            {
-              "uBlock0@raymondhill.net" = forced "ublock-origin" {
-                default_area = "navbar";
-                private_browsing = true;
-              };
-              "78272b6fa58f4a1abaac99321d503a20@proton.me" = forced "proton-pass" {
-                default_area = "navbar";
-                private_browsing = true;
-              };
-              # Multi-Account Containers: create/manage containers + per-site
-              # assignments. NOTE: assignments are stored in-profile (UI only) —
-              # they cannot be declared here; set them once in its UI. Private
-              # windows don't use containers, so no private_browsing.
-              "@testpilot-containers" = forced "multi-account-containers" {
-                default_area = "navbar";
-              };
-              "sponsorBlocker@ajay.app" = forced "sponsorblock" {
-                default_area = "menupanel";
-                private_browsing = true;
-              };
-              "myallychou@gmail.com" = forced "youtube-recommended-videos" {
-                default_area = "menupanel";
-                private_browsing = true;
-              };
-              # Facebook Container auto-traps all Meta domains (FB/IG/Messenger/WhatsApp/Threads).
-              "@contain-facebook" = forced "facebook-container" {
-                default_area = "menupanel";
-              };
-              # Google Container: only dedicated option on AMO, unmaintained since 2021.
-              "@contain-google" = forced "google-container" {
-                default_area = "menupanel";
-              };
-            };
-
-          # Strip first-run / onboarding / promo surfaces.
-          OverrideFirstRunPage = "";
-          OverridePostUpdatePage = "";
-          DisablePocket = true;
-          NoDefaultBookmarks = true;
-          UserMessaging = {
-            WhatsNew = false;
-            ExtensionRecommendations = false;
-            FeatureRecommendations = false;
-            UrlbarInterventions = false;
-            MoreFromMozilla = false;
-            SkipOnboarding = true;
-          };
-
-          # Preconfigure uBlock Origin's filter lists (declarative baseline).
-          # `adminSettings.selectedFilterLists` SEEDS the selection and re-seeds
-          # only when this list changes, so you can still toggle lists in the
-          # uBO UI and keep them. For a hard-enforced set that resets on every
-          # start instead, replace `adminSettings.selectedFilterLists` with
-          # `toOverwrite.filterLists` (same list).
-          "3rdparty".Extensions."uBlock0@raymondhill.net".adminSettings.selectedFilterLists = [
-            "user-filters"
-            "ublock-filters"
-            "ublock-badware"
-            "ublock-privacy"
-            "ublock-unbreak"
-            "ublock-quick-fixes"
-            "easylist"
-            "easyprivacy"
-            "plowe-0"
-            "urlhaus-1"
-            "adguard-spyware-url"
-            "fanboy-cookiemonster"
-            "ublock-annoyances"
-          ];
         };
+        xdg.mime.defaultApplications = {
+          "text/html" = "firefox.desktop";
+          "x-scheme-handler/http" = "firefox.desktop";
+          "x-scheme-handler/https" = "firefox.desktop";
+        };
+        home-manager.sharedModules = [ self.modules.homeManager.firefox ];
       };
-      xdg.mime.defaultApplications = {
+
+    homeManager.firefox = _: {
+      xdg.mimeApps.defaultApplications = {
         "text/html" = "firefox.desktop";
         "x-scheme-handler/http" = "firefox.desktop";
         "x-scheme-handler/https" = "firefox.desktop";
       };
-      home-manager.sharedModules = [ self.homeModules.firefox ];
-    };
-
-  flake.homeModules.firefox = _: {
-    xdg.mimeApps.defaultApplications = {
-      "text/html" = "firefox.desktop";
-      "x-scheme-handler/http" = "firefox.desktop";
-      "x-scheme-handler/https" = "firefox.desktop";
     };
   };
 }

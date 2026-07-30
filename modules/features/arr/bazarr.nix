@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.bazarr =
+  flake.modules.nixos.bazarr =
     { config, lib, ... }:
     let
       port = 6767;

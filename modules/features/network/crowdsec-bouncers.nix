@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.crowdsec-bouncers =
+  flake.modules.nixos.crowdsec-bouncers =
     {
       config,
       lib,

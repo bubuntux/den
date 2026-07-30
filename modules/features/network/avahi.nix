@@ -1,6 +1,6 @@
 { ... }:
 {
-  flake.nixosModules.avahi = _: {
+  flake.modules.nixos.avahi = _: {
     services.avahi = {
       enable = true;
       ipv4 = true;

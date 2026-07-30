@@ -1,5 +1,5 @@
 {
-  flake.homeModules.gh = _: {
+  flake.modules.homeManager.gh = _: {
     programs.gh.enable = true;
     programs.gh.gitCredentialHelper.enable = true;
     programs.gh.settings.git_protocol = "ssh";

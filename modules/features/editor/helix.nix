@@ -5,7 +5,7 @@
   # Keyed wrapper so this module deduplicates when reached through multiple
   # import paths (e.g. katara). Required because it sets the unique
   # `programs.helix.package` option, which errors on duplicate definitions.
-  flake.homeModules.helix = {
+  flake.modules.homeManager.helix = {
     key = "homeModules.helix";
     imports = [
       (

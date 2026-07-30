@@ -33,7 +33,7 @@ let
   );
 in
 {
-  flake.homeModules.mpv =
+  flake.modules.homeManager.mpv =
     { pkgs, ... }:
     {
       xdg.mimeApps.defaultApplications = mimeDefaults;

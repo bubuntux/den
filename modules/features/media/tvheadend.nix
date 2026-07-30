@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  flake.nixosModules.tvheadend =
+  flake.modules.nixos.tvheadend =
     { config, pkgs, ... }:
     # Upstream tvheadend was dropped from nixpkgs in PR #336395 (2024-08-27)
     # after the 4.3 upgrade attempt found no maintainer. The linuxserver image
@@ -120,7 +120,7 @@
       '';
     in
     {
-      imports = [ self.nixosModules.vpn-confinement-tvh ];
+      imports = [ self.modules.nixos.vpn-confinement-tvh ];
 
       users.users.tvheadend = {
         isSystemUser = true;

@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.home-assistant-proxy =
+  flake.modules.nixos.home-assistant-proxy =
     _:
     # Home Assistant runs on a separate appliance at 192.168.5.2:8123 (not
     # managed by this flake). This module just publishes a caddy route so

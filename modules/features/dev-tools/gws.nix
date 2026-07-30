@@ -3,7 +3,7 @@
   flake-file.inputs.gws.url = "github:googleworkspace/cli";
   flake-file.inputs.gws.inputs.nixpkgs.follows = "nixpkgs";
 
-  flake.homeModules.gws =
+  flake.modules.homeManager.gws =
     { pkgs, lib, ... }:
     let
       # The CLI ships ~95 skills: one parent per Workspace service plus its

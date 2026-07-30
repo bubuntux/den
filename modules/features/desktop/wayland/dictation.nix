@@ -10,7 +10,7 @@
   # _keybindings.nix so it can reference the `dictate` script by absolute store
   # path -- matching the repo's `exec ${pkgs.foo}/bin/foo` convention (the sway
   # session does not reliably have the home-manager profile on PATH).
-  flake.homeModules.dictation =
+  flake.modules.homeManager.dictation =
     { pkgs, ... }:
     let
       # base.en GGML model (~142 MB), fetched and cached at build time. For higher

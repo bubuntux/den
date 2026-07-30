@@ -1,5 +1,5 @@
 {
-  flake.homeModules.templates =
+  flake.modules.homeManager.templates =
     { config, lib, ... }:
     let
       dir = lib.removePrefix "${config.home.homeDirectory}/" config.xdg.userDirs.templates;

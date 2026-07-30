@@ -1,9 +1,9 @@
 { self, ... }:
 {
-  flake.nixosModules.wifi-work =
+  flake.modules.nixos.wifi-work =
     { config, ... }:
     {
-      imports = [ self.nixosModules.sops ];
+      imports = [ self.modules.nixos.sops ];
 
       sops.secrets.wifi_work_ssid = {
         sopsFile = "${self}/secrets/work.yaml";

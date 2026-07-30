@@ -2,11 +2,11 @@
 {
   flake-file.inputs.vpn-confinement.url = "github:Maroka-chan/VPN-Confinement";
 
-  flake.nixosModules.vpn-confinement =
+  flake.modules.nixos.vpn-confinement =
     { config, ... }:
     {
       imports = [
-        self.nixosModules.sops
+        self.modules.nixos.sops
         inputs.vpn-confinement.nixosModules.default
       ];
 

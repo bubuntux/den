@@ -32,15 +32,17 @@ let
   );
 in
 {
-  flake.nixosModules.loupe =
-    { pkgs, ... }:
-    {
-      environment.systemPackages = [ pkgs.loupe ];
-      xdg.mime.defaultApplications = mimeDefaults;
-      home-manager.sharedModules = [ self.homeModules.loupe ];
-    };
+  flake.modules = {
+    nixos.loupe =
+      { pkgs, ... }:
+      {
+        environment.systemPackages = [ pkgs.loupe ];
+        xdg.mime.defaultApplications = mimeDefaults;
+        home-manager.sharedModules = [ self.modules.homeManager.loupe ];
+      };
 
-  flake.homeModules.loupe = _: {
-    xdg.mimeApps.defaultApplications = mimeDefaults;
+    homeManager.loupe = _: {
+      xdg.mimeApps.defaultApplications = mimeDefaults;
+    };
   };
 }

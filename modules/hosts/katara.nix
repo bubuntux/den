@@ -7,7 +7,7 @@
   flake.nixosConfigurations.katara = inputs.nixpkgs.lib.nixosSystem {
     specialArgs = { inherit self inputs; };
     system = "x86_64-linux";
-    modules = with self.nixosModules; [
+    modules = with self.modules.nixos; [
       profile-laptop
       inputs.nixos-hardware.nixosModules.common-cpu-amd
       inputs.nixos-hardware.nixosModules.common-gpu-amd

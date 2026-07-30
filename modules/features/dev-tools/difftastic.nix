@@ -1,5 +1,5 @@
 {
-  flake.homeModules.difftastic = _: {
+  flake.modules.homeManager.difftastic = _: {
     programs.difftastic = {
       enable = true;
 

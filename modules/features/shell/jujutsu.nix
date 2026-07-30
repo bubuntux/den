@@ -1,5 +1,5 @@
 {
-  flake.homeModules.jujutsu =
+  flake.modules.homeManager.jujutsu =
     { pkgs, ... }:
     {
       home.packages = [ pkgs.jj-starship ];
