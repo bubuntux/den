@@ -91,7 +91,7 @@ pkgs: mod: {
   "Ctrl+Alt+h" = "exec clipman pick -t rofi --max-items=1000";
 
   # NOTE: Mod4+grave = offline dictation toggle. Defined in
-  # features/desktop/wayland/dictation.nix (needs the script's absolute path).
+  # ./dictation.nix (needs the script's absolute path).
 
   # Media keys
   "--locked XF86AudioPlay" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";

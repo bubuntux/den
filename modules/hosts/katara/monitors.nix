@@ -1,4 +1,4 @@
-{ ... }:
+{ self, ... }:
 {
   # Display layout for this host. Deliberately per-host: katara only ever sits
   # at the home desk, so it carries no office profiles -- zuko keeps those.
@@ -8,6 +8,11 @@
     key = "den:nixos.katara#monitors";
     home-manager.sharedModules = [
       {
+        # The layout is pushed at every user on the host, so declare the schema
+        # here too: only Sway users import the modules that read it, and this
+        # would otherwise be an undeclared option for a GNOME-only user.
+        imports = [ self.modules.homeManager.monitors ];
+
         # Externals are matched by identity ("make model serial"), not the
         # DP-N connector name: the Thunderbolt dock enumerates them on a
         # different DP port each time (DP-5/7, DP-6/8, DP-6/9, ...), so any

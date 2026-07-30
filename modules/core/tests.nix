@@ -33,8 +33,8 @@
           { lib, ... }:
           {
             imports = with self.modules.nixos; [
-              # home-manager: the sway session pushes waybar/kanshi through
-              # home-manager.sharedModules, so the option has to exist.
+              # home-manager: desktop-options binds each user's session config
+              # through home-manager.users, so the option has to exist.
               home-manager
               desktop-options
               sway

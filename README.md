@@ -72,8 +72,10 @@ environment each user gets are contributed additively, so several profiles can
 each ask for one; the greeter and the preselected session are whole-machine
 settings and belong to the host.
 
-Each environment is one file under `modules/features/desktop/session/` and each
-login manager one file under `modules/features/desktop/login/`. Invalid
+Each environment lives under `modules/features/desktop/session/` — one file, or
+a directory when it brings companion pieces of its own (`session/sway/` carries
+waybar, kanshi and dictation, none of which mean anything under GNOME) — and
+each login manager is one file under `modules/features/desktop/login/`. Invalid
 combinations are refused at build time by assertions, which the
 `desktop-rejects` flake check keeps honest.
 

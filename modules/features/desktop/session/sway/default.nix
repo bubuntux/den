@@ -42,11 +42,22 @@ in
       in
       {
         key = "den:homeManager.sway";
+        # Everything the session needs at user level is imported here, never
+        # pushed through home-manager.sharedModules: this module is attached per
+        # user by den.desktop.users, so a GNOME user on the same host gets none
+        # of it. waybar and kanshi used to arrive via sharedModules and did land
+        # on every user -- shari ended up with a Waybar drawn over GNOME and
+        # kanshi fighting mutter for the outputs.
         imports = with self.modules.homeManager; [
           # Declares the `monitors` option read above -- imported here rather
           # than left to whoever pulls this module in.
           monitors
+          waybar
+          kanshi
           foot
+          # Folders open in thunar for users of *this* session; a GNOME user on
+          # the same host keeps nautilus. See features/desktop/thunar.nix.
+          thunar
           # dictation
         ];
         wayland.windowManager.sway = {
@@ -132,9 +143,6 @@ in
 
         # Rofi launcher
         programs.rofi = startup.rofi;
-
-        # Waybar (started via systemd service)
-        programs.waybar.enable = true;
 
         # Gammastep for screen color temperature (night light). Daytime stays at
         # gammastep's neutral 6500K; the night value is shared with GNOME's
@@ -303,12 +311,12 @@ in
         key = "den:nixos.sway";
         imports = with self.modules.nixos; [
           desktop-options
-          # Sway ships no bar and no output manager of its own; these two are
-          # what make it a usable session, so they belong here. thunar and
-          # power-profile-auto are not sway-specific and live in bundle-desktop
-          # and profile-laptop respectively.
-          waybar
-          kanshi
+          # Sway ships no file manager, so the session supplies one. Pulled in
+          # here rather than from bundle-desktop because GNOME brings nautilus
+          # and should not also get thunar. Note `imports` is NOT covered by the
+          # mkIf below -- bundle-desktop imports every session unconditionally,
+          # so nixos.thunar gates itself on programs.sway.enable.
+          thunar
         ];
 
         config = lib.mkIf (lib.elem "sway" config.den.desktop.environments) {

@@ -1,13 +1,17 @@
-{ ... }:
+{ self, ... }:
 {
   # Display layout for this host. Deliberately per-host: katara and zuko sit at
   # the same desks today, but that is temporary and the two are expected to
   # diverge -- only the `monitors` option schema is shared (see
-  # features/desktop/wayland/monitors.nix).
+  # features/desktop/monitors.nix).
   flake.modules.nixos.zuko = {
     key = "den:nixos.zuko#monitors";
     home-manager.sharedModules = [
       {
+        # The layout is pushed at every user on the host, so declare the schema
+        # here too: only Sway users import the modules that read it.
+        imports = [ self.modules.homeManager.monitors ];
+
         # Externals are matched by identity ("make model serial"), not the
         # DP-N connector name: the Thunderbolt dock enumerates them on a
         # different DP port each time (DP-5/7, DP-6/8, DP-6/9, ...), so any

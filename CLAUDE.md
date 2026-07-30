@@ -62,7 +62,7 @@ Features ──→ Bundles ──→ Profiles ──→ Hosts
 
 Note the direction of two edges that are easy to get backwards: **users are imported by profiles**, not by hosts (a role knows who operates the machine), and **hardware is imported by hosts**, not by profiles.
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, `options.nix` for `den.desktop`, `session/` for the desktop environments, `login/` for the display managers, `wayland/` for compositor-specific pieces: foot, kanshi, waybar), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/sway/` holding the pieces only Sway uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
 - **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
@@ -270,9 +270,33 @@ services.displayManager.defaultSession = "gnome";
 
 katara is the worked example: two roles, both environments installed, and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path.
 
-- **To add an environment**: create `features/desktop/session/<name>.nix` gated on `lib.elem "<name>" config.den.desktop.environments`, add the name to the `environments` and `users` enums, and import it from `bundle-desktop`. Publish `den.desktop.sessionCommands.<name>` if the session can be launched by a bare command — greetd needs it for its fallback and autologin paths, since greetd ignores `services.displayManager.defaultSession` upstream. GNOME deliberately publishes none.
+- **To add an environment**: create `features/desktop/session/<name>.nix` gated on `lib.elem "<name>" config.den.desktop.environments`, add the name to the `environments` and `users` enums, and import it from `bundle-desktop`. If it grows companion pieces of its own, make it a directory instead — see **Session Layout** below. Publish `den.desktop.sessionCommands.<name>` if the session can be launched by a bare command — greetd needs it for its fallback and autologin paths, since greetd ignores `services.displayManager.defaultSession` upstream. GNOME deliberately publishes none.
 - **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.
-- **Desktop Home Manager modules attach per user** through `den.desktop.users`, never through `home-manager.sharedModules` — with two environments installed, pushing both at every user collides (each configures `xdg.portal`, keybindings, a bar). It also can't live on the user module, since `user-bbtux` is shared with headless `appa`.
+- **Desktop Home Manager modules attach per user** through `den.desktop.users`, never through `home-manager.sharedModules` — with two environments installed, pushing both at every user collides (each configures `xdg.portal`, keybindings, a bar). It also can't live on the user module, since `user-bbtux` is shared with headless `appa`. This is not theoretical: `waybar` and `kanshi` used to reach users through `sharedModules`, so katara's GNOME user got a Waybar drawn over her session and a kanshi fighting mutter for the outputs. They are now imported by `homeManager.sway`, which only sway users receive.
+- **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each one keeping all of its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so a module a session imports lands on hosts that never selected the session. Either the imported module attaches per user (the HM case above) or it gates itself: `nixos.thunar` follows `config.programs.sway.enable`, the session's own switch, so it installs nowhere else.
+- **A host that writes an option through `home-manager.sharedModules` must declare it there too.** `hosts/*/monitors.nix` pushes `monitors` at every user but only sway users import `homeManager.monitors`, so the block imports the schema alongside the values — otherwise a GNOME-only user fails to evaluate on an undeclared option.
+
+### Session Layout
+
+A session that brings companion pieces becomes a directory, so the tree says who owns what. GNOME needs none (it keeps its state in GSettings and mutter manages its own outputs), so it stays a single file; Sway ships no bar, no output manager and no notification daemon, so it carries several:
+
+```
+modules/features/desktop/session/
+  gnome.nix             # one file is enough
+  sway/
+    default.nix         # nixos.sway + homeManager.sway
+    waybar.nix          # bar -- hardcodes sway/workspaces, sway/mode, swayidle
+    kanshi.nix          # wlroots output manager; mutter's job under GNOME
+    dictation.nix       # writes wayland.windowManager.sway.config.keybindings
+    _keybindings.nix    # `_` fragments: curried functions, not flake-parts
+    _modes.nix          #   modules, imported by ./default.nix
+    _rules.nix
+    _startup.nix
+```
+
+The test for whether something belongs in here is whether it names the compositor. Anything DE-agnostic stays flat under `features/desktop/` even when only one session happens to import it today: `foot` is a terminal, `thunar` a file manager, and `monitors` only declares the schema hosts write their display layout in (`kanshi` reads it, but a host setting `monitors` is describing its hardware, not configuring Sway).
+
+Where such a feature gets imported *from* is the separate question, and the answer is not automatically `bundle-desktop`: that bundle is for what every environment on the host should have. A per-session choice belongs to the session — thunar is imported by `sway`, not the bundle, so a GNOME user on the same host keeps nautilus rather than being handed both. When the choice is system-level rather than per-user, the imported module has to gate itself; see the `imports`/`mkIf` bullet above.
 
 ## Host Layout
 

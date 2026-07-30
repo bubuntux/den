@@ -6,8 +6,8 @@
   # wtype injects the text into the focused window. Fully offline (no cloud STT);
   # every component (pw-record, whisper-cli, wtype) comes from nixpkgs.
   #
-  # The keybinding is defined here rather than in the sway bundle's
-  # _keybindings.nix so it can reference the `dictate` script by absolute store
+  # The keybinding is defined here rather than in the session's
+  # ./_keybindings.nix so it can reference the `dictate` script by absolute store
   # path -- matching the repo's `exec ${pkgs.foo}/bin/foo` convention (the sway
   # session does not reliably have the home-manager profile on PATH).
   flake.modules.homeManager.dictation =

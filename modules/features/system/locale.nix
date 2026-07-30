@@ -19,7 +19,7 @@
       # That also disowns automatic-timezoned, which runs the demo agent itself,
       # and any non-GNOME session. So keep the id whitelisted here and let each
       # session bring the agent that suits it: gnome-shell under GNOME, an
-      # explicit user service under Sway (features/desktop/session/sway.nix).
+      # explicit user service under Sway (features/desktop/session/sway/default.nix).
       services.geoclue2 = {
         enable = true;
         whitelistedAgents = options.services.geoclue2.whitelistedAgents.default ++ [
