@@ -146,6 +146,24 @@ in
           };
         };
 
+        # Gammastep asks geoclue where we are, and geoclue serves no client
+        # until an agent is registered for that user -- GNOME uses gnome-shell,
+        # so a Sway session has to bring its own. It prompts through mako, and
+        # waits for geoclue's bus name itself, so ordering does not matter.
+        # features/system/locale.nix keeps its desktop id whitelisted.
+        systemd.user.services.geoclue-agent = {
+          Unit = {
+            Description = "Geoclue agent for the Sway session";
+            PartOf = [ "graphical-session.target" ];
+          };
+          Service = {
+            Type = "exec";
+            ExecStart = "${pkgs.geoclue2-with-demo-agent}/libexec/geoclue-2.0/demos/agent";
+            Restart = "on-failure";
+          };
+          Install.WantedBy = [ "graphical-session.target" ];
+        };
+
         # XDG portal configuration
         xdg.portal = {
           enable = true;
