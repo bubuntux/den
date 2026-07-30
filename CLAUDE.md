@@ -264,11 +264,11 @@ den.desktop = {                    den.desktop = {
 };
 
 # hosts/katara/default.nix -- imports both roles, then picks one greeter
-den.desktop.loginManager = "greetd";
-services.displayManager.defaultSession = "sway";
+den.desktop.loginManager = "gdm";
+services.displayManager.defaultSession = "gnome";
 ```
 
-katara is the worked example: two roles, both environments installed, and greetd remembering per user so shari lands in GNOME and bbtux in Sway.
+katara is the worked example: two roles, both environments installed, and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path.
 
 - **To add an environment**: create `features/desktop/session/<name>.nix` gated on `lib.elem "<name>" config.den.desktop.environments`, add the name to the `environments` and `users` enums, and import it from `bundle-desktop`. Publish `den.desktop.sessionCommands.<name>` if the session can be launched by a bare command — greetd needs it for its fallback and autologin paths, since greetd ignores `services.displayManager.defaultSession` upstream. GNOME deliberately publishes none.
 - **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.

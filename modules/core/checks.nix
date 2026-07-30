@@ -237,14 +237,14 @@
         {
           # katara's shape: two roles on one machine, one greeter. Proves the
           # additive settings merge instead of colliding.
-          name = "profile-family + profile-workstation on one host";
+          name = "profile-family + profile-workstation on one host (katara)";
           modules = [
             self.modules.nixos.bundle-host
             self.modules.nixos.profile-family
             self.modules.nixos.profile-workstation
             {
-              den.desktop.loginManager = "greetd";
-              services.displayManager.defaultSession = "sway";
+              den.desktop.loginManager = "gdm";
+              services.displayManager.defaultSession = "gnome";
             }
           ];
           expect = {
@@ -252,17 +252,15 @@
               "gnome"
               "sway"
             ];
-            greetd = true;
-            gdm = false;
+            greetd = false;
+            gdm = true;
             sway = true;
             gnome = true;
-            useTextGreeter = false;
             hmUsers = [
               "bbtux"
               "shari"
             ];
           };
-          cmdContains = "--cmd sway";
         }
       ];
 

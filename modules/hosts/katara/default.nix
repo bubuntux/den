@@ -29,10 +29,14 @@
     networking.hostName = "katara";
     system.stateVersion = "25.11";
 
-    # Whole-machine desktop policy: one greeter for two roles. greetd lists
-    # every installed session and remembers the choice per user, so shari lands
-    # in GNOME and bbtux in Sway without autologin picking for them.
-    den.desktop.loginManager = "greetd";
-    services.displayManager.defaultSession = "sway";
+    # Whole-machine desktop policy: one greeter for two roles. GDM rather than
+    # greetd because this machine is shared -- it presents a graphical user list
+    # and session picker instead of a keyboard-only TUI, and being GNOME's own
+    # greeter it remembers each user's last session through accountsservice, so
+    # shari lands in GNOME and bbtux in Sway. Keyring auto-unlock still works:
+    # GDM derives its PAM config from security.pam.services.login
+    # .enableGnomeKeyring, which the sway session module sets.
+    den.desktop.loginManager = "gdm";
+    services.displayManager.defaultSession = "gnome";
   };
 }
