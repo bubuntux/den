@@ -256,6 +256,11 @@
             gdm = true;
             sway = true;
             gnome = true;
+            # A shared machine must not log anyone in unattended. This caught a
+            # real regression: user-shari used to set autoLogin.user, and
+            # autoLogin.enable defaults to `user != null`, so importing that user
+            # silently gave the whole host autologin.
+            autoLoginUser = null;
             hmUsers = [
               "bbtux"
               "shari"

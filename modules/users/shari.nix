@@ -17,7 +17,10 @@
           sopsFile = "${self}/secrets/shari.yaml";
           neededForUsers = true;
         };
-        services.displayManager.autoLogin.user = "shari";
+        # No services.displayManager.autoLogin here: whether a machine logs in
+        # unattended is host policy, not a property of a user, and naming the
+        # user is enough to turn it on (autoLogin.enable defaults to
+        # `user != null`). A host that wants it sets both.
         users.users.shari = {
           isNormalUser = true;
           description = "Sharai C";
