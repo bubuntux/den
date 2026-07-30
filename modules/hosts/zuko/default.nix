@@ -18,6 +18,9 @@
     key = "den:nixos.zuko#host";
     imports = with self.modules.nixos; [
       profile-workstation
+      # The only machine here that games, so this stays a capability the host
+      # asks for rather than something profile-workstation implies.
+      profile-gaming
       dell-precision-5680
       droidcam
       cachix-push

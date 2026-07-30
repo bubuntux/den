@@ -89,7 +89,7 @@ The recommended import direction for each layer. When a change doesn't follow th
 Two rules carry real weight here:
 
 - **A feature must never import a bundle or profile.** This is the one violation that bites: `nixos.sway` used to import `bundle-desktop`, which imports `bundle-host`, which `profile-laptop` also imports. That diamond made `bundle-host` apply twice and was the source of the duplicate-package bugs the `key` convention now prevents. If a feature seems to need a bundle, the dependency belongs the other way round — the bundle should import the feature and gate it on an option.
-- **A profile may compose other profiles**, one level, when a role genuinely is the union of other roles: `profile-workstation` = laptop + gaming + work + developer + desktop. The alternative is repeating that list in every host file. Don't use it to sneak a feature into a host through a profile that doesn't mean anything.
+- **A profile may compose other profiles**, one level, when a role genuinely is the union of other roles: `profile-workstation` = laptop + work + developer + desktop. The alternative is repeating that list in every host file. Don't use it to sneak a feature into a host through a profile that doesn't mean anything — and don't let a role absorb a capability just because today's hosts happen to share it. `profile-gaming` used to sit in that list, which quietly made katara a gaming machine; zuko imports it directly instead.
 
 ### Checks
 
@@ -136,7 +136,7 @@ This is a description, not a restriction. **A host may import as many profiles a
 
 > When two hosts would list the same set of profiles, name that set as a role.
 
-That is the only reason `profile-workstation` exists: katara and zuko were repeating an identical nine-module list. A one-off combination needs no role — just import the capabilities.
+That is the only reason `profile-workstation` exists: katara and zuko were repeating an identical import list. A one-off combination needs no role — just import the capabilities. Note the rule says *the same* set, not *nearly* the same: gaming was in the role because zuko wanted it, and carrying katara along was the cost. One host wanting one extra capability is a host-level import, not a reason to widen the role.
 
 ```nix
 # hosts/appa/default.nix          # hosts/katara/default.nix
