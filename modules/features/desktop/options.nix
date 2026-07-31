@@ -1,4 +1,12 @@
 { self, ... }:
+let
+  # The environments this repo knows how to install. Adding a desktop is one
+  # entry here plus its session file and a bundle-desktop import.
+  sessionNames = [
+    "sway"
+    "gnome"
+  ];
+in
 {
   # Desktop selection surface. Two knobs only -- which environments to install
   # and which login manager presents them -- because everything else already
@@ -23,12 +31,7 @@
 
       options.den.desktop = {
         environments = lib.mkOption {
-          type = lib.types.listOf (
-            lib.types.enum [
-              "sway"
-              "gnome"
-            ]
-          );
+          type = lib.types.listOf (lib.types.enum sessionNames);
           default = [ ];
           example = [
             "sway"
@@ -61,28 +64,6 @@
           '';
         };
 
-        users = lib.mkOption {
-          type = lib.types.attrsOf (
-            lib.types.enum [
-              "sway"
-              "gnome"
-            ]
-          );
-          default = { };
-          example = {
-            bbtux = "sway";
-            shari = "gnome";
-          };
-          description = ''
-            Which environment's *user-level* (Home Manager) config each user
-            gets. Needed separately from `environments` because that only
-            installs sessions system-wide: with two environments installed,
-            pushing both DEs' Home Manager config at every user would collide
-            (each configures xdg.portal, keybindings, bars). The greeter still
-            decides which session a user actually starts.
-          '';
-        };
-
         sessionCommands = lib.mkOption {
           type = lib.types.attrsOf lib.types.str;
           default = { };
@@ -96,15 +77,51 @@
             selectable from the greeter's session list regardless.
           '';
         };
+
+        sessionAnchors = lib.mkOption {
+          type = lib.types.attrsOf lib.types.str;
+          default = { };
+          internal = true;
+          example = {
+            sway = "sway-session.target";
+          };
+          description = ''
+            Session name -> the systemd *user* unit that means "this session is
+            running", contributed by each session that ships no desktop shell of
+            its own and therefore needs this repo to supply the companions (bar,
+            notifications, locker, output management, file manager).
+
+            Two things read it. System-level user units (blueman-applet) hang
+            their WantedBy on the values, so they start under a session that
+            needs them and not under one that brings its own. And whether the
+            set is empty answers "does any installed session need the companion
+            stack at all" -- which is how nixos.thunar and nixos.session-wayland
+            gate themselves without enumerating session names.
+
+            GNOME deliberately publishes nothing: it has a shell, and its
+            session is not one this repo attaches anything to.
+
+            The per-user half of the same idea is `den.session.anchors`
+            (session/options.nix). The two cannot be one option -- Home Manager
+            config cannot read NixOS config -- so each session module states its
+            anchor on both sides, adjacent, in the same file.
+          '';
+        };
       };
 
       config = {
-        # Bind each user to one DE's Home Manager config. `home-manager.users`
-        # merges with the definition in the user module, so this adds to it
-        # rather than replacing it.
-        home-manager.users = lib.mapAttrs (_: de: {
-          imports = [ self.modules.homeManager.${de} ];
-        }) cfg.users;
+        # Every user gets every installed desktop's user-level config, so
+        # whichever session they pick at the greeter is the one they configured.
+        # There is deliberately no per-user selection: the greeter offers every
+        # installed session to everyone anyway, so choosing per user only decided
+        # whose home was *unprepared* for the session they picked.
+        #
+        # This is safe because nothing here is home-wide any more. A session's
+        # user units follow its own den.session.anchors entry rather than
+        # graphical-session.target (which every desktop starts, GNOME included),
+        # and the per-desktop files that would otherwise collide are written per
+        # desktop -- see thunar.nix. The session-anchors check holds that line.
+        home-manager.sharedModules = map (de: self.modules.homeManager.${de}) cfg.environments;
 
         assertions = [
           {
@@ -113,14 +130,6 @@
               den.desktop: environments ${lib.generators.toPretty { } cfg.environments} are
               installed but loginManager = "none" and autoLogin is disabled, so
               nothing can start a session.
-            '';
-          }
-          {
-            assertion = lib.all (de: lib.elem de cfg.environments) (lib.attrValues cfg.users);
-            message = ''
-              den.desktop.users assigns an environment that is not in
-              den.desktop.environments: users = ${lib.generators.toPretty { } cfg.users},
-              environments = ${lib.generators.toPretty { } cfg.environments}.
             '';
           }
           {

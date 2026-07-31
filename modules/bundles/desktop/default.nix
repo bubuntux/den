@@ -81,7 +81,10 @@ in
         ];
 
         targets.genericLinux.enable = true;
-        services.network-manager-applet.enable = true;
+        # No network-manager-applet here: this module reaches every user on the
+        # host through home-manager.sharedModules, and a GNOME session already
+        # has a network indicator. It moved to session/wayland.nix, which only
+        # the sessions with no tray of their own import.
 
         xdg.mimeApps.defaultApplications = okularDefaults;
 

@@ -6,6 +6,7 @@
   #
   #   desktop-matrix     the DE/DM combinations produce the expected config
   #   desktop-rejects    the invalid combinations are refused
+  #   session-anchors    a session's user units stay out of the user's other DEs
   #   unit-shape         no surprise systemd directives on units we configure
   #   media-plumbing     den.media.services really generates what it claims
   #
@@ -92,7 +93,6 @@
               den.desktop = {
                 environments = [ "sway" ];
                 loginManager = "greetd";
-                users.bbtux = "sway";
               };
               services.displayManager.defaultSession = "sway";
             }
@@ -106,7 +106,11 @@
             xserver = false;
             sway = true;
             gnome = false;
-            hmUsers = [ "bbtux" ];
+            # Empty on purpose: desktop config now reaches users through
+            # home-manager.sharedModules, so a probe without a user module has
+            # no homes to show. The profile cases below are where hmUsers means
+            # something.
+            hmUsers = [ ];
             useTextGreeter = false;
           };
           # Preserves the pre-split behaviour: greetd ignores defaultSession
@@ -114,7 +118,7 @@
           cmdContains = "--cmd sway";
         }
         {
-          name = "sway + gnome on greetd, one environment per user";
+          name = "sway + gnome on greetd";
           modules = [
             {
               den.desktop = {
@@ -123,10 +127,6 @@
                   "gnome"
                 ];
                 loginManager = "greetd";
-                users = {
-                  bbtux = "sway";
-                  shari = "gnome";
-                };
               };
               services.displayManager.defaultSession = "sway";
             }
@@ -142,14 +142,11 @@
             lightdm = false;
             sway = true;
             gnome = true;
-            hmUsers = [
-              "bbtux"
-              "shari"
-            ];
             useTextGreeter = false;
           };
           # Per-user session memory is what lets two users land in different
-          # desktops from the same greeter.
+          # desktops from the same greeter -- the only thing that is per user
+          # now, since every home carries both desktops' config.
           cmdContains = "--remember-user-session";
         }
         {
@@ -162,7 +159,6 @@
                   "gnome"
                 ];
                 loginManager = "gdm";
-                users.bbtux = "gnome";
               };
               services.displayManager.defaultSession = "gnome";
             }
@@ -187,7 +183,6 @@
               den.desktop = {
                 environments = [ "sway" ];
                 loginManager = "lightdm";
-                users.bbtux = "sway";
               };
               services.displayManager.defaultSession = "sway";
             }
@@ -293,18 +288,6 @@
 
       rejects = [
         {
-          name = "a user assigned an environment that is not installed";
-          modules = [
-            {
-              den.desktop = {
-                environments = [ "sway" ];
-                users.bbtux = "gnome";
-              };
-            }
-            self.modules.nixos.bundle-desktop
-          ];
-        }
-        {
           name = "environments installed but nothing can start a session";
           modules = [
             {
@@ -373,6 +356,114 @@
 
       failures = lib.concatMap checkCase cases ++ lib.concatMap checkReject rejects;
 
+      # --- session anchors ---------------------------------------------------
+      #
+      # Home Manager config lands in a *home*, not in a session, so a user's
+      # units are there whichever desktop they log into. Everything a session
+      # owns must therefore hang off that session's own unit
+      # (den.session.anchors) rather than off graphical-session.target, which
+      # every desktop starts -- GNOME included.
+      #
+      # This is not hypothetical. Before the anchors existed, bbtux on katara had
+      # waybar, kanshi, swayidle, gammastep and geoclue-agent all WantedBy
+      # graphical-session.target, and katara's defaultSession is gnome: logging
+      # into GNOME drew Waybar over mutter, pointed kanshi at outputs mutter was
+      # already driving and armed swaylock as the GNOME screen locker. Every
+      # evaluated option value was correct, which is why desktop-matrix could not
+      # see it.
+      #
+      # The probe is deliberately the case no host runs -- one user with both
+      # desktops -- because that is where a mistake is invisible on a real
+      # machine until someone switches sessions. Unlike the cases above this
+      # forces a full Home Manager evaluation for that user, which is the bulk of
+      # this check's cost.
+      anchorFailures =
+        let
+          c = probe [
+            self.modules.nixos.bundle-host
+            self.modules.nixos.profile-family
+            self.modules.nixos.profile-workstation
+            {
+              den.desktop.loginManager = "gdm";
+              services.displayManager.defaultSession = "gnome";
+            }
+          ];
+          # shari, not bbtux: she is the one who only ever logs into GNOME, so
+          # she is where a companion escaping its session is visible. She carries
+          # Sway's config all the same -- every user on the host does.
+          hm = c.home-manager.users.shari;
+          units = hm.systemd.user.services;
+          wantedBy = n: units.${n}.Install.WantedBy or [ ];
+
+          # The companions session/wayland.nix supplies. Named individually so
+          # this fails when one of them stops being bound rather than when it
+          # stops existing.
+          companions = [
+            "gammastep"
+            "geoclue-agent"
+            "idle-inhibit-init"
+            "kanshi"
+            "network-manager-applet"
+            "swayidle"
+          ];
+          sessionTarget = "den-session.target";
+          swayAnchor = "sway-session.target";
+
+          # Forcing the activation package's drvPath (an instantiation, not a
+          # build) evaluates the WHOLE of this user's Home Manager config. That
+          # is what covers the other half of every home carrying every desktop:
+          # an option two of them define differently -- the collision that used
+          # to be the reason a user was assigned one desktop -- fails here rather
+          # than at switch time. It has to be forced explicitly, because a module
+          # definition conflicts only when something reads the option, and the
+          # assertions below read units alone.
+          evaluated = hm.home.activationPackage.drvPath;
+
+          # The file-manager association is per *desktop*, not per home: thunar
+          # is right in Sway and wrong in GNOME, and both are in this home. XDG
+          # reads <desktop>-mimeapps.list ahead of mimeapps.list, so the pair of
+          # assertions below is "Sway gets thunar" and "the shared list does not
+          # hand thunar to GNOME as well".
+          mimeFor = desktop: hm.xdg.configFile."${desktop}-mimeapps.list".text or null;
+          sharedDefault = hm.xdg.mimeApps.defaultApplications."inode/directory" or null;
+        in
+        builtins.seq evaluated (
+          # Nothing the user owns may follow the seat instead of the session.
+          # gnome-keyring is the one exception by design and is bound to
+          # graphical-session-pre.target, so it does not match.
+          map (n: "${n}.service is WantedBy graphical-session.target, which GNOME also starts") (
+            lib.filter (n: lib.elem "graphical-session.target" (wantedBy n)) (lib.attrNames units)
+          )
+          ++ lib.concatMap (
+            n:
+            lib.optional (!(units ? ${n})) "${n}.service is missing from a user who has the Sway session"
+            ++ lib.optional (
+              units ? ${n} && !(lib.elem sessionTarget (wantedBy n))
+            ) "${n}.service is not WantedBy ${sessionTarget} (got ${lib.generators.toPretty { } (wantedBy n)})"
+          ) companions
+          # The shared target is what turns a list of anchors into the single unit
+          # those companions name, so it has to be started by each of them.
+          ++ lib.optional (
+            (hm.systemd.user.targets.den-session.Install.WantedBy or [ ]) != [ swayAnchor ]
+          ) "${sessionTarget} is not started by ${swayAnchor}"
+          # ... and the bar is the counter-case: its modules are sway/*, so it must
+          # follow Sway alone and not the union of the user's sessions.
+          ++
+            lib.optional
+              (!(lib.elem swayAnchor (wantedBy "waybar")) || lib.elem sessionTarget (wantedBy "waybar"))
+              "waybar.service should be WantedBy ${swayAnchor} only (got ${
+                lib.generators.toPretty { } (wantedBy "waybar")
+              })"
+          ++ lib.optional (
+            mimeFor "sway" == null || !lib.hasInfix "thunar.desktop" (mimeFor "sway")
+          ) "sway-mimeapps.list does not point inode/directory at thunar"
+          ++
+            lib.optional (sharedDefault != null)
+              "the shared mimeapps.list sets inode/directory (${
+                lib.generators.toPretty { } sharedDefault
+              }), which would follow the user into GNOME"
+        );
+
       # --- unit shape --------------------------------------------------------
       #
       # The fingerprint used to verify the desktop refactor compared evaluated
@@ -428,7 +519,6 @@
               den.desktop = {
                 environments = [ "sway" ];
                 loginManager = "greetd";
-                users.bbtux = "sway";
               };
               services.displayManager.defaultSession = "sway";
             }
@@ -548,6 +638,7 @@
       checks = {
         desktop-matrix = mkCheck "desktop-matrix" (lib.concatMap checkCase cases);
         desktop-rejects = mkCheck "desktop-rejects" (lib.concatMap checkReject rejects);
+        session-anchors = mkCheck "session-anchors" anchorFailures;
         unit-shape = mkCheck "unit-shape" (lib.concatMap checkShape unitShapes);
       }
       # appa is the only host with media services, and only on its own system.

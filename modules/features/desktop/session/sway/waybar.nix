@@ -376,6 +376,12 @@ _: {
       programs.waybar = {
         enable = true;
         systemd.enable = true;
+        # Sway's own anchor, deliberately NOT wayland.systemd.target (which
+        # session/wayland.nix points at den-session.target, the union of the
+        # user's sessions). The modules below are sway/workspaces, sway/mode,
+        # sway/scratchpad and sway/window, so this bar means nothing outside
+        # Sway: a user carrying a second desktop must not get it there.
+        systemd.targets = [ "sway-session.target" ];
         settings = {
           main = {
             layer = "top";

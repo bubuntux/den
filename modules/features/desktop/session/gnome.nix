@@ -49,8 +49,10 @@
       };
 
     # GNOME keeps nearly all user state in GSettings/dconf rather than dotfiles,
-    # so this is thin. It exists so den.desktop.users can name "gnome" the way
-    # it names "sway", and so GNOME-specific user config has an obvious home.
+    # so this is thin. It exists so installing "gnome" configures users the way
+    # installing "sway" does, and so GNOME-specific user config has an obvious
+    # home. It publishes no den.session.anchors entry: GNOME brings its own
+    # shell, so this repo attaches nothing to its session.
     homeManager.gnome =
       { lib, ... }:
       {

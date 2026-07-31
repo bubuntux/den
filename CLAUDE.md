@@ -32,8 +32,9 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 # Test a host in QEMU VM (e.g., katara)
 nix run .#katara-vm
 
-# Validate: formatting plus the desktop, unit-shape and media checks.
-# Evaluation-only (~2 min: the desktop probes are ten NixOS evaluations).
+# Validate: formatting plus the desktop, session-anchor, unit-shape and media checks.
+# Evaluation-only (~1.5 min: the probes are thirteen NixOS evaluations, one of
+# which also evaluates a user's whole Home Manager config).
 # It does not build hosts -- see the Checks section for why.
 nix flake check
 
@@ -62,7 +63,7 @@ Features ──→ Bundles ──→ Profiles ──→ Hosts
 
 Note the direction of two edges that are easy to get backwards: **users are imported by profiles**, not by hosts (a role knows who operates the machine), and **hardware is imported by hosts**, not by profiles.
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/sway/` holding the pieces only Sway uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` the pieces only Sway uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
 - **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
@@ -97,26 +98,33 @@ Two rules carry real weight here:
 
 | check | what it proves |
 |-------|----------------|
-| `desktop-matrix` | five DE/login-manager combinations produce the expected config |
-| `desktop-rejects` | five invalid combinations are refused |
+| `desktop-matrix` | six DE/login-manager combinations produce the expected config |
+| `desktop-rejects` | four invalid combinations are refused |
+| `session-anchors` | a session's user units stay out of the user's other desktops |
 | `unit-shape` | no surprise systemd directives on units this repo configures |
 | `media-plumbing` | `den.media.services` really generates what it claims, for every entry |
 
-All four are **evaluation-only**. Host builds deliberately do *not* live here, even though `nix flake check` is the obvious place for them: `.github/workflows/_build.yml` already builds every host in a matrix with per-host error logs, and `ci.yml` gates `build` on `check` while `heal` fires on `build` *failing*. A host build inside `checks` moves a caddy-hash drift from `build` (fails → heal runs) to `check` (fails → build skipped → heal never runs), silently disabling the caddy self-heal. Build a host by hand instead:
+All five are **evaluation-only**. Host builds deliberately do *not* live here, even though `nix flake check` is the obvious place for them: `.github/workflows/_build.yml` already builds every host in a matrix with per-host error logs, and `ci.yml` gates `build` on `check` while `heal` fires on `build` *failing*. A host build inside `checks` moves a caddy-hash drift from `build` (fails → heal runs) to `check` (fails → build skipped → heal never runs), silently disabling the caddy self-heal. Build a host by hand instead:
 
 ```bash
 nix build .#nixosConfigurations.<host>.config.system.build.toplevel
 ```
 
-The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps ten NixOS evaluations affordable.
+The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, let alone one user carrying two, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps thirteen NixOS evaluations affordable (~1.5 min for the whole of `nix flake check`, uncached).
+
+`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, Waybar follows `sway-session.target` *only*, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
 
 `unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
 `media-plumbing` asserts properties over every `den.media.services` entry rather than a golden snapshot, so a service added later is covered for free. Note that `requiresMounts` is checked by *containment*, not equality — the upstream service modules add their own state directories to `RequiresMountsFor` (jellyfin contributes three).
 
-**Adding a case** means appending to `cases` (with an `expect` attrset, and optionally `cmdContains` to assert on the greeter command line), to `rejects` (which passes when evaluation throws *or* any assertion reports false), or to `unitShapes`.
+**Adding a case** means appending to `cases` (with an `expect` attrset, and optionally `cmdContains` to assert on the greeter command line), to `rejects` (which passes when evaluation throws *or* any assertion reports false), to `unitShapes`, or — for a companion that must follow the session — to `companions` in `anchorFailures`.
 
-**When adding or changing a check, prove it bites.** Break the thing on purpose, confirm the check fails with a message that names the problem, then revert. A check that has never failed is not known to work. Every check here was validated that way: removing `den.desktop.sessionCommands.sway` made `desktop-matrix` report the missing `--cmd sway`; neutralising the environment-membership assertion made `desktop-rejects` report "was accepted, expected rejection"; dropping LightDM's `services.xserver.enable` failed on both the assertion and the expectation; re-enabling `useTextGreeter` made `unit-shape` list all seven directives it adds; breaking the registry's umask and namespace-address derivation made `media-plumbing` name the affected services.
+**When adding or changing a check, prove it bites.** Break the thing on purpose, confirm the check fails with a message that names the problem, then revert. A check that has never failed is not known to work. Every check here was validated that way: removing `den.desktop.sessionCommands.sway` made `desktop-matrix` report the missing `--cmd sway`; neutralising the "nothing can start a session" assertion made `desktop-rejects` report "was accepted, expected rejection"; dropping LightDM's `services.xserver.enable` failed on both the assertion and the expectation; re-enabling `useTextGreeter` made `unit-shape` list all seven directives it adds; breaking the registry's umask and namespace-address derivation made `media-plumbing` name the affected services.
+
+`session-anchors` was validated four times over, once per property it holds: dropping `wayland.systemd.target` from `session/wayland.nix` made it name kanshi, swayidle and idle-inhibit-init as bound to `graphical-session.target`; giving `homeManager.gnome` its own `xdg.userDirs.desktop` made it report the conflicting definition; and moving thunar's association back into the shared `mimeapps.list` made it report that the default "would follow the user into GNOME".
+
+Writing `session-anchors` also showed what a check of this shape cannot do: the first attempt tried to prove the conflict case with `xdg.portal.config`, which merges into a list rather than conflicting, so the check passed on genuinely broken input. Pick an option that is single-valued when testing a collision.
 
 Writing `media-plumbing` also caught a bug in the check rather than the code — asserting list equality on `RequiresMountsFor` failed for four services because upstream contributes its own entries. Expect that: a new check's first failure is as likely to be its own fault as the code's.
 
@@ -203,9 +211,9 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
 
 - **Imports**: reference other modules through `self.modules.<class>`: `imports = with self.modules.nixos; [ bundle-host theme ];`
 
-- **Home module wiring**: a nixos module injects its own home module via `home-manager.sharedModules = [ self.modules.homeManager.my-feature ];` — the standard pattern for bridging NixOS and Home Manager config in a single feature file. Use it only for config that every user on the host should get; anything meant for one user belongs on `home-manager.users.<name>` (see how `den.desktop.users` attaches the desktop environments)
+- **Home module wiring**: a nixos module injects its own home module via `home-manager.sharedModules = [ self.modules.homeManager.my-feature ];` — the standard pattern for bridging NixOS and Home Manager config in a single feature file. Use it only for config that every user on the host should get; anything meant for one user belongs on `home-manager.users.<name>`. The desktop environments go through `sharedModules` (`den.desktop.environments`) precisely because every user may log into any installed session — what keeps them apart is the session anchors, not the module wiring
 
-- **Declare options where they are read**: a module that reads an option should import the module declaring it rather than relying on a parent to have done so. `homeManager.sway` and `homeManager.kanshi` both import `homeManager.monitors` for this reason; the `key` convention makes the duplicate import free
+- **Declare options where they are read**: a module that reads an option should import the module declaring it rather than relying on a parent to have done so. `homeManager.sway` and `homeManager.kanshi` both import `homeManager.monitors` for this reason, and `homeManager.session-wayland` imports `homeManager.session-options` for `den.session.*`; the `key` convention makes the duplicate import free
 
 - **Declaring inputs**: Core modules can declare flake inputs inline via `flake-file.inputs.<name>.url = "github:owner/repo";` — prefer this over editing `flake.nix` directly
 
@@ -216,7 +224,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
   1. Run `nix fmt` to ensure consistent code style
   1. Stage files with `git add` (the flake only sees tracked files)
 
-- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is evaluation-only, but still takes ~2 min because the desktop probes are ten NixOS evaluations; run a single check by name while iterating. Host builds are CI's job (see **Checks**)
+- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is evaluation-only, but still takes ~1.5 min because the desktop probes are thirteen NixOS evaluations; run a single check by name while iterating. Host builds are CI's job (see **Checks**)
 
 - **Committing**: Always present changes and proposed commit message to the user for explicit approval before committing
 
@@ -234,6 +242,7 @@ Import-tree already gives file-granular opt-in, so a module's *existence* is the
 
   - `services.reverse-proxy.routes` (`features/network/reverse-proxy.nix`) — each service declares its own route; Caddy stays unaware of which backends exist.
   - `den.media.services` (`features/media/registry.nix`) — generates the media-group membership, umask, mount dependencies, cgroup caps, VM port forward and `.wg` alias that all eight NAS services used to hand-write.
+  - `den.desktop.sessionAnchors` / `den.session.anchors` — each session declares the unit that means it is running; the companion modules and the gates read the set without either side listing session names. See **Desktop Environments and Login Managers**.
 
   Keep a registry to *boilerplate*. Anything genuinely specific to one consumer stays in that consumer's file; a registry that grows a special case per service has stopped earning its keep.
 
@@ -246,7 +255,6 @@ Which of the settings a **profile** may set and which belong to the **host** fol
 | setting | mergeable? | set by |
 |---|---|---|
 | `den.desktop.environments` | yes, lists concatenate (`apply = lib.unique`) | profiles |
-| `den.desktop.users` | yes, attrsets merge | profiles |
 | `den.desktop.loginManager` | no, single value | host |
 | `services.displayManager.defaultSession` | no, single value | host |
 | `services.displayManager.autoLogin.*` | no, single value | host |
@@ -254,14 +262,11 @@ Which of the settings a **profile** may set and which belong to the **host** fol
 A profile that named its own greeter could not be combined with another role — the module system would report conflicting definitions. So roles contribute what they install and the host decides how it is presented:
 
 ```nix
-# profiles/family.nix              # profiles/workstation.nix
-den.desktop = {                    den.desktop = {
-  environments = [ "gnome" "sway" ]; environments = [ "sway" ];
-  users = {                          users.bbtux = "sway";
-    shari = "gnome";               };
-    bbtux = "sway";
-  };
-};
+# profiles/family.nix                 # profiles/workstation.nix
+den.desktop.environments = [          den.desktop.environments = [ "sway" ];
+  "gnome"
+  "sway"
+];
 
 # hosts/katara/default.nix -- imports both roles, then picks one greeter
 den.desktop.loginManager = "gdm";
@@ -270,23 +275,50 @@ services.displayManager.defaultSession = "gnome";
 
 katara is the worked example: two roles, both environments installed, and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path.
 
-- **To add an environment**: create `features/desktop/session/<name>.nix` gated on `lib.elem "<name>" config.den.desktop.environments`, add the name to the `environments` and `users` enums, and import it from `bundle-desktop`. If it grows companion pieces of its own, make it a directory instead — see **Session Layout** below. Publish `den.desktop.sessionCommands.<name>` if the session can be launched by a bare command — greetd needs it for its fallback and autologin paths, since greetd ignores `services.displayManager.defaultSession` upstream. GNOME deliberately publishes none.
+**There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. There used to be a `den.desktop.users` naming one desktop per person, and it never did what it looked like: the greeter offers every installed session to everyone regardless, so all it decided was whose home would be *unprepared* for the session they chose — which is exactly what happened to bbtux, whose entry said sway on a machine whose default session is GNOME.
+
+What makes one home holding several desktops work is that nothing a session owns may be home-wide. Anything that would be gets scoped, in one of two ways.
+
+**User units** name the session they belong to:
+
+- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "sway-session.target"`. It is keyed by id rather than a bare list because the key is the name the session announces in `XDG_CURRENT_DESKTOP`, which is what the per-desktop *files* below are named after.
+- **`den.desktop.sessionAnchors`** (`features/desktop/options.nix`, per host) — the same fact system-side, for system-level user units (`blueman-applet`) and as the gate for "does any installed session need the companion stack" (`nixos.thunar`, `nixos.session-wayland`). A session that ships its own shell publishes nothing, which is why GNOME has no entry.
+- **`den-session.target`** (`session/wayland.nix`) — one unit for the shared companions to name, started by *any* anchor and stopped with it. `wayland.systemd.target` points at it, and some thirty upstream Home Manager modules (kanshi, swayidle, clipman, dunst…) default their binding to that option, so they need no per-unit wiring.
+
+Nothing a session owns may bind to `graphical-session.target`: **every** desktop starts it, GNOME included. That was a real bug, not a hypothetical — bbtux had Waybar, kanshi, swayidle and gammastep on `graphical-session.target`, and katara's default session is GNOME, so his first login drew a Waybar over mutter with kanshi fighting it for the outputs. The `session-anchors` check exists to keep that fixed.
+
+**Config files** that a desktop reads by name are already scoped — `~/.config/sway/config` means nothing to GNOME — so they need no special handling. The awkward case is a *shared* file two desktops would fill in differently, and the answer is a per-desktop variant rather than a per-user choice:
+
+- **`<desktop>-mimeapps.list`** (`features/desktop/thunar.nix`) — XDG reads `$XDG_CONFIG_HOME/<desktop>-mimeapps.list` before `mimeapps.list`, once per entry in `XDG_CURRENT_DESKTOP`. Writing `sway-mimeapps.list` is what lets folders open in thunar under Sway and nautilus under GNOME out of one home. Home Manager's `xdg.mimeApps` only writes the shared list, so this is a hand-written `xdg.configFile`.
+
+- **Anything with no per-desktop form** has to be settled once for the home, and the tie-break is "what is least wrong in the desktop that did not ask for it". `xdg.userDirs.desktop` is the example: Sway used to drop the Desktop folder, which is right for a tiling session and wrong for the GNOME session in the same home, so the folder stays.
+
+- **To add an environment**: create `features/desktop/session/<name>.nix` gated on `lib.elem "<name>" config.den.desktop.environments`, add the name to `sessionNames` in `features/desktop/options.nix`, and import it from `bundle-desktop`. If it grows companion pieces of its own, make it a directory instead — see **Session Layout** below. Then:
+
+  - a session that comes up bare imports `session-wayland` on both sides and publishes its anchor twice — `den.session.anchors.<name>` (home) and `den.desktop.sessionAnchors.<name>` (system). Use the id from the session's `DesktopNames`, since the home-side key names files. One that ships its own shell publishes neither.
+  - publish `den.desktop.sessionCommands.<name>` if the session can be launched by a bare command — greetd needs it for its fallback and autologin paths, since greetd ignores `services.displayManager.defaultSession` upstream. GNOME deliberately publishes none.
+  - anything the session configures per user that is not compositor-specific belongs in `session/wayland.nix`, not in a copy under `session/<name>/`.
+
 - **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.
-- **Desktop Home Manager modules attach per user** through `den.desktop.users`, never through `home-manager.sharedModules` — with two environments installed, pushing both at every user collides (each configures `xdg.portal`, keybindings, a bar). It also can't live on the user module, since `user-bbtux` is shared with headless `appa`. This is not theoretical: `waybar` and `kanshi` used to reach users through `sharedModules`, so katara's GNOME user got a Waybar drawn over her session and a kanshi fighting mutter for the outputs, and `power-profile-auto` gave her an idle inhibitor whose only job is stopping swayidle. All three are now imported by `homeManager.sway`, which only sway users receive — note the last one lives under `features/system/`, so this is not a rule about the `desktop/` directory but about anything a session owns.
-- **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each one keeping all of its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so a module a session imports lands on hosts that never selected the session. Either the imported module attaches per user (the HM case above) or it gates itself: `nixos.thunar` follows `config.programs.sway.enable`, the session's own switch, so it installs nowhere else.
-- **A host that writes an option through `home-manager.sharedModules` must declare it there too.** `hosts/*/monitors.nix` pushes `monitors` at every user but only sway users import `homeManager.monitors`, so the block imports the schema alongside the values — otherwise a GNOME-only user fails to evaluate on an undeclared option.
+
+- **Desktop Home Manager modules reach users through `den.desktop.environments`**, which pushes them at `home-manager.sharedModules`, never from the user module — `user-bbtux` is shared with headless `appa`, which must not grow a desktop. Pushing a session's config at every user is only safe because of the scoping above; it was not always. `waybar` and `kanshi` reached users this way while bound to `graphical-session.target`, so katara's GNOME user got a Waybar drawn over her session and a kanshi fighting mutter for the outputs, `power-profile-auto` gave her an idle inhibitor whose only job is stopping swayidle, and `bundle-desktop` gave her a second network applet next to GNOME's own. All of them now sit behind `homeManager.session-wayland` and an anchor — note two live outside `features/desktop/`, so this is not a rule about that directory but about anything a session owns.
+
+- **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each one keeping all of its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so a module a session imports lands on hosts that never selected the session. Either the imported module attaches per user (the HM case above) or it gates itself: `nixos.thunar` and `nixos.session-wayland` follow `config.den.desktop.sessionAnchors != { }`, so they install nowhere else. Gating on one compositor's own switch (`programs.sway.enable`, as thunar used to) works only until a second compositor arrives.
+
+- **A host that writes an option through `home-manager.sharedModules` must declare it there too.** `hosts/*/monitors.nix` pushes `monitors` at every user, and the block imports the schema alongside the values so the option exists even on a host with no session that reads it.
 
 ### Session Layout
 
-A session that brings companion pieces becomes a directory, so the tree says who owns what. GNOME needs none (it keeps its state in GSettings and mutter manages its own outputs), so it stays a single file; Sway ships no bar, no output manager and no notification daemon, so it carries several:
+A session that brings companion pieces becomes a directory, so the tree says who owns what. GNOME needs none (it keeps its state in GSettings and mutter manages its own outputs), so it stays a single file; Sway carries the pieces that speak its IPC:
 
 ```
 modules/features/desktop/session/
+  options.nix           # den.session.* -- the user-scoped session schema
+  wayland.nix           # what a bare compositor omits, for every such session
   gnome.nix             # one file is enough
   sway/
     default.nix         # nixos.sway + homeManager.sway
     waybar.nix          # bar -- hardcodes sway/workspaces, sway/mode, swayidle
-    kanshi.nix          # wlroots output manager; mutter's job under GNOME
     dictation.nix       # writes wayland.windowManager.sway.config.keybindings
     _keybindings.nix    # `_` fragments: curried functions, not flake-parts
     _modes.nix          #   modules, imported by ./default.nix
@@ -294,9 +326,11 @@ modules/features/desktop/session/
     _startup.nix
 ```
 
-The test for whether something belongs in here is whether it names the compositor. Anything DE-agnostic stays flat under `features/desktop/` even when only one session happens to import it today: `foot` is a terminal, `thunar` a file manager, and `monitors` only declares the schema hosts write their display layout in (`kanshi` reads it, but a host setting `monitors` is describing its hardware, not configuring Sway).
+The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `foot` is a terminal, `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
 
-Where such a feature gets imported *from* is the separate question, and the answer is not automatically `bundle-desktop`: that bundle is for what every environment on the host should have. A per-session choice belongs to the session — thunar is imported by `sway`, not the bundle, so a GNOME user on the same host keeps nautilus rather than being handed both. When the choice is system-level rather than per-user, the imported module has to gate itself; see the `imports`/`mkIf` bullet above.
+`session/wayland.nix` is where that rule leads for a *group* of them. Notifications, launcher, locker, idle handling, colour temperature, keyring and tray applets are each DE-agnostic, but they only make sense together — no host wants a subset — so they are one module ("the parts a compositor omits") rather than nine files. Sway's own copies of these were what made the first attempt at a second session look expensive.
+
+Where such a feature gets imported *from* is the separate question, and the answer is not automatically `bundle-desktop`: that bundle is for what every environment on the host should have. A per-session choice belongs to the session — `session-wayland` is imported by `sway`, not the bundle, so a GNOME user on the same host keeps nautilus and one network applet rather than being handed both. When the choice is system-level rather than per-user, the imported module has to gate itself; see the `imports`/`mkIf` bullet above.
 
 ## Host Layout
 

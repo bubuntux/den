@@ -15,9 +15,15 @@ let
     ;
 in
 {
-  # Output management for the Sway session: kanshi drives wlroots outputs, which
-  # is mutter's job under GNOME, so this is imported by homeManager.sway and
-  # lands only on users of that session.
+  # Output management for a bare Wayland session: kanshi drives the outputs a
+  # compositor exposes over wlr-output-management, which is mutter's job under
+  # GNOME. It names no compositor -- every session that would want it speaks that
+  # protocol -- so it sits flat here next to the `monitors` schema it reads, and
+  # session/wayland.nix is what pulls it in.
+  #
+  # Its unit follows wayland.systemd.target, which session/wayland.nix points at
+  # den-session.target. Imported on its own it would fall back to Home Manager's
+  # default of graphical-session.target and run under any desktop.
   flake.modules.homeManager.kanshi =
     { config, ... }:
     let

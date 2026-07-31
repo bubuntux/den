@@ -1,7 +1,8 @@
 {
   # Single source of truth for how warm the screen goes after dark, shared by
-  # every desktop that filters blue light: gammastep under Sway, Night Light
-  # under GNOME. Exposed at the flake level rather than as a NixOS option
+  # every desktop that filters blue light: gammastep in a bare Wayland session
+  # (session/wayland.nix), Night Light under GNOME. Exposed at the flake level
+  # rather than as a NixOS option
   # because it is a constant, not a per-host variant -- two desktops on the
   # same machine drifting apart is the failure worth preventing here.
   #

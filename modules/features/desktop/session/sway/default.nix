@@ -7,7 +7,10 @@ let
   mod = "Mod4";
 in
 {
-  # Home Manager module for sway user configuration
+  # Sway, and only what names Sway. Everything a bare Wayland session needs but
+  # any compositor could provide -- notifications, launcher, locker, idle,
+  # outputs, keyring, tray applets -- lives in session/wayland.nix, which both
+  # halves below import.
   flake.modules = {
     homeManager.sway =
       {
@@ -18,16 +21,11 @@ in
         ...
       }:
       let
-        # Desktop + lock-screen wallpaper. nixos-artwork is archived upstream, but
-        # nixpkgs still ships these wallpapers; gnomeFilePath points straight at the
-        # PNG in the store (cache-backed, no eval-time network fetch).
-        wallpaper = pkgs.nixos-artwork.wallpapers.binary-black.gnomeFilePath;
-
         # Import configuration fragments (curried functions, underscore prefix to avoid import-tree)
         keybindings = import ./_keybindings.nix pkgs mod;
         rules = import ./_rules.nix;
         modes = import ./_modes.nix pkgs mod;
-        startup = import ./_startup.nix pkgs;
+        startupCommands = import ./_startup.nix pkgs;
 
         # Generate workspace output assignments from monitors config
         # Each monitor with workspaces generates entries mapping those workspaces to the monitor
@@ -43,29 +41,29 @@ in
       in
       {
         key = "den:homeManager.sway";
-        # Everything the session needs at user level is imported here, never
-        # pushed through home-manager.sharedModules: this module is attached per
-        # user by den.desktop.users, so a GNOME user on the same host gets none
-        # of it. waybar and kanshi used to arrive via sharedModules and did land
-        # on every user -- shari ended up with a Waybar drawn over GNOME and
-        # kanshi fighting mutter for the outputs.
+        # Every user on the host receives this, because every user may log into
+        # Sway. What keeps it out of their GNOME session is the anchor below,
+        # not the absence of this module -- waybar and kanshi reached every user
+        # once before and did land in GNOME, since they were bound to
+        # graphical-session.target rather than to a session.
         imports = with self.modules.homeManager; [
+          # The companion stack, and the den.session options set below.
+          session-wayland
+          session-options
           # Declares the `monitors` option read above -- imported here rather
           # than left to whoever pulls this module in.
           monitors
           waybar
-          kanshi
-          foot
-          # Folders open in thunar for users of *this* session; a GNOME user on
-          # the same host keeps nautilus. See features/desktop/thunar.nix.
-          thunar
-          # Stops swayidle at login when on AC. Lives with the rest of the AC
-          # logic in features/system/power-profile-auto.nix, but it is swayidle's
-          # companion, so the session is what pulls it in -- on a host without
-          # sway there is no swayidle for it to inhibit.
-          power-profile-auto
           # dictation
         ];
+
+        # Home Manager's sway module generates this target and sway's own config
+        # starts it, so it is what "a Sway session is running" means for this
+        # user. session/wayland.nix hangs the companions off it, and the key
+        # matches what sway.desktop announces in XDG_CURRENT_DESKTOP
+        # ("sway;wlroots"), which is what makes sway-mimeapps.list work.
+        den.session.anchors.sway = "sway-session.target";
+
         wayland.windowManager.sway = {
           enable = true;
           systemd = {
@@ -116,8 +114,9 @@ in
             # Enable Num Lock by default
             input."type:keyboard".xkb_numlock = "enabled";
 
-            # Wallpaper
-            output."*".bg = "${wallpaper} fill";
+            # Wallpaper. The lock screen reads the same image from
+            # den.session.wallpaper (session/wayland.nix).
+            output."*".bg = "${config.den.session.wallpaper} fill";
 
             # Style
             window = {
@@ -148,126 +147,36 @@ in
             bars = [ ];
 
             # Startup commands
-            startup = startup.commands;
+            startup = startupCommands;
           };
         };
 
-        # Swayidle configuration
-        services.swayidle = startup.swayidle;
-
-        # Lock screen: show the wallpaper instead of a blank/white screen. Every
-        # swaylock invocation (the swayidle events above and the (l)ock mode key)
-        # reads this generated ~/.config/swaylock/config, so none of them need to
-        # pass an image flag.
-        programs.swaylock = {
-          enable = true;
-          settings = {
-            image = wallpaper;
-            scaling = "fill";
-          };
-        };
-
-        # Mako notification daemon
-        services.mako = startup.mako;
-
-        # Rofi launcher
-        programs.rofi = startup.rofi;
-
-        # Gammastep for screen color temperature (night light). Daytime stays at
-        # gammastep's neutral 6500K; the night value is shared with GNOME's
-        # Night Light (features/desktop/night-light.nix).
-        services.gammastep = {
-          enable = true;
-          provider = "geoclue2";
-          temperature = {
-            day = 6500;
-            night = self.lib.nightLightKelvin;
-          };
-        };
-
-        # Gammastep asks geoclue where we are, and geoclue serves no client
-        # until an agent is registered for that user -- GNOME uses gnome-shell,
-        # so a Sway session has to bring its own. It prompts through mako, and
-        # waits for geoclue's bus name itself, so ordering does not matter.
-        # features/system/locale.nix keeps its desktop id whitelisted.
-        systemd.user.services.geoclue-agent = {
-          Unit = {
-            Description = "Geoclue agent for the Sway session";
-            PartOf = [ "graphical-session.target" ];
-          };
-          Service = {
-            Type = "exec";
-            ExecStart = "${pkgs.geoclue2-with-demo-agent}/libexec/geoclue-2.0/demos/agent";
-            Restart = "on-failure";
-          };
-          Install.WantedBy = [ "graphical-session.target" ];
-        };
-
-        # XDG portal configuration
-        xdg.portal = {
-          enable = true;
-          xdgOpenUsePortal = false;
-          config = {
-            common.default = "gtk";
-            sway = {
-              default = [ "gtk" ];
-              "org.freedesktop.impl.portal.Screenshot" = [ "wlr" ];
-              "org.freedesktop.impl.portal.ScreenCast" = [ "wlr" ];
-            };
-          };
-          extraPortals = with pkgs; [
-            xdg-desktop-portal-wlr
-            xdg-desktop-portal-gtk
-          ];
-        };
-
-        # Make `login` the default keyring so PAM-unlocked secrets are usable
-        # by libsecret apps (Claude Code, browsers, ...) without a prompt.
-        xdg.dataFile."keyrings/default" = {
-          text = "login";
-          force = true;
-        };
-
-        # Own org.freedesktop.secrets from inside the graphical session.
-        # greetd's PAM `auto_start` (configured below) unlocks a keyring daemon
-        # with the login password at login, but PAM runs before the user dbus
-        # socket exists, so that daemon never claims the session bus and then
-        # dies. Left alone, the first libsecret app dbus-activates a fresh,
-        # LOCKED daemon minutes later and you get a password prompt. This user
-        # service runs `gnome-keyring-daemon --start` at graphical-session start,
-        # while the PAM daemon is still alive: it adopts that already-unlocked
-        # daemon via its control socket and claims the bus, so apps see an
-        # unlocked keyring. The system dbus activation file is kept as a fallback
-        # (e.g. for protonvpn-app) if PAM ever fails to start/unlock the daemon.
-        services.gnome-keyring = {
-          enable = true;
-          components = [
-            "pkcs11"
-            "secrets"
-            "ssh"
-          ];
-        };
-
-        # Sway has no desktop icons, so skip the Desktop folder.
-        xdg.userDirs.desktop = config.home.homeDirectory;
-
-        # Packages
-        home.packages = with pkgs; [
-          clipman
-          mako
-          waybar
-          slurp
-          warpd
-          swayidle
-          sway-contrib.grimshot
-          wl-clipboard
-          wdisplays
-          playerctl
-          brightnessctl
-          pulseaudio
-          lxqt.lxqt-policykit
-          xarchiver # GUI archive manager
+        # Blanking the outputs is the compositor's own call, so it is the one
+        # swayidle timeout that cannot be shared; session/wayland.nix supplies
+        # the lock and suspend ones and the list definitions merge.
+        services.swayidle.timeouts = [
+          {
+            timeout = 360;
+            command = "${pkgs.sway}/bin/swaymsg 'output * power off'";
+            resumeCommand = "${pkgs.sway}/bin/swaymsg 'output * power on'";
+          }
         ];
+
+        # Sway's own portal preferences. session/wayland.nix sets `enable`, the
+        # common fallback and the gtk backend; both options merge, so this only
+        # adds what is specific to wlroots screen capture.
+        xdg.portal = {
+          config.sway = {
+            default = [ "gtk" ];
+            "org.freedesktop.impl.portal.Screenshot" = [ "wlr" ];
+            "org.freedesktop.impl.portal.ScreenCast" = [ "wlr" ];
+          };
+          extraPortals = [ pkgs.xdg-desktop-portal-wlr ];
+        };
+
+        # grimshot drives sway's own screenshot IPC, so it is the one tool here
+        # that no other session could use. waybar comes from programs.waybar.
+        home.packages = [ pkgs.sway-contrib.grimshot ];
       };
 
     # NixOS module for system-level sway configuration
@@ -340,12 +249,12 @@ in
         key = "den:nixos.sway";
         imports = with self.modules.nixos; [
           desktop-options
-          # Sway ships no file manager, so the session supplies one. Pulled in
-          # here rather than from bundle-desktop because GNOME brings nautilus
-          # and should not also get thunar. Note `imports` is NOT covered by the
-          # mkIf below -- bundle-desktop imports every session unconditionally,
-          # so nixos.thunar gates itself on programs.sway.enable.
-          thunar
+          # The system half of the companion stack (swaylock PAM, keyring,
+          # polkit, the Bluetooth applet). It gates itself on
+          # den.desktop.sessionAnchors, which the mkIf below contributes to, so
+          # it stays inert on a host that never selected a bare session --
+          # `imports` is not covered by that mkIf.
+          session-wayland
         ];
 
         config = lib.mkIf (lib.elem "sway" config.den.desktop.environments) {
@@ -371,18 +280,11 @@ in
           # fallback / autologin command. See den.desktop.sessionCommands.
           den.desktop.sessionCommands.sway = "sway";
 
-          # PAM configuration for swaylock
-          security.pam.services.swaylock = { };
-
-          # Real-time priority for users
-          security.pam.loginLimits = [
-            {
-              domain = "@users";
-              item = "rtprio";
-              type = "-";
-              value = 1;
-            }
-          ];
+          # Sway ships no bar, notifier, locker or file manager, so it needs the
+          # companion stack; naming the unit that stands for a running Sway
+          # session is what lets system-level user units attach to it and only to
+          # it. The per-user half is den.session.anchors above.
+          den.desktop.sessionAnchors.sway = "sway-session.target";
 
           # XDG portal for screen sharing and file dialogs
           xdg.portal = {
@@ -401,26 +303,6 @@ in
               };
             };
             extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-          };
-
-          # Required for sway and home-manager integration
-          security.polkit.enable = true;
-
-          # Keyring for secrets
-          services.gnome.gnome-keyring.enable = true;
-
-          # Auto-unlock the keyring at login so apps (e.g. Claude Code) don't prompt
-          security.pam.services.login.enableGnomeKeyring = true;
-
-          # The blueman-applet unit ships no [Install] section, so nothing starts it
-          # at login. Full DEs (e.g. GNOME) autostart it via XDG, but sway
-          # has no XDG autostart -- bind it to the graphical session like waybar/mako
-          # so the Bluetooth tray icon actually appears. Scoped here (not in the
-          # shared bluetooth feature) to avoid a duplicate applet on GNOME hosts.
-          systemd.user.services.blueman-applet = {
-            wantedBy = [ "graphical-session.target" ];
-            partOf = [ "graphical-session.target" ];
-            after = [ "graphical-session.target" ];
           };
         };
       };

@@ -18,7 +18,7 @@ in
 {
   flake.modules = {
     homeManager.power-profile-auto =
-      { pkgs, ... }:
+      { pkgs, config, ... }:
       let
         idleInhibitInit = pkgs.writeShellScript "idle-inhibit-init" ''
           # Stop swayidle if on AC power
@@ -29,34 +29,40 @@ in
       in
       {
         key = "den:homeManager.power-profile-auto";
-        # Stop swayidle on login when on AC. Imported by homeManager.sway rather
-        # than pushed at every user; see the note on the nixos half below.
+        # Stop swayidle on login when on AC. Imported by session/wayland.nix
+        # alongside swayidle rather than pushed at every user; see the note on
+        # the nixos half below.
         #
-        # Ordered against graphical-session.target explicitly, like every other
-        # unit in the session (swayidle, waybar, network-manager-applet). That is
-        # load-bearing: a unit that is WantedBy a target but declares no ordering
-        # against it gets an implicit "target After= unit" edge, which turned the
-        # After=swayidle.service below into an ordering cycle and had systemd drop
-        # this job at every login.
+        # Bound to wayland.systemd.target, the same unit swayidle itself follows
+        # -- session/wayland.nix points it at den-session.target, so this runs
+        # under the sessions that have a swayidle to inhibit and not in GNOME,
+        # which runs its own idle policy. (Imported without that module it falls
+        # back to Home Manager's default of graphical-session.target.)
+        #
+        # Ordered against that target explicitly, like every other unit in the
+        # session. That is load-bearing: a unit that is WantedBy a target but
+        # declares no ordering against it gets an implicit "target After= unit"
+        # edge, which turned the After=swayidle.service below into an ordering
+        # cycle and had systemd drop this job at every login.
         #
         # Deliberately no Requires=swayidle.service either: this unit's whole job
         # is to stop swayidle, and Requires= propagates that stop straight back,
         # SIGTERMing the script mid-run. After= alone is enough to order the two,
-        # since graphical-session.target already pulls swayidle in.
+        # since the target already pulls swayidle in.
         systemd.user.services.idle-inhibit-init = {
           Unit = {
             Description = "Initialize idle inhibitor based on AC state";
             After = [
-              "graphical-session.target"
+              config.wayland.systemd.target
               "swayidle.service"
             ];
-            PartOf = [ "graphical-session.target" ];
+            PartOf = [ config.wayland.systemd.target ];
           };
           Service = {
             Type = "oneshot";
             ExecStart = idleInhibitInit;
           };
-          Install.WantedBy = [ "graphical-session.target" ];
+          Install.WantedBy = [ config.wayland.systemd.target ];
         };
       };
 
@@ -85,8 +91,8 @@ in
 
         # Deliberately no `home-manager.sharedModules` for the module above: its
         # unit exists to stop swayidle, so pushing it at every user put an
-        # idle-inhibit-init on GNOME users too, where it can only fail. The Sway
-        # session imports it instead, which is what scopes it per user. GNOME
+        # idle-inhibit-init on GNOME users too, where it can only fail. The bare
+        # sessions import it instead, which is what scopes it per user. GNOME
         # needs none of it -- gnome-settings-daemon runs its own idle and power
         # policy, and this file's system half already sets the profile.
         #

@@ -36,9 +36,12 @@
     # /var/lib/AccountsService/users/<name>, not configuration: every user's
     # *first* login uses defaultSession below, so bbtux -- whose
     # den.desktop.users entry is sway -- starts in GNOME until he picks Sway
-    # once from the session menu. Keyring auto-unlock still works: GDM derives
-    # its PAM config from security.pam.services.login.enableGnomeKeyring, which
-    # the sway session module sets.
+    # once from the session menu. That detour is harmless now: his Sway
+    # companions hang off sway-session.target (den.session.anchors), so the GNOME
+    # login he passes through is a plain GNOME login. Keyring auto-unlock still
+    # works: GDM derives its PAM config from
+    # security.pam.services.login.enableGnomeKeyring, which
+    # features/desktop/session/wayland.nix sets.
     den.desktop.loginManager = "gdm";
     services.displayManager.defaultSession = "gnome";
   };
