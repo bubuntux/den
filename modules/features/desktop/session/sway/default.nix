@@ -14,6 +14,7 @@ in
         pkgs,
         lib,
         config,
+        options,
         ...
       }:
       let
@@ -67,7 +68,30 @@ in
         ];
         wayland.windowManager.sway = {
           enable = true;
-          systemd.enable = true;
+          systemd = {
+            enable = true;
+
+            # extraSessionCommands below sets these for sway itself, so every
+            # process sway spawns inherits them. Systemd user services and
+            # dbus-activated apps are not sway's children, though, and reach
+            # the session through the systemd/dbus user environment -- which
+            # only ever receives the variables named here -- upstream's default
+            # list carries none of the toolkit ones, so `systemctl --user
+            # show-environment` in a live session showed XDG_CURRENT_DESKTOP
+            # but no QT_QPA_PLATFORM. (NIXOS_OZONE_WL is already in that list;
+            # WLR_NO_HARDWARE_CURSORS is read by wlroots, so only sway itself
+            # needs it.)
+            #
+            # A list option replaces its default rather than extending it, so
+            # build on upstream's eight instead of restating them.
+            variables = options.wayland.windowManager.sway.systemd.variables.default ++ [
+              "QT_QPA_PLATFORM"
+              "QT_WAYLAND_DISABLE_WINDOWDECORATION"
+              "MOZ_ENABLE_WAYLAND"
+              "SDL_VIDEODRIVER"
+              "_JAVA_AWT_WM_NONREPARENTING"
+            ];
+          };
           wrapperFeatures = {
             base = true;
             gtk = true;
