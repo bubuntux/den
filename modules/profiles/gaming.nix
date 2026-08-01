@@ -32,18 +32,19 @@
         protontricks.enable = true;
         # Enable extest for Steam Input on Wayland
         extest.enable = true;
-        # Add gamescope and nvidia-offload to Steam's FHS environment
         extraPackages = with pkgs; [
           gamescope
-          (writeShellScriptBin "nvidia-offload" ''
-            export __NV_PRIME_RENDER_OFFLOAD=1
-            export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
-            export __GLX_VENDOR_LIBRARY_NAME=nvidia
-            export __VK_LAYER_NV_optimus=NVIDIA_only
-            exec "$@"
-          '')
+          # Render offload, as `switcherooctl launch %command%` in a game's
+          # launch options. In the FHS explicitly rather than through the host
+          # PATH, since a missing launch-option command fails silently.
+          switcheroo-control
         ];
       };
+
+      # The daemon switcherooctl asks which GPU is discrete and what to export
+      # for it. Vendor-neutral and a no-op with one GPU, which is what lets this
+      # capability profile carry it -- see CLAUDE.md, "GPU render offload".
+      services.switcherooControl.enable = true;
 
       # Steam hardware udev rules (controllers, VR headsets)
       hardware.steam-hardware.enable = true;
