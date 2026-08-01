@@ -1,18 +1,10 @@
 { self, ... }:
 {
-  # Thunar is a *session's* file manager, not the machine's: only a session that
-  # lacks one of its own asks for it (Sway does, GNOME has nautilus). So it is
-  # imported by session/wayland.nix rather than by bundle-desktop.
+  # A session's file manager, not the machine's: imported by
+  # session/wayland.nix, since GNOME has nautilus.
   flake.modules = {
-    # System half: installing a program cannot be done per user.
-    #
-    # Gated because `imports` ignores the `mkIf` a session wraps its config in,
-    # and bundle-desktop imports every session unconditionally -- without this,
-    # importing thunar from a session would install it on GNOME-only hosts too.
-    # den.desktop.sessionAnchors is non-empty exactly when some installed session
-    # ships no shell of its own, which is the set of sessions that want a file
-    # manager. It used to follow programs.sway.enable, which named one
-    # compositor and would have gone stale the moment a second one arrived.
+    # Gated on sessionAnchors rather than one compositor, because `imports`
+    # escapes a session's mkIf. See CLAUDE.md.
     nixos.thunar =
       {
         config,
@@ -37,17 +29,9 @@
         };
       };
 
-    # User half -- imported by session/wayland.nix.
-    #
-    # Written as one `<desktop>-mimeapps.list` per bare session rather than into
-    # the home's shared mimeapps.list, because every user carries every installed
-    # desktop's config now: a plain default would make folders open in thunar
-    # inside GNOME too, where nautilus is right there. The XDG mime-apps spec has
-    # the answer -- $XDG_CONFIG_HOME/<desktop>-mimeapps.list is consulted before
-    # mimeapps.list, once per entry in XDG_CURRENT_DESKTOP -- so the association
-    # simply is not visible outside the sessions that asked for it. Sway
-    # announces "sway;wlroots", niri "niri"; the id is the key of
-    # den.session.anchors.
+    # One `<desktop>-mimeapps.list` per bare session, which XDG reads ahead of
+    # the shared list -- so folders open in thunar under Sway and nautilus under
+    # GNOME out of one home. See CLAUDE.md.
     homeManager.thunar =
       { config, lib, ... }:
       {

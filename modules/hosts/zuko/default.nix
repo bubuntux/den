@@ -29,18 +29,8 @@
     networking.hostName = "zuko";
     system.stateVersion = "25.11";
 
-    # Whole-machine desktop policy. Which environments are installed comes from
-    # the profiles; which greeter presents them, and what it preselects, is the
-    # host's call.
+    # Profiles install the environments; the host picks the greeter. No
+    # defaultSession: Sway is the only session here.
     den.desktop.loginManager = "greetd";
-    # The uwsm-managed entry, not the plain one: uwsm is what puts the session
-    # in a systemd user session, which is where every companion attaches.
-    #
-    # The plain "Sway" entry is still in the greeter -- nixpkgs' sway module
-    # registers it and there is no supported way to withdraw it -- but it is not
-    # a fallback. Home Manager's own session management is off, so picking it
-    # gets a compositor with no anchor and therefore no bar, no idle handling
-    # and no output management. Always pick this one.
-    services.displayManager.defaultSession = "sway-uwsm";
   };
 }

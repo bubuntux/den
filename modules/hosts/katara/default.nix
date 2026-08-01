@@ -29,20 +29,10 @@
     networking.hostName = "katara";
     system.stateVersion = "25.11";
 
-    # Whole-machine desktop policy: one greeter for two roles. GDM rather than
-    # greetd because this machine is shared -- it presents a graphical user list
-    # and session picker instead of a keyboard-only TUI, and it remembers each
-    # user's last session afterwards. That memory is accountsservice state in
-    # /var/lib/AccountsService/users/<name>, not configuration: every user's
-    # *first* login uses defaultSession below, so bbtux starts in GNOME until he
-    # picks Sway once from the session menu. Both desktops are configured in his
-    # home either way, so that detour is a working GNOME session rather than a
-    # broken Sway one -- and nothing of Sway's follows him into it, because its
-    # companions hang off wayland-session@sway.target (den.session.anchors).
-    # Keyring auto-unlock still works: GDM derives its PAM config from
-    # security.pam.services.login.enableGnomeKeyring, which
-    # features/desktop/session/wayland.nix sets.
+    # GDM because this machine is shared: a graphical user list and session
+    # picker, and it remembers each user's last session in accountsservice, so
+    # shari stays in GNOME and bbtux in Sway. No defaultSession on purpose --
+    # under GDM it wipes that memory every boot (see CLAUDE.md).
     den.desktop.loginManager = "gdm";
-    services.displayManager.defaultSession = "gnome";
   };
 }

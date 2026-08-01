@@ -31,23 +31,12 @@
         services.greetd = {
           enable = true;
 
-          # Deliberately NOT setting useTextGreeter. It looks right for a TUI
-          # greeter -- it keeps systemd boot messages off the screen -- but it
-          # hands systemd TTYPath=/dev/tty1 with TTYReset, TTYVHangup and
-          # TTYVTDisallocate while greetd already owns that VT via
-          # `[terminal] vt = 1`. It was added here by mistake during the DE/DM
-          # split and removed after a machine came up to a clock on a black
-          # screen; a VM test since renders the same with and without it, so the
-          # causal link is unproven. It stays off because it was never part of
-          # the working config, not because it is known to break anything.
+          # No useTextGreeter: it hands systemd TTY directives for a VT greetd
+          # already owns. See CLAUDE.md, "Checks" (unit-shape).
 
-          # --sessions/--xsessions point at every session registered by the
-          # enabled environments, so adding a DE to den.desktop.environments is
-          # all it takes to make it appear here.
-          # --remember pre-fills the last username (so a single-user host only
-          # types a password, which keeps gnome-keyring auto-unlock working).
-          # --remember-user-session records the session *per user*, which is how
-          # two users on one host end up in different desktops.
+          # --remember pre-fills the last username; --remember-user-session
+          # records the session per user, which is how two users on one host end
+          # up in different desktops.
           settings.default_session.command = lib.concatStringsSep " " (
             [
               (lib.getExe pkgs.tuigreet)
