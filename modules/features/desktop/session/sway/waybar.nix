@@ -10,112 +10,72 @@ _: {
   flake.modules.homeManager.waybar =
     { pkgs, ... }:
     let
+      # One widget for however many GPUs the host has, of whatever make. nvtop
+      # covers the mesa vendors in a single JSON shape, so an APU and a hybrid
+      # laptop share one code path; NVIDIA is the one exception, and it is
+      # nvidia-smi rather than nvtop's own backend because that backend builds
+      # against cudatoolkit -- a 3.9 GiB, largely uncached closure for numbers
+      # the driver's own tool already reports.
       gpu-script = pkgs.writeShellApplication {
         name = "waybar-gpu";
-        runtimeInputs = [ pkgs.jq ];
-        text = ''
-          export PATH="/run/current-system/sw/bin:$PATH"
-
-          # Try nvidia-smi first, fall back to empty
-          if command -v nvidia-smi &>/dev/null; then
-            data=$(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total,name,power.draw --format=csv,noheader,nounits 2>/dev/null || true)
-            if [ -n "$data" ]; then
-              usage=$(echo "$data" | cut -d',' -f1 | tr -d ' ')
-              temp=$(echo "$data" | cut -d',' -f2 | tr -d ' ')
-              mem_used=$(echo "$data" | cut -d',' -f3 | tr -d ' ')
-              mem_total=$(echo "$data" | cut -d',' -f4 | tr -d ' ')
-              name=$(echo "$data" | cut -d',' -f5 | sed 's/^ //')
-              power=$(echo "$data" | cut -d',' -f6 | tr -d ' ')
-
-              # Hide when idle (0% usage)
-              if [ "$usage" -eq 0 ]; then
-                echo '{"text": "", "tooltip": ""}'
-                exit 0
-              fi
-
-              text="󰢮 ''${usage}%"
-              tooltip="$name"$'\n'"󰢮 ''${usage}%  󰔏 ''${temp}°C"$'\n'"󰍛 ''${mem_used}MiB / ''${mem_total}MiB"$'\n'"󱐋 ''${power} W"
-
-              class=""
-              if [ "$usage" -ge 90 ]; then
-                class="critical"
-              elif [ "$usage" -ge 70 ]; then
-                class="warning"
-              fi
-
-              jq -nc --arg text "$text" --arg tooltip "$tooltip" --arg class "$class" \
-                '{text: $text, tooltip: $tooltip, class: $class}'
-              exit 0
-            fi
-          fi
-
-          # No GPU data available
-          echo '{"text": "", "tooltip": ""}'
-        '';
-      };
-
-      intel-gpu-script = pkgs.writeShellApplication {
-        name = "waybar-intel-gpu";
         runtimeInputs = with pkgs; [
-          coreutils
-          gnugrep
-          gnused
           jq
+          (nvtopPackages.full.override { nvidia = false; })
         ];
         text = ''
-          fallback='{"text": "", "tooltip": ""}'
-
-          # Use the system setcap wrapper which has CAP_PERFMON
-          export PATH="/run/wrappers/bin:$PATH"
-
-          if ! command -v intel_gpu_top &>/dev/null; then
-            echo "$fallback"
-            exit 0
+          nvtop_gpus='[]'
+          if snapshot=$(nvtop -s 2>/dev/null) && [ -n "$snapshot" ]; then
+            # .processes is every GPU client with its full cmdline. Not for a bar.
+            nvtop_gpus=$(jq -c 'map(del(.processes))' <<<"$snapshot") || nvtop_gpus='[]'
           fi
 
-          # Get GPU name from device listing (e.g. "Intel Alderlake_p (Gen12)")
-          gpu_name=$(intel_gpu_top -L 2>/dev/null | grep -i intel | sed 's/^[^ ]* *\([^ ].*[^ ]\) *pci:.*/\1/' | head -n1)
-          gpu_name="''${gpu_name:-Intel iGPU}"
-
-          # intel_gpu_top -J streams an incomplete JSON array; capture to a temp
-          # file so we preserve the exact bytes, then close the array with ']'.
-          tmpfile=$(mktemp)
-          trap 'rm -f "$tmpfile"' EXIT
-          timeout 2 intel_gpu_top -J -s 500 > "$tmpfile" 2>/dev/null || true
-
-          if [ ! -s "$tmpfile" ]; then
-            echo "$fallback"
-            exit 0
+          # nvidia-smi comes from the driver, not a package, so it is only ever
+          # on PATH via the system profile.
+          export PATH="/run/current-system/sw/bin:$PATH"
+          nvidia_csv=""
+          if command -v nvidia-smi >/dev/null 2>&1; then
+            nvidia_csv=$(nvidia-smi \
+              --query-gpu=name,utilization.gpu,temperature.gpu,power.draw,memory.used,memory.total \
+              --format=csv,noheader,nounits 2>/dev/null) || nvidia_csv=""
           fi
 
-          # Extract the last complete JSON object from the array
-          sample=$( (cat "$tmpfile"; echo ']') | jq -e 'last(.[])' 2>/dev/null) || true
-          if [ -z "$sample" ]; then
-            echo "$fallback"
-            exit 0
-          fi
+          jq -nc --argjson nvtop "$nvtop_gpus" --arg nvidia "$nvidia_csv" '
+            # nvtop reports every value unit-suffixed ("47C", "5W"), and "N/A"
+            # wherever a backend has no such sensor -- Intel reports no power.
+            def num: (tostring | capture("(?<n>[0-9]+(\\.[0-9]+)?)") | .n | tonumber) // 0;
+            def mib: (. / 1048576 | floor);
 
-          # Max busy % across all engines (Render/3D, Video, VideoEnhance, etc.)
-          busy=$(echo "$sample" | jq '[.engines[]?.busy] | map(select(. != null)) | if length > 0 then max | round else 0 end')
-          freq=$(echo "$sample" | jq '.frequency.actual // 0 | round')
-          power=$(echo "$sample" | jq '.power.GPU // empty' 2>/dev/null || echo "")
-
-          text="󰢮 ''${busy}%"
-          tooltip="$gpu_name"$'\n'"󰢮 ''${busy}%  󰾆 ''${freq} MHz"
-          if [ -n "$power" ]; then
-            power_fmt=$(printf "%.1f" "$power")
-            tooltip="$tooltip"$'\n'"󱐋 ''${power_fmt} W"
-          fi
-
-          class=""
-          if [ "$busy" -ge 90 ]; then
-            class="critical"
-          elif [ "$busy" -ge 70 ]; then
-            class="warning"
-          fi
-
-          jq -nc --arg text "$text" --arg tooltip "$tooltip" --arg class "$class" \
-            '{text: $text, tooltip: $tooltip, class: $class}'
+            ($nvtop | map({
+              name:  (.device_name // "GPU"),
+              util:  (.gpu_util   | num),
+              temp:  (.temp       | num),
+              power: (.power_draw | num),
+              used:  (.mem_used   | num),
+              total: (.mem_total  | num),
+            }))
+            # nvidia-smi reports memory in MiB, where nvtop reports bytes.
+            + ($nvidia | split("\n") | map(select(length > 0) | split(", ") | {
+              name:  .[0],
+              util:  (.[1] | num),
+              temp:  (.[2] | num),
+              power: (.[3] | num),
+              used:  ((.[4] | num) * 1048576),
+              total: ((.[5] | num) * 1048576),
+            })) as $gpus
+            | ($gpus | map(.util) | max // 0) as $peak
+            | if $peak == 0 then { text: "", tooltip: "" } else {
+                text: ("󰢮 " + ($gpus | map("\(.util)%") | join(" "))),
+                tooltip: ($gpus | map(
+                  "\(.name)"
+                  + "\n󰢮 \(.util)%  󰔏 \(.temp)°C"
+                  + (if .power > 0 then "  󱐋 \(.power) W" else "" end)
+                  + "\n󰍛 \(.used | mib)MiB / \(.total | mib)MiB"
+                ) | join("\n\n")),
+                class: (if $peak >= 90 then "critical"
+                        elif $peak >= 70 then "warning"
+                        else "" end),
+              } end
+          '
         '';
       };
 
@@ -409,8 +369,7 @@ _: {
               "cpu"
               "memory"
               "custom/temp"
-              "custom/intel-gpu"
-              "custom/nvidia-gpu"
+              "custom/gpu"
               "wireplumber"
               "battery"
               "custom/backlight"
@@ -592,14 +551,7 @@ _: {
               interval = 5;
             };
 
-            "custom/intel-gpu" = {
-              format = "{}";
-              return-type = "json";
-              exec = "${intel-gpu-script}/bin/waybar-intel-gpu";
-              interval = 5;
-            };
-
-            "custom/nvidia-gpu" = {
+            "custom/gpu" = {
               format = "{}";
               return-type = "json";
               exec = "${gpu-script}/bin/waybar-gpu";
@@ -701,8 +653,7 @@ _: {
           #gamemode,
           #custom-weather-f,
           #custom-weather-c,
-          #custom-intel-gpu,
-          #custom-nvidia-gpu,
+          #custom-gpu,
           #custom-idle-inhibitor,
           #power-profiles-daemon,
           #cpu,
@@ -731,8 +682,7 @@ _: {
           #custom-idle-inhibitor:hover,
           #custom-weather-f:hover,
           #custom-weather-c:hover,
-          #custom-intel-gpu:hover,
-          #custom-nvidia-gpu:hover,
+          #custom-gpu:hover,
           #mpris:hover,
           #tray:hover {
             background-color: @surface0;
@@ -843,29 +793,16 @@ _: {
             color: @red;
           }
 
-          /* --- Intel GPU --- */
-          #custom-intel-gpu {
-            color: @blue;
-          }
-
-          #custom-intel-gpu.warning {
-            color: @yellow;
-          }
-
-          #custom-intel-gpu.critical {
-            color: @red;
-          }
-
-          /* --- NVIDIA GPU --- */
-          #custom-nvidia-gpu {
+          /* --- GPU --- */
+          #custom-gpu {
             color: @green;
           }
 
-          #custom-nvidia-gpu.warning {
+          #custom-gpu.warning {
             color: @yellow;
           }
 
-          #custom-nvidia-gpu.critical {
+          #custom-gpu.critical {
             color: @red;
           }
 

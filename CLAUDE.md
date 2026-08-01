@@ -280,6 +280,40 @@ If a second desktop host ever grows a dGPU, `services.switcherooControl` moves
 to `bundle-desktop` — GNOME and KDE both read it for the per-app launch menu,
 which has nothing to do with gaming.
 
+### GPU metrics in the bar
+
+`custom/gpu` (`session/sway/waybar.nix`) is one widget for however many GPUs the
+host has, of whatever make — zuko's Intel iGPU and NVIDIA dGPU side by side,
+katara's single AMD APU alone. It replaced a `custom/intel-gpu` and a
+`custom/nvidia-gpu` that were each hardcoded to one vendor's tool, so katara
+carried two permanently-empty widgets polling every 5s.
+
+`nvtop -s` emits one JSON shape for every backend, which is what collapses the
+two scripts into one. **But do not reach for `nvtopPackages.full`**: its NVIDIA
+backend takes `cudatoolkit` as a build input, and `cuda-merged` is a 3.9 GiB
+closure with many uncached paths — so every host build, and the booted-VM
+session test, would drag CUDA in for six numbers. The test is where it surfaces:
+that machine sets no `allowUnfree`, so `nix flake check` fails to *evaluate*
+rather than merely building something huge. Hence
+
+```nix
+(nvtopPackages.full.override { nvidia = false; })   # mesa vendors, free, seconds to build
+```
+
+with NVIDIA coming from `nvidia-smi` instead — it ships with the driver, costs
+no closure, and reports the same fields. That one vendor branch is the price of
+not vendoring CUDA into a status bar. Two details that go with it: nvidia-smi is
+only ever on `PATH` through `/run/current-system/sw/bin`, and it reports memory
+in MiB where nvtop reports bytes.
+
+nvtop's Intel backend reads DRM fdinfo, not perf counters, so the bar no longer
+needs `intel_gpu_top` or its `CAP_PERFMON` wrapper. zuko still sets
+`hardware.intel-gpu-tools.enable`; that is now only for running `intel_gpu_top`
+by hand.
+
+The widget hides itself when every GPU reads 0%, so an idle machine shows
+nothing rather than a row of zeroes.
+
 ### Naming Conventions
 
 - **Hosts**: Avatar: The Last Airbender characters (katara, zuko, appa)
