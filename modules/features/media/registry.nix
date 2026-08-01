@@ -1,20 +1,13 @@
 { self, ... }:
 {
-  # Registry for the boilerplate every media service on the NAS repeats:
-  # media-group membership, a write-friendly umask, waiting for the media disks,
-  # cgroup resource caps, the VM port forward and the .wg hostname alias.
+  # Boilerplate every media service repeats: media-group membership, umask,
+  # mount dependencies, cgroup caps, the VM port forward and the .wg alias.
+  # Modelled on services.reverse-proxy.routes -- each service declares its own
+  # entry and neither side enumerates the other.
   #
-  # Modelled on services.reverse-proxy.routes (features/network/reverse-proxy.nix):
-  # each service declares its own entry and the shared module does the wiring, so
-  # neither side has to enumerate the other. It deliberately does *not* wrap
-  # reverse-proxy.routes -- it only fills in the two mechanical fields (port and,
-  # for namespaced services, upstreamAddr) and lets each service keep declaring
-  # its own aliases / rate limits / proxy tweaks, which merge into the same route.
-  #
-  # Boilerplate only. Anything genuinely service-specific stays in the service
-  # file: qbittorrent's serverConfig and natpmp sidecar, immich's slice caps and
-  # machine-learning unit, tvheadend's container and pinned uid/gid, jellyfin's
-  # render/video groups.
+  # It fills in the two mechanical route fields rather than wrapping
+  # reverse-proxy.routes, so services keep declaring their own aliases and
+  # tweaks. Anything genuinely service-specific stays in the service file.
   flake.modules.nixos.media-registry =
     { config, lib, ... }:
     let

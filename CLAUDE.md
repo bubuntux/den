@@ -210,6 +210,8 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
 
 - **MCP validation**: MUST use the `nixos` MCP server to verify that packages and options exist before adding them to configurations
 
+- **Comments stay lean; this file carries the knowledge.** A `.nix` comment earns its place by explaining something surprising about *the line it sits on*, in a sentence or two. Everything durable — why an approach was chosen over another, a trap that cost an afternoon, how pieces fit together, the history of a bug — belongs in CLAUDE.md, which is read before the code is touched; a comment nobody reads until they are already editing the line is too late to prevent the mistake. When code needs the background, point at it (`# buildCommand, not postBuild -- see CLAUDE.md, "How a bare session starts (uwsm)"`) rather than restating it. The same goes for option `description` strings: say what the option means and what breaks if it is wrong, and leave the reasoning here.
+
 - **Module structure**: Modules are flake-parts modules taking `{ self, inputs, ... }` and define outputs via `flake.modules.<class>.<name>`, where class is `nixos` or `homeManager`. Modules can also define `perSystem` outputs for per-architecture tooling (formatters, dev shells, VM apps)
 
 - **Module naming**: Use `flake.modules.nixos.*` / `flake.modules.homeManager.*` and reference them as `self.modules.nixos.*` / `self.modules.homeManager.*`. The older `flake.nixosModules` / `flake.homeModules` outputs are **not** used. When one file publishes more than one module, group them under a single block:
@@ -276,7 +278,7 @@ Import-tree already gives file-granular opt-in, so a module's *existence* is the
 
 `den.desktop` (declared in `features/desktop/options.nix`) keeps the two choices independent. Session modules only register sessions with `services.displayManager.sessionPackages`; each login manager only reads that list. So a session never implies a greeter, and swapping greeters never touches the sessions.
 
-A bare compositor currently contributes **two** entries to that list — the plain one from its own nixpkgs module, and a `<name>-uwsm` one — because uwsm is still new here and the plain entry is the fallback. See **How a bare session starts (uwsm)**.
+A bare compositor contributes exactly **one** entry to that list, and it starts uwsm rather than the compositor directly. See **How a bare session starts (uwsm)**.
 
 Which of the settings a **profile** may set and which belong to the **host** follows from whether the option merges:
 
@@ -368,15 +370,91 @@ Two things are load-bearing and easy to omit:
   `login/greetd.nix` runs them through `lib.escapeShellArg` for that reason.
   Nothing noticed while every command was a bare `sway`, and `uwsm start -F -- …` is what broke it.
 
-Both entries stay in the greeter for now — "Sway" (plain) and "Sway (UWSM)" —
-so a session that fails to come up under uwsm has somewhere to fall back to.
-tuigreet remembers the last session per user, so picking the fallback once is
-enough. Drop `programs.sway`'s own entry once uwsm has proven itself.
+**There must be exactly one session entry per compositor, and it must start
+uwsm.** nixpkgs' `programs.<name>` registers the compositor's own entry in
+`services.displayManager.sessionPackages`, and there is no supported way to
+withdraw it — so `programs.uwsm.waylandCompositors`, which generates a *second*
+entry called "<Name> (UWSM)", leaves the plain one sitting next to it in the
+greeter. That one starts a compositor with no anchor: no bar, no idle handling,
+no output management. A menu entry that yields a broken session is worse than a
+rename, so the compositor's own entry gets rewritten instead:
+
+```nix
+package = pkgs.sway.overrideAttrs (old: {
+  buildCommand = old.buildCommand + ''
+    rm -f $out/share/wayland-sessions/sway.desktop
+    cat > $out/share/wayland-sessions/sway.desktop <<'EOF'
+    ...
+    Exec=${lib.getExe pkgs.uwsm} start -F -- /run/current-system/sw/bin/sway
+    EOF
+  '';
+});
+```
+
+Two things that bit while writing that. It has to append to **`buildCommand`**,
+not `postBuild`: the wrapper is a `symlinkJoin`, which interpolates its
+`postBuild` argument into the build script rather than passing it to
+mkDerivation, so an `overrideAttrs` on `postBuild` sets an attribute nothing
+reads — and `old.postBuild or ""` would hide that. And `programs.sway.package`
+has an `apply` that re-runs `.override` with the module's wrapper options;
+`overrideAttrs` does survive it, but that was worth checking rather than
+assuming.
+
+The session keeps the plain id (`sway`), so hosts preselect `"sway"` and
+`den.desktop.sessionCommands.sway` carries the same uwsm command the entry does.
 
 `programs.uwsm.enable` is set once, by `nixos.session-wayland`, since it is the
 same answer for every bare session and that module already means "something
 installed here ships no shell of its own". A session module only registers its
 own compositor.
+
+#### XDG autostart
+
+uwsm brings `wayland-session-xdg-autostart@<id>.target`, so `/etc/xdg/autostart`
+entries now run in a bare session the way they do in a full desktop. That
+changed two things and is worth knowing before wiring anything by hand:
+
+- **Anything with an autostart entry needs no wiring from us.** `blueman-applet`
+  used to be bound to the anchors here because a bare Sway had no autostart; once
+  uwsm arrived that became a *second* copy of the applet. Only things with no
+  entry at all — the geoclue agent, the idle inhibitor — are bound explicitly.
+- **Entries meant for "any desktop but GNOME" now apply.** `ibus-daemon.desktop`
+  is `NotShowIn=GNOME;KDE`, so installing GNOME on a host puts IBus in the Sway
+  session, notification and all. `session/wayland.nix` hides it with a user-level
+  entry carrying `Hidden=true`, which systemd's generator honours alongside
+  `OnlyShowIn`/`NotShowIn`. GNOME is unaffected: it starts ibus from gnome-shell,
+  not from autostart.
+
+#### Monitors and kanshi
+
+kanshi activates a profile only when the connected output **set** exactly equals
+the profile's, which drives two things in `features/desktop/kanshi.nix` that look
+odd in isolation:
+
+- **Every profile must account for the internal panel.** Profiles that don't use
+  it list it as `status = "disable"`, which both lets a docked profile match and
+  keeps the laptop screen off while docked. External-only profiles therefore
+  expand to *two* variants: `<name>` (panel connected, disabled) and
+  `<name>-no-panel`, because on a lid-closed boot i915 drops the eDP connector
+  entirely ("unusable PPS, disabling eDP") and a profile naming eDP-1 can never
+  match then.
+- **kanshi is enabled only for a user who has `monitors`.** With none, Home
+  Manager writes no config file at all, kanshi exits 1 on "failed to parse config
+  file", and `Restart=always` turns that into a crash loop ending in `failed`.
+  Every host ships a `monitors.nix`, so this only bites a new one — which is
+  exactly how the session VM test found it.
+
+#### Keyring
+
+PAM unlocks a gnome-keyring daemon with the login password (greetd and GDM both
+do), but PAM runs before the user dbus socket exists, so that daemon never claims
+the session bus and then dies — and the first libsecret app dbus-activates a
+fresh, *locked* one, which is a password prompt out of nowhere. The user service
+in `session/wayland.nix` runs `gnome-keyring-daemon --start` while the PAM daemon
+is still alive, so it adopts that unlocked daemon and claims the bus. It stays on
+`graphical-session-pre.target` rather than a session anchor, because it has to be
+up before anything asks for a secret; `--start` adopts rather than duplicates, so
+it is harmless in a session that already has one.
 
 ### Adding a desktop environment
 
@@ -397,14 +475,16 @@ evaluation.
    ```nix
    imports = with self.modules.nixos; [ desktop-options session-wayland ];
 
-   programs.<name>.enable = true;               # registers the plain session
-   programs.uwsm.waylandCompositors.<name> = {
-     prettyName = "<Name>";
-     comment = "<Name> compositor managed by UWSM";
-     binPath = "/run/current-system/sw/bin/<binary>";
-   };
+   programs.<name>.enable = true;
+   # ... and rewrite the session entry that ships with it so it starts uwsm,
+   # rather than adding a second one with programs.uwsm.waylandCompositors.
+   # See "How a bare session starts" above for why, and for the buildCommand
+   # -vs- postBuild trap. A compositor that ships no entry of its own is the
+   # one case where waylandCompositors is the right tool.
+   programs.<name>.package = pkgs.<name>.overrideAttrs (old: { ... });
+
    den.desktop.sessionAnchors.<name> = "wayland-session@<id>.target";
-   den.desktop.sessionCommands."<name>-uwsm" =
+   den.desktop.sessionCommands.<name> =
      "${lib.getExe pkgs.uwsm} start -F -- /run/current-system/sw/bin/<binary>";
    ```
 
@@ -425,13 +505,13 @@ evaluation.
    **first** startup command.
 
 1. **Host:** add `"<name>"` to `den.desktop.environments` (usually via a
-   profile). To preselect it, `services.displayManager.defaultSession = "<name>-uwsm"`.
+   profile). To preselect it under greetd, `services.displayManager.defaultSession = "<name>"`. Under **GDM, leave `defaultSession` unset** — see below.
 
 1. **Prove it boots.** `modules/core/tests.nix` is Sway-shaped; give the new
    session the same treatment rather than trusting evaluation. `nix flake check`
    will not tell you a session comes up.
 
-Four things that are easy to get wrong, in the order they bite:
+Five things that are easy to get wrong, in the order they bite:
 
 - **The id is the binary's basename, not your session name.** Hyprland's binary
   is `Hyprland`, so its anchor is `wayland-session@Hyprland.target`. Confirm
@@ -447,9 +527,15 @@ Four things that are easy to get wrong, in the order they bite:
   without it the session is killed after 30s. Name every variable that must
   reach the systemd/dbus user environment — anything a user service needs, the
   compositor's IPC socket above all.
-- **`sessionCommands` is keyed by *session*, not environment.** nixpkgs
-  generates `<name>-uwsm.desktop`, so greetd looks up `"<name>-uwsm"`. Keying it
-  `<name>` silently gives greetd nothing to preselect.
+- **`sessionCommands` is keyed by *session*, and the session is whatever the
+  entry file is called.** Rewriting the compositor's own entry keeps that
+  `<name>`; adding one through `programs.uwsm.waylandCompositors` would make it
+  `<name>-uwsm`. Key it wrong and greetd silently has nothing to preselect.
+- **`services.displayManager.defaultSession` is not a default under GDM.**
+  nixpkgs turns it into a `set-session` call in GDM's preStart, whose own
+  comment reads "basically ignore session history" — it rewrites *every* user's
+  remembered session on each boot. Leave it unset on a GDM host (katara does);
+  only greetd and autologin actually need it.
 
 A session that ships its own shell (GNOME) skips all of this: no uwsm entry, no
 anchors, no `session-wayland`, no session command.

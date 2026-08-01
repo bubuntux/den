@@ -1,34 +1,8 @@
 { self, ... }:
 {
-  # Booted-VM tests for the login path, which is the one thing evaluation cannot
-  # check:
-  #
-  #   test-greeter      the greeter draws a usable prompt
-  #   test-session      logging in produces a working session (greetd, zuko)
-  #   test-session-gdm  ... and from GDM's .desktop entry (katara)
-  #
-  # `desktop-matrix` proves the modules *decide* correctly -- which sessions are
-  # registered, which greeter is enabled -- and `session-anchors` proves the
-  # units are *wired* to the right target. Neither can tell you a session comes
-  # up, which is the failure that reached a real machine once (a clock on a black
-  # screen, with every evaluated option value correct).
-  #
-  # Scope, honestly: this test does NOT reproduce that failure. Enabling
-  # services.greetd.useTextGreeter -- the suspected cause -- passes here, with
-  # and without plymouth. Whatever the real interaction was, it needs something
-  # this environment lacks (the VM app runs qemu with `-vga virtio -display
-  # gtk,gl=on`; the test driver gets a bochs framebuffer). So treat this as
-  # "the greeter renders and keeps rendering", not as a regression test for
-  # that specific option -- `unit-shape` in checks.nix is what pins the unit.
-  #
-  # Deliberately NOT a flake check. `nix flake check` gates .github/workflows
-  # ci.yml's `build` job, and `heal` only fires when `build` *fails*; anything
-  # heavy or flaky in `checks` turns a caddy-hash drift into a skipped build and
-  # a dead self-heal (see modules/core/checks.nix). Run it on purpose:
-  #
-  #   nix build .#test-greeter
-  #
-  # before touching features/desktop/login/ or the greetd command line.
+  # Booted-VM tests for the login path: test-greeter, test-session (greetd) and
+  # test-session-gdm. Deliberately packages, not flake checks. See CLAUDE.md,
+  # "Booted-VM tests".
   perSystem =
     { pkgs, ... }:
     let
@@ -39,8 +13,6 @@
           { lib, ... }:
           {
             imports = with self.modules.nixos; [
-              # home-manager: desktop-options binds each user's session config
-              # through home-manager.users, so the option has to exist.
               home-manager
               desktop-options
               sway
@@ -51,41 +23,27 @@
               environments = [ "sway" ];
               loginManager = "greetd";
             };
-            # Mirrors zuko, and not incidentally: this session's command is
-            # multi-word, so the greeter only renders at all if greetd.nix quotes
-            # it into a single --cmd argument. An unquoted one leaves tuigreet
-            # with stray arguments and no prompt, which is exactly the class of
-            # failure this test exists to catch.
-            services.displayManager.defaultSession = "sway-uwsm";
+            # Mirrors zuko. The command is multi-word, so the greeter only
+            # renders if greetd.nix quotes it into one --cmd argument.
+            services.displayManager.defaultSession = "sway";
 
             users.users.alice = {
               isNormalUser = true;
               password = "test";
             };
 
-            # tuigreet is a TUI on tty1; the test driver needs a framebuffer to
-            # screenshot and OCR it.
             virtualisation.memorySize = 2048;
 
-            # The test framework boots with loglevel=7 on console=tty0, which
-            # scribbles kernel messages straight over any TUI -- the first
-            # screenshot of this test was pure dmesg. Real hosts boot quiet behind
-            # plymouth, so quiet the console here too; otherwise the test measures
-            # the framework's console settings rather than the greeter. mkForce
-            # because test-instrumentation.nix pins it to 7 for debuggability;
-            # kernel messages are still available from the journal.
+            # Kernel messages would scribble over the TUI; the framework pins
+            # loglevel=7, real hosts boot quiet.
             boot.consoleLogLevel = lib.mkForce 0;
             boot.kernelParams = [ "quiet" ];
 
-            # Real hosts boot behind plymouth, and the greetd unit orders itself
-            # after plymouth-quit-wait.service, so the console handover from
-            # plymouth to the greeter is part of the path under test.
+            # The plymouth -> greeter console handover is part of the path.
             boot.plymouth.enable = true;
           };
 
-        # Reads the console with tesseract. This is the only way to assert on
-        # what the greeter put on screen rather than on what it was configured
-        # to do.
+        # Assert on pixels, not on config values.
         enableOCR = true;
 
         testScript =
@@ -94,30 +52,20 @@
             machine.start()
             machine.wait_for_unit("greetd.service")
 
-            # Assert on the rendered UI, not on a process. greetd is Type=idle
-            # (systemd delays the exec until the boot queue drains) and it then
-            # re-execs the greeter through a `greetd --session-worker`, so
-            # polling for a tuigreet process is racy -- an earlier draft of this
-            # test saw one at 0.1s and none at 5s, with nothing actually wrong.
-            #
-            # "Username" is tuigreet's own field label, and it is the right
-            # thing to look for: the failure that reached a real machine showed
-            # the *clock* and no prompt, so asserting on the clock -- or on any
-            # configuration value -- would have passed.
+            # "Username" is tuigreet's field label. Polling for the process is
+            # racy (greetd is Type=idle and re-execs the greeter).
             machine.wait_for_text("Username")
             machine.succeed("systemctl is-active greetd.service")
 
-            # The session list has to be readable *as the greeter user*, not
-            # just present in the store.
+            # Readable *as the greeter user*, not merely present in the store.
             machine.succeed(
                 "su -s /bin/sh greeter -c "
                 "'test -r ${nodes.machine.services.displayManager.sessionData.desktops}"
                 "/share/wayland-sessions/sway.desktop'"
             )
 
-            # ... and the UI has to persist. A greeter that draws once and then
-            # loses the console would satisfy the check above and still leave a
-            # black screen in front of the user.
+            # ... and it has to persist: drawing once then losing the console
+            # still leaves a black screen.
             machine.sleep(10)
             machine.wait_for_text("Username")
             machine.screenshot("greeter")
@@ -127,31 +75,8 @@
       # Boots the real login path -- greeter autologin -> sway -> the session's
       # own units -- and asserts the things only a running session can show.
       #
-      # `session-anchors` (checks.nix) proves every companion is *wired* to
-      # den-session.target. That is a statement about generated unit files; it
-      # cannot tell you the anchor is ever reached, that the companions survive
-      # being started, or what XDG_CURRENT_DESKTOP ends up as -- and that last
-      # one decides whether `sway-mimeapps.list` is read at all, since XDG names
-      # the file after the value of that variable.
-      #
-      # It also exists to make replacing the session plumbing safe. Swapping
-      # Home Manager's sway-session.target for uwsm's wayland-session@sway.target
-      # changed exactly the facts asserted below, so this is the test that says
-      # the swap preserved the session rather than merely evaluating.
-      #
-      # Once per greeter, because the two start a session by different means and
-      # only one of them was covered:
-      #
-      #   test-session       greetd runs den.desktop.sessionCommands as a
-      #                      command line (zuko)
-      #   test-session-gdm   GDM execs the generated .desktop entry (katara)
-      #
-      # That difference is not cosmetic -- it is where the unquoted --cmd bug
-      # lived, and it is the only part of the uwsm switch that behaves
-      # differently per host.
-      #
-      #   nix build .#test-session
-      #   nix build .#test-session-gdm
+      # Once per greeter: greetd runs a command line, GDM execs the .desktop
+      # entry, and only the former was covered.
       mkSessionTest =
         {
           testName,
@@ -178,10 +103,9 @@
                 inherit loginManager;
               };
 
-              # Autologin so the test drives a session rather than a prompt; the
-              # prompt itself is test-greeter's job.
+              # Autologin: the prompt itself is test-greeter's job.
               services.displayManager = {
-                defaultSession = "sway-uwsm";
+                defaultSession = "sway";
                 autoLogin = {
                   enable = true;
                   user = "alice";
@@ -191,22 +115,15 @@
               users.users.alice = {
                 isNormalUser = true;
                 password = "test";
-                # Pinned so the test can name /run/user/1000 when reaching into
-                # the session as root.
+                # Pinned: the test names /run/user/1000 from root.
                 uid = 1000;
               };
 
-              # den.desktop.environments pushes homeManager.sway at every user, so
-              # the home only has to exist.
               home-manager.users.alice = { };
 
-              # A display layout, pushed the way a host pushes it -- schema and
-              # values together, since only Sway users import the modules that
-              # read it. Without one, kanshi is not enabled (see
-              # features/desktop/kanshi.nix) and this VM would stop resembling a
-              # real machine in the one place that matters here. The name does not
-              # have to match the virtio output: an unmatched profile leaves
-              # kanshi running and waiting, which is the state under test.
+              # Schema and values together, the way a host pushes them. Without
+              # monitors, kanshi is not enabled and the VM stops resembling a
+              # real machine; the name need not match the virtio output.
               home-manager.sharedModules = [
                 {
                   imports = [ self.modules.homeManager.monitors ];
@@ -221,9 +138,8 @@
                 }
               ];
 
-              # wlroots cannot use the GLES2 renderer in this VM, and the default
-              # `-vga std` gives no DRM node sway can drive. Both settings are
-              # lifted from nixpkgs' own sway test (nixos/tests/sway.nix).
+              # Both lifted from nixpkgs' nixos/tests/sway.nix: no GLES2 in the
+              # VM, and `-vga std` gives no DRM node sway can drive.
               environment.variables.WLR_RENDERER = "pixman";
               virtualisation.qemu.options = [ "-vga none -device virtio-gpu-pci" ];
               virtualisation.memorySize = memorySize;
@@ -233,16 +149,12 @@
             };
 
           testScript = ''
-            # Reach into alice's session from root. `su alice -c` alone gets no
-            # user bus, so the runtime dir has to be named explicitly.
+            # `su alice -c` alone gets no user bus, hence the explicit runtime dir.
             def user(cmd):
                 return f"su alice -c 'XDG_RUNTIME_DIR=/run/user/1000 {cmd}'"
 
-            # Every wait gets the same generous budget. Sway needs ~40s to come up
-            # under the pixman software renderer, and the companions land in a
-            # burst after it, so a tighter budget on the later units only measures
-            # how loaded the builder is -- an earlier draft used 60s and failed
-            # that way about half the time.
+            # 180s throughout: sway needs ~40s under pixman, and 60s failed about
+            # half the time.
             def wait_active(unit):
                 machine.wait_until_succeeds(
                     user(f"systemctl --user is-active {unit}"), timeout=180
@@ -251,34 +163,19 @@
             machine.start()
             machine.wait_for_unit("${greeterUnit}")
 
-            # 1. The anchor is reached. uwsm's wayland-wm@sway.service is
-            #    Type=notify, so this only goes active once `uwsm finalize` has
-            #    run inside the compositor -- it is a real readiness signal, not
-            #    just "the process was spawned".
+            # Type=notify, so this goes active only once `uwsm finalize` ran.
             wait_active("wayland-session@sway.target")
-
-            # 2. The shared target follows it. This is the unit that ~35 upstream
-            #    Home Manager modules bind to through wayland.systemd.target.
             wait_active("den-session.target")
 
-            # 3. The companions actually run. waybar is the one a user would
-            #    notice missing, and it is bound to wayland-session@sway.target
-            #    rather than to den-session.target; kanshi and swayidle come
-            #    through the shared target, so between them both paths are
-            #    covered.
-            #
-            #    gammastep is deliberately excluded: its provider is geoclue,
-            #    which has no location to give in a VM, so it crash-loops here and
-            #    would make the test measure the environment rather than the
-            #    session.
+            # waybar follows the Sway anchor directly, kanshi and swayidle the
+            # shared target, so both paths are covered. gammastep is excluded:
+            # geoclue has no location in a VM, so it crash-loops regardless.
             companions = ["waybar", "kanshi", "swayidle"]
             for unit in companions:
                 wait_active(f"{unit}.service")
 
-            # ... and they have to still be running a moment later. `is-active`
-            # alone is satisfied by a service that starts, dies and gets restarted
-            # -- which is precisely how a bar can be "active" with nothing on
-            # screen. NRestarts is what separates the two.
+            # NRestarts, because `is-active` is also true of a bar that starts,
+            # dies and gets restarted with nothing on screen.
             machine.sleep(10)
             for unit in companions:
                 restarts = machine.succeed(
@@ -292,10 +189,7 @@
                     "it came up and did not stay up"
                 )
 
-            # 4. XDG_CURRENT_DESKTOP, as the session manager sees it. This is the
-            #    value XDG turns into `<desktop>-mimeapps.list`, so if it is empty
-            #    the per-desktop file manager association silently never applies --
-            #    and nothing at evaluation time can tell you that.
+            # Empty here means `<desktop>-mimeapps.list` is never read.
             env = machine.succeed(user("systemctl --user show-environment"))
             assert "XDG_CURRENT_DESKTOP=sway" in env, (
                 f"XDG_CURRENT_DESKTOP is not sway in the session environment:\n{env}"
@@ -309,7 +203,7 @@
       packages = {
         test-greeter = greeterTest;
 
-        # zuko's shape: greetd hands the session command to tuigreet's --cmd.
+        # zuko's shape.
         test-session = mkSessionTest {
           testName = "sway-session-comes-up";
           loginManager = "greetd";
@@ -317,10 +211,7 @@
           greeterUnit = "greetd.service";
         };
 
-        # katara's shape: GDM starts the session from the generated .desktop
-        # entry instead of a command line, which is the one part of the uwsm
-        # switch that differs per host. GDM's own greeter is gnome-shell, hence
-        # the larger VM.
+        # katara's shape. 4G because GDM's own greeter is gnome-shell.
         test-session-gdm = mkSessionTest {
           testName = "sway-session-comes-up-on-gdm";
           loginManager = "gdm";

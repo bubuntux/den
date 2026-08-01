@@ -2,23 +2,16 @@
 {
   flake.modules.nixos.restic =
     { config, ... }:
-    # Nightly encrypted backups to Google Drive via the restic+rclone backend.
-    # Restic doesn't support Drive natively; rclone exposes it as a generic
-    # remote and restic talks to that. Drive caps the upload API at ~750 GB/day
-    # per project, so an initial seed of /mnt/data (~670 GB) finishes in one
-    # window if upstream is fast enough, or resumes the next day if not.
+    # Nightly encrypted backups to Google Drive (restic has no native Drive
+    # backend; rclone exposes it as a generic remote). Drive caps uploads at
+    # ~750 GB/day, so the initial ~670 GB seed fits one window or resumes.
     #
-    # /mnt/config / /var/lib/<svc> aren't included on purpose -- the *arr
-    # stack stores live SQLite state there. Capturing it consistently would
-    # need a stop/tar/start dance per service (separate "service-snapshots"
-    # feature, TODO). For now, immich's own pg_dump output lands in
-    # /mnt/data/immich/backups (enable in admin UI), so its database
-    # restores consistently from what restic captures.
+    # /mnt/config and /var/lib/<svc> are excluded on purpose: the *arr stack
+    # keeps live SQLite there and would need a stop/tar/start dance per service
+    # (TODO). immich is fine -- its own pg_dump lands in a backed-up path.
     #
-    # Four jobs share the same Drive repo; restic's repository lock makes
-    # accidental overlap safe (the later runner waits or fails). They're
-    # spaced out by an hour to avoid that even when calendars collide
-    # (e.g., the 1st of the month falling on a Saturday).
+    # Four jobs share one repo, spaced an hour apart so colliding calendars
+    # never race for the repository lock:
     #
     #   restic-backups-appa.service            daily 06:30        backup only
     #   restic-backups-appa-prune.service      Sun  07:30         forget+prune
@@ -39,20 +32,11 @@
         rcloneConfigFile = config.sops.secrets.rclone_gdrive_conf.path;
       };
 
-      # Resource caps. Restic's compress+encrypt path is CPU-bound and its
-      # streaming reads are IO-bound; uncapped, a backup window can starve
-      # an early-morning jellyfin client whose CPU lands on the same cores.
-      # CPUQuota=200% lets it sprint to two cores when nothing else needs
-      # them; weight=30 forces it to yield under contention.
-      #
-      # MemoryHigh (soft cap, kernel throttles reclaim above it) vs MemoryMax
-      # (hard cap, OOM kill): the initial seed of /mnt/data wants ~800MB for
-      # restic's pack assembly + rclone's upload buffers + the kernel's page
-      # cache of the source files. At MemoryHigh=10% the cgroup hit the soft
-      # cap constantly and spent more time reclaiming pages than uploading.
-      # 15% gives the seed room to breathe; nightly incrementals use ~200MB
-      # so the higher soft cap is a no-op in steady state. The hard ceiling
-      # at 20% (1.5GB on 8GB) is unchanged -- still bounds the worst case.
+      # Sprints to two cores when idle, yields under contention -- an uncapped
+      # backup window starves an early-morning jellyfin client. MemoryHigh is
+      # 15% because the seed wants ~800MB and spent more time reclaiming than
+      # uploading at 10%; incrementals use ~200MB, so it is a no-op in steady
+      # state.
       caps = {
         CPUWeight = 30;
         CPUQuota = "200%";
@@ -96,13 +80,8 @@
             "--pack-size=32"
           ];
 
-          # rclone.connections=4: parallel HTTP/2 streams to Drive. Default
-          # is a single stream that caps at ~100-200 Mbps regardless of pipe
-          # width. With 771 Mbps upstream we were using ~14% of headroom on
-          # one stream; four streams should push 400-600 Mbps. Each in-flight
-          # upload buffers ~chunk_size (set in rclone.conf via sops), so
-          # 4 * 64M = ~256MB extra in restic's cgroup -- fits inside the
-          # MemoryHigh=15% / MemoryMax=20% caps.
+          # One stream caps at ~100-200 Mbps regardless of pipe width. Four
+          # buffer ~256MB extra, which fits the caps above.
           extraOptions = [
             "rclone.connections=4"
           ];
@@ -123,15 +102,9 @@
         };
 
         # --- Job 2: weekly forget+prune --------------------------------------
-        # Splitting prune off the nightly job keeps the nightly window short
-        # -- prune reads pack metadata and on a 670GB+ repo can run 10-30min.
-        # paths/dynamicFilesFrom/command all unset => the unit skips the
-        # `restic backup` step and runs only `restic forget --prune`.
-        #
-        # Retention: 7d/4w/12m/5y matches "active mistake window + monthly
-        # checkpoint year + multi-year capstone." Restic dedup keeps the
-        # marginal cost of older snapshots near-zero for mostly-static data
-        # like photos.
+        # Split off the nightly job, which prune would stretch by 10-30min.
+        # Leaving paths/dynamicFilesFrom/command unset is what makes the unit
+        # skip `restic backup` and run only `forget --prune`.
         appa-prune = sharedRepo // {
           pruneOpts = [
             "--keep-daily 7"
@@ -147,11 +120,8 @@
         };
 
         # --- Job 3: weekly metadata integrity check --------------------------
-        # `restic check` validates structure: snapshot/tree/pack metadata --
-        # catches local cache rot, corrupt pack indexes, and missing packs.
-        # Does NOT re-read pack contents (that's appa-check-data below).
-        # Scheduled Saturday so it precedes Sunday's prune; if prune ever
-        # corrupts a pack, the next Saturday's run catches it within a week.
+        # Metadata only, no pack contents (that is job 4). Saturday, so it
+        # precedes Sunday's prune and catches prune damage within a week.
         appa-check = sharedRepo // {
           checkOpts = [ "--with-cache" ];
           timerConfig = {
@@ -162,12 +132,8 @@
         };
 
         # --- Job 4: monthly data-subset integrity check ----------------------
-        # `--read-data-subset=1%` actually downloads + verifies SHA256 of a
-        # random 1% of pack contents. Catches silent bit-rot in cloud
-        # storage that metadata-only checks would miss. On a 670GB repo
-        # that's ~6.7GB of Drive egress per run -- well within Drive's
-        # daily API allowance. Bump to 5-10% if you ever hit corruption
-        # and want stronger sampling.
+        # Downloads and verifies 1% of pack contents, catching bit-rot that
+        # metadata checks miss: ~6.7GB of egress. Raise it after a corruption.
         appa-check-data = sharedRepo // {
           checkOpts = [
             "--with-cache"

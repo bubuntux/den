@@ -230,16 +230,11 @@
             }
           '';
 
-          # Single wildcard site block. All routing happens via @host matchers
-          # below; this is the canonical Caddy pattern for a wildcard cert.
+          # One wildcard site block, routed by @host matchers below.
           #
-          # The NixOS caddy module's default per-vhost logFormat writes
-          # access logs to /var/log/caddy/access-<host>.log with mode 0600.
-          # CrowdSec runs as a different (dynamic) user and can't read those
-          # files, so the file-glob acquisition was silently empty. Send
-          # access logs to stdout instead — systemd captures them into
-          # journald, where the matching acquisition reads them like every
-          # other service. Browse with `journalctl -u caddy.service`.
+          # Access logs go to stdout, not the default per-vhost file: those are
+          # mode 0600 and crowdsec's dynamic user cannot read them, so its
+          # file-glob acquisition sat silently empty.
           virtualHosts."*.{$BASE_DOMAIN}".logFormat = ''
             output stdout
           '';
@@ -274,19 +269,9 @@
         # HTTP/3 (QUIC) needs UDP 443; openFirewall above only handles TCP.
         networking.firewall.allowedUDPPorts = [ 443 ];
 
-        # CrowdSec reads Caddy's access logs from journald (the vhost
-        # above sends them to stdout, which systemd captures). Avoids the
-        # file-permission gap between caddy's umask and crowdsec's
-        # dynamic user that the file-glob acquisition hit.
-        #
-        # `--output=cat` is the key bit: crowdsec's journalctl source
-        # otherwise feeds the syslog-prefixed line ("May 14 ... caddy[..]: {json}")
-        # into evt.Parsed.message, and crowdsecurity/caddy-logs does
-        # UnmarshalJSON on that field — fails on the 'M' prefix. cat
-        # output mode emits the MESSAGE field only, which is the raw
-        # JSON access log line Caddy wrote. Doesn't affect the other
-        # service acquisitions (sshd / jellyfin / immich), which use
-        # grok on the prefixed line and want to keep it.
+        # `--output=cat` is load-bearing: without it the syslog-prefixed line
+        # reaches caddy-logs' UnmarshalJSON and fails on the timestamp. Other
+        # acquisitions grok the prefixed line and keep it.
         services.crowdsec.hub.collections = [ "crowdsecurity/caddy" ];
         services.crowdsec.localConfig.acquisitions = [
           {
@@ -299,19 +284,11 @@
           }
         ];
 
-        # VM build: sidestep Cloudflare/Let's Encrypt — ephemeral VM state
-        # means a fresh cert issuance on every boot, which burns the LE rate
-        # limit. Swap in Caddy's built-in CA (throwaway cert; `curl -k` or
-        # `caddy trust` to use it) and forward 80/443 to high host ports so
-        # qemu user-mode networking can bind them without root. Everything
-        # else — BASE_DOMAIN from sops, the crowdsec middleware, per-route
-        # matchers — stays identical to production.
+        # Ephemeral VM state would re-issue certs every boot and burn the Let's
+        # Encrypt rate limit, so use Caddy's internal CA and forward 80/443 to
+        # unprivileged host ports. Everything else matches production.
         #
-        # Host ports 18080/1443 prefix the guest ports with a "1": picked
-        # to avoid qbittorrent's 8080 webui forward while staying visibly
-        # tied to the upstream 80/443.
-        #
-        # Pair with /etc/hosts on the host machine:
+        # Pair with /etc/hosts on the host:
         #   127.0.0.1 sonarr.<BASE_DOMAIN> jellyfin.<BASE_DOMAIN> ...
         # then hit https://sonarr.<BASE_DOMAIN>:1443
         virtualisation.vmVariant = {

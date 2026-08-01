@@ -7,10 +7,7 @@ let
   mod = "Mod4";
 in
 {
-  # Sway, and only what names Sway. Everything a bare Wayland session needs but
-  # any compositor could provide -- notifications, launcher, locker, idle,
-  # outputs, keyring, tray applets -- lives in session/wayland.nix, which both
-  # halves below import.
+  # Sway, and only what names Sway; the rest is in session/wayland.nix.
   flake.modules = {
     homeManager.sway =
       {
@@ -41,53 +38,29 @@ in
       in
       {
         key = "den:homeManager.sway";
-        # Every user on the host receives this, because every user may log into
-        # Sway. What keeps it out of their GNOME session is the anchor below,
-        # not the absence of this module -- waybar and kanshi reached every user
-        # once before and did land in GNOME, since they were bound to
-        # graphical-session.target rather than to a session.
+        # Every user on the host receives this; the anchor below is what keeps
+        # it out of their other sessions.
         imports = with self.modules.homeManager; [
-          # The companion stack, and the den.session options set below.
           session-wayland
           session-options
-          # Declares the `monitors` option read above -- imported here rather
-          # than left to whoever pulls this module in.
           monitors
           waybar
           # dictation
         ];
 
-        # uwsm generates this target from the compositor id, which it takes from
-        # the basename of the binary it starts -- `uwsm start -n` reports
-        # "Selected compositor ID: sway". So it is what "a Sway session is
-        # running" means for this user, and session/wayland.nix hangs the
-        # companions off it. The key stays "sway" because that is what the
-        # session announces in XDG_CURRENT_DESKTOP, which is what makes
-        # sway-mimeapps.list work.
+        # uwsm names this from the binary basename; the key is the id the
+        # session announces in XDG_CURRENT_DESKTOP.
         den.session.anchors.sway = "wayland-session@sway.target";
 
         wayland.windowManager.sway = {
           enable = true;
 
-          # Config only, no binary. uwsm starts
-          # /run/current-system/sw/bin/sway by absolute path, so the wrapper
-          # carrying the session environment has to be the system one -- Home
-          # Manager's own wrapper would simply never run. Upstream documents
-          # `package = null` for exactly this pairing ("if you want to use the
-          # NixOS Sway module"), and it also turns off checkConfig, which needs
-          # a binary. wrapperFeatures, extraOptions and extraSessionCommands
-          # therefore live on programs.sway below.
-          #
-          # This also settles an ambiguity that predates uwsm: both modules were
-          # building a wrapper, they differed, and which one a session got came
-          # down to whether /etc/profiles/per-user came before
-          # /run/current-system/sw in PATH.
+          # Config only: uwsm starts the system wrapper by absolute path, so
+          # that is the one that must carry the session environment.
           package = null;
 
-          # uwsm owns session startup: wayland-wm@sway.service runs the
-          # compositor and wayland-session@sway.target is the anchor. Home
-          # Manager must not also generate sway-session.target and race to start
-          # it. `uwsm finalize` below replaces its environment import.
+          # uwsm owns startup; Home Manager must not also generate
+          # sway-session.target and race to start it.
           systemd.enable = false;
 
           config = {
@@ -130,19 +103,10 @@ in
             # Bars - use waybar
             bars = [ ];
 
-            # Startup commands. `uwsm finalize` comes first and is not optional:
-            # wayland-wm@sway.service is Type=notify, so without it the unit
-            # never reports ready and systemd kills the session after 30s.
-            #
-            # It exports WAYLAND_DISPLAY and DISPLAY by itself; everything named
-            # here is a variable something outside the compositor's process tree
-            # needs. Systemd user services and dbus-activated apps are not sway's
-            # children -- they read the systemd/dbus user environment, which only
-            # ever receives what is exported to it. SWAYSOCK is how waybar finds
-            # the compositor at all; the toolkit variables are set by
-            # programs.sway.extraSessionCommands and would otherwise stop at the
-            # process boundary. (WLR_NO_HARDWARE_CURSORS is read by sway itself,
-            # so it is deliberately not here.)
+            # `uwsm finalize` first and mandatory: the unit is Type=notify.
+            # WAYLAND_DISPLAY and DISPLAY come for free; everything named here is
+            # needed outside sway's process tree (SWAYSOCK above all -- it is how
+            # waybar finds the compositor).
             startup = [
               {
                 command = "${pkgs.uwsm}/bin/uwsm finalize ${
@@ -167,9 +131,8 @@ in
           };
         };
 
-        # Blanking the outputs is the compositor's own call, so it is the one
-        # swayidle timeout that cannot be shared; session/wayland.nix supplies
-        # the lock and suspend ones and the list definitions merge.
+        # The one idle timeout that cannot be shared; the list merges with
+        # session/wayland.nix.
         services.swayidle.timeouts = [
           {
             timeout = 360;
@@ -178,9 +141,8 @@ in
           }
         ];
 
-        # Sway's own portal preferences. session/wayland.nix sets `enable`, the
-        # common fallback and the gtk backend; both options merge, so this only
-        # adds what is specific to wlroots screen capture.
+        # Adds only what is specific to wlroots screen capture; the shared
+        # layer sets enable, the fallback and gtk.
         xdg.portal = {
           config.sway = {
             default = [ "gtk" ];
@@ -190,8 +152,7 @@ in
           extraPortals = [ pkgs.xdg-desktop-portal-wlr ];
         };
 
-        # grimshot drives sway's own screenshot IPC, so it is the one tool here
-        # that no other session could use. waybar comes from programs.waybar.
+        # grimshot drives sway's screenshot IPC; waybar comes from programs.waybar.
         home.packages = [ pkgs.sway-contrib.grimshot ];
       };
 
@@ -204,10 +165,9 @@ in
         ...
       }:
       let
-        # Screen-share picker for xdg-desktop-portal-wlr. wlroots can only capture
-        # a whole monitor or a whole window (never an arbitrary region), so this
-        # lists both in a rofi menu and returns the exact token xdpw expects:
-        # "Monitor: <output>" or "Window: <ext-foreign-toplevel-list-v1 id>".
+        # Screen-share picker for xdg-desktop-portal-wlr, which draws none of its
+        # own. Returns the token xdpw expects: "Monitor: <output>" or
+        # "Window: <ext-foreign-toplevel-list-v1 id>".
         screencastChooser = pkgs.writeShellApplication {
           name = "sway-screencast-chooser";
           runtimeInputs = with pkgs; [
@@ -220,9 +180,8 @@ in
             tokens=()
             labels=()
 
-            # Active monitors. Both displays are often the same model, so the label
-            # carries resolution, left/right position, orientation and a ★ on the
-            # focused output. The token returned to xdpw stays "Monitor: <name>".
+            # Displays are often the same model, so label with resolution,
+            # position, orientation and a ★ on the focused output.
             while IFS=$'\t' read -r name label; do
               tokens+=("Monitor: $name")
               labels+=("$label")
@@ -265,25 +224,35 @@ in
         key = "den:nixos.sway";
         imports = with self.modules.nixos; [
           desktop-options
-          # The system half of the companion stack (swaylock PAM, keyring,
-          # polkit, the Bluetooth applet). It gates itself on
-          # den.desktop.sessionAnchors, which the mkIf below contributes to, so
-          # it stays inert on a host that never selected a bare session --
-          # `imports` is not covered by that mkIf.
+          # Gates itself on den.desktop.sessionAnchors, so importing it here is
+          # safe even though `imports` escapes the mkIf below.
           session-wayland
         ];
 
         config = lib.mkIf (lib.elem "sway" config.den.desktop.environments) {
-          # `programs.sway.enable` registers the plain "Sway" session with
-          # services.displayManager.sessionPackages, which is the only thing a
-          # login manager needs to offer it. No greeter is configured here.
-          #
-          # This wrapper is now the only sway anyone starts (Home Manager sets
-          # `package = null`), so the session environment lives here. These
-          # exports reach sway and every process it spawns; anything outside
-          # that tree gets them through `uwsm finalize` in the Home Manager half.
+          # Registers the session with sessionPackages, which is all a login
+          # manager needs. The only sway anyone starts, so the session environment lives here;
+          # `uwsm finalize` carries it beyond sway's process tree.
           programs.sway = {
             enable = true;
+
+            # One session entry, and it starts uwsm: rewrite the one the package
+            # ships rather than adding a second with
+            # programs.uwsm.waylandCompositors. buildCommand, not postBuild --
+            # see CLAUDE.md, "How a bare session starts (uwsm)".
+            package = pkgs.sway.overrideAttrs (old: {
+              buildCommand = old.buildCommand + ''
+                rm -f $out/share/wayland-sessions/sway.desktop
+                cat > $out/share/wayland-sessions/sway.desktop <<'EOF'
+                [Desktop Entry]
+                Name=Sway
+                Comment=An i3-compatible Wayland compositor, started by uwsm
+                Exec=${lib.getExe pkgs.uwsm} start -F -- /run/current-system/sw/bin/sway
+                Type=Application
+                DesktopNames=sway
+                EOF
+              '';
+            });
             wrapperFeatures = {
               base = true;
               gtk = true;
@@ -310,40 +279,11 @@ in
             ];
           };
 
-          # Wrap the compositor in a systemd user session. Sway on its own gives
-          # you a compositor and nothing else -- no session target to bind
-          # helpers to, no XDG autostart, no environment in the user manager --
-          # and every bare compositor solves that differently or not at all
-          # (niri ships units, mangowc ships nothing). uwsm makes it one answer:
-          # wayland-session@<id>.target for all of them.
-          #
-          # This registers a *second* entry, "Sway (UWSM)", alongside the plain
-          # one above. Both are kept on purpose while this is new: if a uwsm
-          # session fails to come up, the greeter still offers the session that
-          # worked before.
-          # uwsm itself is turned on by nixos.session-wayland, which every bare
-          # session imports; a session only has to declare its own compositor.
-          programs.uwsm.waylandCompositors.sway = {
-            prettyName = "Sway";
-            comment = "Sway compositor managed by UWSM";
-            # Deliberately the system path rather than lib.getExe: uwsm has to
-            # start the same sway the rest of the system has, and this is the
-            # wrapper configured above.
-            binPath = "/run/current-system/sw/bin/sway";
-          };
+          # greetd needs a command rather than an entry; same one, so both
+          # greeters take the identical path.
+          den.desktop.sessionCommands.sway = "${lib.getExe pkgs.uwsm} start -F -- /run/current-system/sw/bin/sway";
 
-          # greetd ignores services.displayManager.defaultSession, so it needs a
-          # real command per session it might start. Both entries get one; the
-          # uwsm command is what nixpkgs writes into the desktop entry.
-          den.desktop.sessionCommands = {
-            sway = "sway";
-            "sway-uwsm" = "${lib.getExe pkgs.uwsm} start -F -- /run/current-system/sw/bin/sway";
-          };
-
-          # Sway ships no bar, notifier, locker or file manager, so it needs the
-          # companion stack; naming the unit that stands for a running Sway
-          # session is what lets system-level user units attach to it and only to
-          # it. The per-user half is den.session.anchors above.
+          # System-side half of den.session.anchors above.
           den.desktop.sessionAnchors.sway = "wayland-session@sway.target";
 
           # XDG portal for screen sharing and file dialogs

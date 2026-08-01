@@ -39,18 +39,11 @@
         "ov02c10"
       ];
 
-      # Every display on the 5680 is driven by the Intel iGPU (PCI 00:02.0); the
-      # NVIDIA dGPU is PRIME-offload only. Left alone, wlroots picks NVIDIA as its
-      # primary renderer and does a cross-GPU copy every frame -- which made
-      # Firefox screen-share stream a single frozen frame (one frame, then stuck
-      # until a pause/resume). Pin wlroots to the Intel GPU instead.
-      #
-      # WLR_DRM_DEVICES is a COLON-separated list, so the /dev/dri/by-path name
-      # (which is full of colons) gets split into garbage; and /dev/dri/cardN
-      # numbering isn't stable across boots. So expose a stable, colon-free
-      # symlink to the Intel card by its fixed PCI slot and point wlroots at that.
-      # PRIME offload (nvidia-offload / __NV_PRIME_RENDER_OFFLOAD) is unaffected
-      # -- wlroots never opens the dGPU, so it can also idle/suspend.
+      # All displays hang off the Intel iGPU; the dGPU is PRIME-offload only.
+      # Unpinned, wlroots picks NVIDIA and copies across GPUs every frame, which
+      # froze Firefox screen-share on a single frame. WLR_DRM_DEVICES is
+      # colon-separated so /dev/dri/by-path names split into garbage, and cardN
+      # is not stable across boots -- hence a colon-free symlink by PCI slot.
       services.udev.extraRules = ''
         SUBSYSTEM=="drm", ENV{DEVTYPE}=="drm_minor", KERNEL=="card[0-9]*", KERNELS=="0000:00:02.0", SYMLINK+="dri/intel"
       '';

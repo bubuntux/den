@@ -1,8 +1,5 @@
 _: {
-  # Session schema at *user* scope. `den.desktop` (features/desktop/options.nix)
-  # is the machine's view of the desktops -- which are installed, which greeter
-  # presents them. This is what a session's companion programs need in order to
-  # attach themselves to the right session inside one home.
+  # Session schema at *user* scope; `den.desktop` is the machine's view.
   flake.modules.homeManager.session-options =
     { pkgs, lib, ... }:
     {
@@ -17,42 +14,15 @@ _: {
           };
           description = ''
             Desktop id -> the systemd *user* unit that means "that session is
-            running". Companion services -- bar, idle handling, output
-            management, colour temperature -- hang their WantedBy/PartOf on
-            these instead of on graphical-session.target.
+            running". Companion services hang their WantedBy/PartOf on these
+            rather than on graphical-session.target, which every desktop starts.
 
-            Keyed by desktop id, not a bare list, because the key is worth as
-            much as the value: it is what a session announces in
-            XDG_CURRENT_DESKTOP, so a companion that needs per-desktop *files*
-            rather than per-desktop units can name them. features/desktop/
-            thunar.nix writes `<id>-mimeapps.list` that way, which XDG reads
-            ahead of the shared mimeapps.list.
+            The key is the id the session announces in XDG_CURRENT_DESKTOP, and
+            names per-desktop files such as `<id>-mimeapps.list`; the value is
+            the unit. A module belonging to one session must not read this --
+            it would start under the user's other desktops too.
 
-            The distinction is the whole point. graphical-session.target is
-            started by *every* desktop, GNOME included, so a companion bound to
-            it follows the user into any session: on katara that put Waybar over
-            mutter, a kanshi against mutter's own output handling and swayidle
-            locking a GNOME session with swaylock, all for a user whose only
-            crime was having Sway config in his home.
-
-            Contributed by each session module. Every user on the host receives
-            every installed desktop's config, so the set here is normally all of
-            the bare sessions, and the shared companions come up in whichever one
-            the user logged into.
-
-            The values are uniform because uwsm generates them:
-            `wayland-session@<id>.target`, where the id is the basename of the
-            compositor binary it was pointed at. That is the reason to run every
-            bare session through uwsm rather than each compositor's own
-            arrangement -- Sway had one only through Home Manager, niri ships
-            niri.service, and mangowc ships nothing at all.
-
-            A module belonging to ONE session must NOT read this -- with two
-            desktops in a home it would start that session's bar under the other
-            one too. Those bind to their own anchor by name; see
-            session/sway/waybar.nix.
-
-            The system-level counterpart is `den.desktop.sessionAnchors`.
+            See CLAUDE.md, "Desktop Environments and Login Managers".
           '';
         };
 
@@ -61,15 +31,9 @@ _: {
           default = pkgs.nixos-artwork.wallpapers.binary-black.gnomeFilePath;
           defaultText = lib.literalExpression "pkgs.nixos-artwork.wallpapers.binary-black.gnomeFilePath";
           description = ''
-            Image shown behind the session and on the lock screen. Read by both,
-            so a session and its locker cannot drift apart: the desktop
-            background is the session's business (Sway sets `output "*" bg`)
-            while swaylock is configured once for every session in
-            session/wayland.nix.
-
-            nixos-artwork is archived upstream, but nixpkgs still ships these
-            wallpapers; gnomeFilePath points straight at the PNG in the store,
-            so there is no eval-time fetch.
+            Image shown behind the session and on the lock screen, so the two
+            cannot drift apart: the session sets the background, session/
+            wayland.nix configures swaylock once for all of them.
           '';
         };
       };

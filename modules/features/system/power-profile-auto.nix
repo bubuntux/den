@@ -29,26 +29,10 @@ in
       in
       {
         key = "den:homeManager.power-profile-auto";
-        # Stop swayidle on login when on AC. Imported by session/wayland.nix
-        # alongside swayidle rather than pushed at every user; see the note on
-        # the nixos half below.
-        #
-        # Bound to wayland.systemd.target, the same unit swayidle itself follows
-        # -- session/wayland.nix points it at den-session.target, so this runs
-        # under the sessions that have a swayidle to inhibit and not in GNOME,
-        # which runs its own idle policy. (Imported without that module it falls
-        # back to Home Manager's default of graphical-session.target.)
-        #
-        # Ordered against that target explicitly, like every other unit in the
-        # session. That is load-bearing: a unit that is WantedBy a target but
-        # declares no ordering against it gets an implicit "target After= unit"
-        # edge, which turned the After=swayidle.service below into an ordering
-        # cycle and had systemd drop this job at every login.
-        #
-        # Deliberately no Requires=swayidle.service either: this unit's whole job
-        # is to stop swayidle, and Requires= propagates that stop straight back,
-        # SIGTERMing the script mid-run. After= alone is enough to order the two,
-        # since the target already pulls swayidle in.
+        # Stops swayidle at login when on AC. Ordered against the session target
+        # explicitly (a WantedBy with no ordering creates an implicit reverse edge
+        # and an ordering cycle), and deliberately no Requires=swayidle: that
+        # would propagate the stop back and SIGTERM this script mid-run.
         systemd.user.services.idle-inhibit-init = {
           Unit = {
             Description = "Initialize idle inhibitor based on AC state";
@@ -89,17 +73,10 @@ in
       {
         key = "den:nixos.power-profile-auto";
 
-        # Deliberately no `home-manager.sharedModules` for the module above: its
-        # unit exists to stop swayidle, so pushing it at every user put an
-        # idle-inhibit-init on GNOME users too, where it can only fail. The bare
-        # sessions import it instead, which is what scopes it per user. GNOME
-        # needs none of it -- gnome-settings-daemon runs its own idle and power
-        # policy, and this file's system half already sets the profile.
-        #
-        # The loop below is the one part that cannot be scoped that way: a system
-        # service cannot know which session each logged-in user is running, so it
-        # asks every one of them and swallows the failure for those without
-        # swayidle.
+        # No sharedModules for the home half: session/wayland.nix imports it, so
+        # only bare-session users get it. The loop below cannot be scoped that
+        # way -- a system service cannot know which session each user runs, so it
+        # asks all of them and swallows the failures.
 
         # Run at boot to set the initial profile and on every AC state change
         systemd.services.power-profile-auto = {

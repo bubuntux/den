@@ -1,28 +1,7 @@
 { self, inputs, ... }:
 {
-  # `nix flake check` used to build only treefmt and the flake-file check, so it
-  # proved formatting and nothing else -- no host was built and no assertion was
-  # ever exercised. These checks close that gap:
-  #
-  #   desktop-matrix     the DE/DM combinations produce the expected config
-  #   desktop-rejects    the invalid combinations are refused
-  #   session-anchors    a session's user units stay out of the user's other DEs
-  #   unit-shape         no surprise systemd directives on units we configure
-  #   media-plumbing     den.media.services really generates what it claims
-  #
-  # All of them are evaluation-only on purpose. Host builds deliberately do NOT
-  # live here: .github/workflows/_build.yml already builds every host in a
-  # matrix with per-host error logs, and ci.yml gates `build` on `check` while
-  # `heal` triggers on `build` failing. Building hosts inside `nix flake check`
-  # therefore moves a caddy-hash drift from `build` (failure -> heal runs) to
-  # `check` (failure -> build skipped -> heal never runs), disabling the caddy
-  # self-heal. Build a host with
-  # `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`.
-  #
-  # The desktop checks matter most. den.desktop's assertions are the only thing
-  # standing between a typo and a machine that boots without a way to log in,
-  # and nothing else in the repo forces them: the two-environment path is not
-  # used by any host, so it would otherwise rot unnoticed.
+  # Evaluation-only checks; host builds deliberately live in CI instead, so a
+  # build failure still triggers the caddy self-heal. See CLAUDE.md, "Checks".
   perSystem =
     {
       system,
@@ -76,12 +55,8 @@
         hmUsers = lib.sort (a: b: a < b) (lib.attrNames c.home-manager.users);
         greeterCmd =
           if c.services.greetd.enable then c.services.greetd.settings.default_session.command else "";
-        # Pinned because it was not in the original config and was added by
-        # accident during the DE/DM split, not because it is proven harmful --
-        # a VM test with and without it renders identically. It hands systemd
-        # TTYReset/TTYVHangup/TTYVTDisallocate on /dev/tty1, which greetd
-        # already owns via `[terminal] vt = 1`, so it stays off until something
-        # demonstrates it is needed. See the comment in login/greetd.nix.
+        # Pinned off: added by accident during the DE/DM split, never part of
+        # the working config. See login/greetd.nix.
         useTextGreeter = c.services.greetd.useTextGreeter;
       };
 
@@ -101,7 +76,6 @@
           expect = {
             sessions = [
               "sway"
-              "sway-uwsm"
             ];
             greetd = true;
             gdm = false;
@@ -109,45 +83,15 @@
             xserver = false;
             sway = true;
             gnome = false;
-            # Empty on purpose: desktop config now reaches users through
-            # home-manager.sharedModules, so a probe without a user module has
-            # no homes to show. The profile cases below are where hmUsers means
-            # something.
+            # Empty on purpose: config reaches users through sharedModules, so a
+            # probe with no user module has no homes. The profile cases below do.
             hmUsers = [ ];
             useTextGreeter = false;
           };
-          # Preserves the pre-split behaviour: greetd ignores defaultSession
-          # upstream, so den.desktop.sessionCommands has to supply --cmd. Still
-          # unquoted here, and correctly so: lib.escapeShellArg leaves a string
-          # that needs no quoting alone. The case below is the one that shows
-          # the quoting.
-          cmdContains = "--cmd sway";
-        }
-        {
-          # zuko's shape. The point is the quoting: --cmd takes one argument,
-          # and this session's command is four words plus a store path, so an
-          # unquoted one would hand tuigreet `uwsm` and leave `start -F -- ...`
-          # as stray arguments. Asserting the opening quote is immediately
-          # followed by a store path is what pins that.
-          name = "greetd preselecting the uwsm session (a multi-word command)";
-          modules = [
-            {
-              den.desktop = {
-                environments = [ "sway" ];
-                loginManager = "greetd";
-              };
-              services.displayManager.defaultSession = "sway-uwsm";
-            }
-            self.modules.nixos.bundle-desktop
-          ];
-          expect = {
-            sessions = [
-              "sway"
-              "sway-uwsm"
-            ];
-            greetd = true;
-            sway = true;
-          };
+          # --cmd takes a single argument, so a multi-word session command has
+          # to arrive quoted or tuigreet gets stray arguments and draws no
+          # prompt. The opening quote before a store path pins both that and the
+          # fact that the command runs uwsm.
           cmdContains = "--cmd '/nix/store";
         }
         {
@@ -169,7 +113,6 @@
             sessions = [
               "gnome"
               "sway"
-              "sway-uwsm"
             ];
             greetd = true;
             gdm = false;
@@ -178,9 +121,7 @@
             gnome = true;
             useTextGreeter = false;
           };
-          # Per-user session memory is what lets two users land in different
-          # desktops from the same greeter -- the only thing that is per user
-          # now, since every home carries both desktops' config.
+          # Per-user session memory: the only thing that is per user now.
           cmdContains = "--remember-user-session";
         }
         {
@@ -202,7 +143,6 @@
             sessions = [
               "gnome"
               "sway"
-              "sway-uwsm"
             ];
             greetd = false;
             gdm = true;
@@ -226,7 +166,6 @@
           expect = {
             sessions = [
               "sway"
-              "sway-uwsm"
             ];
             greetd = false;
             gdm = false;
@@ -256,7 +195,6 @@
             sessions = [
               "gnome"
               "sway"
-              "sway-uwsm"
             ];
             greetd = false;
             gdm = true;
@@ -285,7 +223,6 @@
             sessions = [
               "gnome"
               "sway"
-              "sway-uwsm"
             ];
             greetd = false;
             gdm = true;
@@ -398,25 +335,9 @@
 
       # --- session anchors ---------------------------------------------------
       #
-      # Home Manager config lands in a *home*, not in a session, so a user's
-      # units are there whichever desktop they log into. Everything a session
-      # owns must therefore hang off that session's own unit
-      # (den.session.anchors) rather than off graphical-session.target, which
-      # every desktop starts -- GNOME included.
-      #
-      # This is not hypothetical. Before the anchors existed, bbtux on katara had
-      # waybar, kanshi, swayidle, gammastep and geoclue-agent all WantedBy
-      # graphical-session.target, and katara's defaultSession is gnome: logging
-      # into GNOME drew Waybar over mutter, pointed kanshi at outputs mutter was
-      # already driving and armed swaylock as the GNOME screen locker. Every
-      # evaluated option value was correct, which is why desktop-matrix could not
-      # see it.
-      #
-      # The probe is deliberately the case no host runs -- one user with both
-      # desktops -- because that is where a mistake is invisible on a real
-      # machine until someone switches sessions. Unlike the cases above this
-      # forces a full Home Manager evaluation for that user, which is the bulk of
-      # this check's cost.
+      # Every evaluated option value can be correct while a unit is bound to
+      # graphical-session.target, which every desktop starts. Costs a full Home
+      # Manager evaluation. See CLAUDE.md, "Checks".
       anchorFailures =
         let
           c = probe [
@@ -467,21 +388,12 @@
           sessionTarget = "den-session.target";
           swayAnchor = "wayland-session@sway.target";
 
-          # Forcing the activation package's drvPath (an instantiation, not a
-          # build) evaluates the WHOLE of this user's Home Manager config. That
-          # is what covers the other half of every home carrying every desktop:
-          # an option two of them define differently -- the collision that used
-          # to be the reason a user was assigned one desktop -- fails here rather
-          # than at switch time. It has to be forced explicitly, because a module
-          # definition conflicts only when something reads the option, and the
-          # assertions below read units alone.
+          # drvPath, not a build: forces the whole config, so an option two
+          # desktops define differently fails here rather than at switch time.
           evaluated = hm.home.activationPackage.drvPath;
 
-          # The file-manager association is per *desktop*, not per home: thunar
-          # is right in Sway and wrong in GNOME, and both are in this home. XDG
-          # reads <desktop>-mimeapps.list ahead of mimeapps.list, so the pair of
-          # assertions below is "Sway gets thunar" and "the shared list does not
-          # hand thunar to GNOME as well".
+          # thunar is right in Sway and wrong in GNOME, and both are in this
+          # home: Sway gets it, the shared list must not.
           mimeFor = desktop: hm.xdg.configFile."${desktop}-mimeapps.list".text or null;
           sharedDefault = hm.xdg.mimeApps.defaultApplications."inode/directory" or null;
         in
@@ -524,16 +436,8 @@
 
       # --- unit shape --------------------------------------------------------
       #
-      # The fingerprint used to verify the desktop refactor compared evaluated
-      # option *values*. It would have caught a changed ExecStart, and was blind
-      # to *added* [Service] directives -- which is exactly how
-      # services.greetd.useTextGreeter slipped in and left the greeter drawing a
-      # clock onto a console systemd had reset underneath it.
-      #
-      # So pin the set of directive *names* per section, not their values: store
-      # paths and package versions live in values, and pinning those would make
-      # this fire on every `nix flake update`. Only units this repo configures
-      # directly are listed; nixpkgs-owned units would just churn.
+      # Directive *names* per section, never their values: values carry store
+      # paths and would churn on every flake update. See CLAUDE.md, "Checks".
       directivesOf =
         text:
         let
