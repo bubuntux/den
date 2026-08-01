@@ -181,6 +181,24 @@
           extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
         };
 
+        # Don't autostart IBus. uwsm brought XDG autostart with it -- something
+        # a bare compositor never had -- so /etc/xdg/autostart entries now run
+        # here, and ibus-daemon.desktop is marked `NotShowIn=GNOME;KDE`, i.e.
+        # "start me in every other desktop". It arrives because GNOME is
+        # installed on the same host, greets each login with a notification, and
+        # nobody here types through an input method.
+        #
+        # A user entry of the same name overrides the system one, and `Hidden`
+        # means "treat as absent". GNOME is unaffected either way: it starts ibus
+        # from gnome-shell rather than from autostart, which is exactly why the
+        # system entry excludes itself there.
+        xdg.configFile."autostart/ibus-daemon.desktop".text = ''
+          [Desktop Entry]
+          Type=Application
+          Name=IBus
+          Hidden=true
+        '';
+
         # Make `login` the default keyring so PAM-unlocked secrets are usable by
         # libsecret apps (Claude Code, browsers, ...) without a prompt.
         xdg.dataFile."keyrings/default" = {
@@ -289,26 +307,18 @@
           services.gnome.gnome-keyring.enable = true;
           security.pam.services.login.enableGnomeKeyring = true;
 
-          # The blueman-applet unit ships no [Install] section, so nothing starts
-          # it at login. A full DE autostarts it through XDG; a bare session has
-          # no XDG autostart, so bind it like the rest of the session. This is a
-          # system-level user unit, so it hangs off the anchors directly rather
-          # than off den-session.target, which is per-user. Anchors, not
-          # graphical-session.target: that would put a second Bluetooth icon in a
-          # GNOME session on the same host.
+          # Deliberately nothing here for blueman-applet. Its unit ships no
+          # [Install] section, so a bare session used to leave the tray applet
+          # unstarted and this module bound it to the anchors by hand. uwsm
+          # brought `wayland-session-xdg-autostart@<id>.target` with it, which
+          # starts /etc/xdg/autostart entries the way a full desktop does --
+          # blueman.desktop among them -- so the hand-wiring became a second
+          # copy of the same applet rather than the only one.
           #
-          # Guarded on blueman's own switch (profile-laptop brings it) so this
-          # never leaves an ExecStart-less unit behind on a host without it.
-          systemd.user.services.blueman-applet = lib.mkIf config.services.blueman.enable (
-            let
-              anchors = lib.attrValues config.den.desktop.sessionAnchors;
-            in
-            {
-              wantedBy = anchors;
-              partOf = anchors;
-              after = anchors;
-            }
-          );
+          # That is the general rule now: anything with an XDG autostart entry
+          # needs no wiring from us. Only things with no entry at all -- the
+          # geoclue agent, the idle inhibitor -- are bound explicitly, and those
+          # are per-user units in the Home Manager half above.
         };
       };
   };

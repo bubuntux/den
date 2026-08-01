@@ -34,10 +34,13 @@
     # host's call.
     den.desktop.loginManager = "greetd";
     # The uwsm-managed entry, not the plain one: uwsm is what puts the session
-    # in a systemd user session, which is where every companion attaches. The
-    # plain "Sway" entry stays in the greeter as a fallback while this is new --
-    # tuigreet remembers the last session per user, so picking it once is enough
-    # to get back to the old path if uwsm ever fails to come up.
+    # in a systemd user session, which is where every companion attaches.
+    #
+    # The plain "Sway" entry is still in the greeter -- nixpkgs' sway module
+    # registers it and there is no supported way to withdraw it -- but it is not
+    # a fallback. Home Manager's own session management is off, so picking it
+    # gets a compositor with no anchor and therefore no bar, no idle handling
+    # and no output management. Always pick this one.
     services.displayManager.defaultSession = "sway-uwsm";
   };
 }

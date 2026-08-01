@@ -368,10 +368,21 @@ Two things are load-bearing and easy to omit:
   `login/greetd.nix` runs them through `lib.escapeShellArg` for that reason.
   Nothing noticed while every command was a bare `sway`, and `uwsm start -F -- …` is what broke it.
 
-Both entries stay in the greeter for now — "Sway" (plain) and "Sway (UWSM)" —
-so a session that fails to come up under uwsm has somewhere to fall back to.
-tuigreet remembers the last session per user, so picking the fallback once is
-enough. Drop `programs.sway`'s own entry once uwsm has proven itself.
+Two entries show up in the greeter — "Sway" (plain) and "Sway (UWSM)" — and
+**only the UWSM one works**. The plain entry comes from nixpkgs' own sway
+module, which registers it in `services.displayManager.sessionPackages` with no
+supported way to withdraw it; since Home Manager's session management is off,
+picking it yields a compositor with no anchor, and therefore no bar, no idle
+handling and no output management. Hosts set `defaultSession` to the UWSM entry
+and greeters remember the last session per user, so it is not a trap you fall
+into twice.
+
+Getting rid of it means taking over the session entry — overriding
+`programs.sway.package` to rewrite `share/wayland-sessions/sway.desktop` in a
+`postBuild`, since the wrapper is a `symlinkJoin` and that file is a symlink in
+a real directory. That also drops the `(UWSM)` suffix, because the entry would
+be ours to name. Deliberately not done: it trades a cosmetic wart for owning a
+file nixpkgs maintains.
 
 `programs.uwsm.enable` is set once, by `nixos.session-wayland`, since it is the
 same answer for every bare session and that module already means "something
