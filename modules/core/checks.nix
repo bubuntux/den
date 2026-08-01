@@ -386,6 +386,24 @@
             {
               den.desktop.loginManager = "gdm";
               services.displayManager.defaultSession = "gnome";
+              # A display layout, pushed schema-and-values the way every host
+              # does it. kanshi is only enabled for a user who has monitors, so
+              # without this the probe would be a machine nobody runs, and the
+              # kanshi assertion below would report it missing rather than
+              # unanchored.
+              home-manager.sharedModules = [
+                {
+                  imports = [ self.modules.homeManager.monitors ];
+                  monitors = [
+                    {
+                      name = "eDP-1";
+                      primary = true;
+                      width = 2560;
+                      height = 1600;
+                    }
+                  ];
+                }
+              ];
             }
           ];
           # shari, not bbtux: she is the one who only ever logs into GNOME, so

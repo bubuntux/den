@@ -41,6 +41,11 @@ nix flake check
 # Run one check on its own
 nix build .#checks.x86_64-linux.desktop-matrix
 
+# Booted-VM tests, deliberately outside `nix flake check` (they boot a machine).
+# Run before touching the greeter or the session plumbing -- see Checks.
+nix build .#test-greeter   # the greeter draws a usable prompt
+nix build .#test-session   # logging in produces a working Sway session
+
 # Format code
 nix fmt
 
@@ -125,6 +130,21 @@ The desktop checks carry the most weight, because `den.desktop`'s assertions are
 `session-anchors` was validated four times over, once per property it holds: dropping `wayland.systemd.target` from `session/wayland.nix` made it name kanshi, swayidle and idle-inhibit-init as bound to `graphical-session.target`; giving `homeManager.gnome` its own `xdg.userDirs.desktop` made it report the conflicting definition; and moving thunar's association back into the shared `mimeapps.list` made it report that the default "would follow the user into GNOME".
 
 Writing `session-anchors` also showed what a check of this shape cannot do: the first attempt tried to prove the conflict case with `xdg.portal.config`, which merges into a list rather than conflicting, so the check passed on genuinely broken input. Pick an option that is single-valued when testing a collision.
+
+### Booted-VM tests
+
+Two of them, in `modules/core/tests.nix`, deliberately **not** flake checks — `nix flake check` gates CI's `build` job and `heal` only fires when `build` fails, so anything heavy or flaky in `checks` turns a caddy-hash drift into a skipped build and a dead self-heal.
+
+| test | what it proves |
+|---|---|
+| `test-greeter` | the greeter draws a usable prompt, and keeps drawing it |
+| `test-session` | greetd autologin → Sway actually yields a working session |
+
+`test-session` asserts what no evaluation can see: `sway-session.target` is *reached*, `den-session.target` follows it, waybar/kanshi/swayidle are active **and have not restarted** ten seconds later, and `XDG_CURRENT_DESKTOP=sway` in the session's systemd environment — that last one decides whether `sway-mimeapps.list` is ever read, and it turns out to come from nixpkgs' sway *wrapper*, so it survives the greetd `--cmd sway` path that zuko uses.
+
+The `NRestarts` assertion is the load-bearing one. `is-active` alone is satisfied by a service that starts, dies and is restarted, which is exactly how a bar can be "active" with nothing on screen — and it is what caught kanshi crash-looping on an empty config (`features/desktop/kanshi.nix` now enables it only for a user who has `monitors`). Its first screenshot was a black screen with a mouse cursor and every unit reported active.
+
+Two environment notes for anyone extending it: sway needs `WLR_RENDERER = "pixman"` and `-vga none -device virtio-gpu-pci` (both lifted from nixpkgs' own `nixos/tests/sway.nix`), and gammastep is excluded from the assertions because geoclue has no location to give in a VM, so it crash-loops there regardless of configuration.
 
 Writing `media-plumbing` also caught a bug in the check rather than the code — asserting list equality on `RequiresMountsFor` failed for four services because upstream contributes its own entries. Expect that: a new check's first failure is as likely to be its own fault as the code's.
 

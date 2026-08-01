@@ -117,7 +117,14 @@ in
       # imported here rather than left to whoever pulls this module in.
       imports = [ self.modules.homeManager.monitors ];
       services.kanshi = {
-        enable = true;
+        # An output manager with nothing to manage does not sit idle. With no
+        # monitors declared, Home Manager writes no config file, kanshi exits
+        # 1 ("failed to parse config file"), and its Restart=always turns that
+        # into a crash loop that ends in `failed`. Hosts push `monitors` at
+        # every user (hosts/*/monitors.nix), so no machine hits this today --
+        # a new host that installs a desktop before describing its displays
+        # would, which the session VM test found by being exactly that host.
+        enable = config.monitors != [ ];
         settings = outputDefinitions ++ profiles;
       };
     };
