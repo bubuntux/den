@@ -83,7 +83,7 @@ in
           default = { };
           internal = true;
           example = {
-            sway = "sway-session.target";
+            sway = "wayland-session@sway.target";
           };
           description = ''
             Session name -> the systemd *user* unit that means "this session is

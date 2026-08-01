@@ -262,7 +262,7 @@
             wait_active("den-session.target")
 
             # 3. The companions actually run. waybar is the one a user would
-            #    notice missing, and it is bound to sway-session.target directly
+            #    notice missing, and it is bound to wayland-session@sway.target
             #    rather than to den-session.target; kanshi and swayidle come
             #    through the shared target, so between them both paths are
             #    covered.

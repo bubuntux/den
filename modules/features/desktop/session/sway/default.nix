@@ -321,16 +321,15 @@ in
           # one above. Both are kept on purpose while this is new: if a uwsm
           # session fails to come up, the greeter still offers the session that
           # worked before.
-          programs.uwsm = {
-            enable = true;
-            waylandCompositors.sway = {
-              prettyName = "Sway";
-              comment = "Sway compositor managed by UWSM";
-              # Deliberately the system path rather than lib.getExe: uwsm has to
-              # start the same sway the rest of the system has, and this is the
-              # wrapper configured above.
-              binPath = "/run/current-system/sw/bin/sway";
-            };
+          # uwsm itself is turned on by nixos.session-wayland, which every bare
+          # session imports; a session only has to declare its own compositor.
+          programs.uwsm.waylandCompositors.sway = {
+            prettyName = "Sway";
+            comment = "Sway compositor managed by UWSM";
+            # Deliberately the system path rather than lib.getExe: uwsm has to
+            # start the same sway the rest of the system has, and this is the
+            # wrapper configured above.
+            binPath = "/run/current-system/sw/bin/sway";
           };
 
           # greetd ignores services.displayManager.defaultSession, so it needs a

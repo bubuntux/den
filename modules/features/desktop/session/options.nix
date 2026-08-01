@@ -13,7 +13,7 @@ _: {
           type = lib.types.attrsOf lib.types.str;
           default = { };
           example = {
-            sway = "sway-session.target";
+            sway = "wayland-session@sway.target";
           };
           description = ''
             Desktop id -> the systemd *user* unit that means "that session is

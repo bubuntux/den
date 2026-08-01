@@ -255,6 +255,19 @@
         ];
 
         config = lib.mkIf (config.den.desktop.sessionAnchors != { }) {
+          # Wrap every bare compositor in a systemd user session. Enabled here
+          # rather than by any one session module, because it is the same answer
+          # for all of them and this module is what "some installed session ships
+          # no shell of its own" already means. A session only registers its own
+          # `programs.uwsm.waylandCompositors.<name>` entry.
+          #
+          # It is what makes the anchors uniform: wayland-session@<id>.target for
+          # every compositor, where upstream otherwise gives you Home Manager's
+          # target for Sway, niri.service for niri, and nothing at all for
+          # mangowc. Note it also switches dbus to the broker implementation,
+          # which uwsm recommends.
+          programs.uwsm.enable = true;
+
           # PAM for swaylock, which every bare session locks with.
           security.pam.services.swaylock = { };
 

@@ -34,12 +34,12 @@
     # and session picker instead of a keyboard-only TUI, and it remembers each
     # user's last session afterwards. That memory is accountsservice state in
     # /var/lib/AccountsService/users/<name>, not configuration: every user's
-    # *first* login uses defaultSession below, so bbtux -- whose
-    # den.desktop.users entry is sway -- starts in GNOME until he picks Sway
-    # once from the session menu. That detour is harmless now: his Sway
-    # companions hang off sway-session.target (den.session.anchors), so the GNOME
-    # login he passes through is a plain GNOME login. Keyring auto-unlock still
-    # works: GDM derives its PAM config from
+    # *first* login uses defaultSession below, so bbtux starts in GNOME until he
+    # picks Sway once from the session menu. Both desktops are configured in his
+    # home either way, so that detour is a working GNOME session rather than a
+    # broken Sway one -- and nothing of Sway's follows him into it, because its
+    # companions hang off wayland-session@sway.target (den.session.anchors).
+    # Keyring auto-unlock still works: GDM derives its PAM config from
     # security.pam.services.login.enableGnomeKeyring, which
     # features/desktop/session/wayland.nix sets.
     den.desktop.loginManager = "gdm";
