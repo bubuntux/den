@@ -43,8 +43,9 @@ nix build .#checks.x86_64-linux.desktop-matrix
 
 # Booted-VM tests, deliberately outside `nix flake check` (they boot a machine).
 # Run before touching the greeter or the session plumbing -- see Checks.
-nix build .#test-greeter   # the greeter draws a usable prompt
-nix build .#test-session   # logging in produces a working Sway session
+nix build .#test-greeter       # the greeter draws a usable prompt
+nix build .#test-session       # a session comes up via greetd (zuko)
+nix build .#test-session-gdm   # ... and via GDM's .desktop entry (katara)
 
 # Format code
 nix fmt
@@ -133,12 +134,15 @@ Writing `session-anchors` also showed what a check of this shape cannot do: the 
 
 ### Booted-VM tests
 
-Two of them, in `modules/core/tests.nix`, deliberately **not** flake checks — `nix flake check` gates CI's `build` job and `heal` only fires when `build` fails, so anything heavy or flaky in `checks` turns a caddy-hash drift into a skipped build and a dead self-heal.
+Three of them, in `modules/core/tests.nix`, deliberately **not** flake checks — `nix flake check` gates CI's `build` job and `heal` only fires when `build` fails, so anything heavy or flaky in `checks` turns a caddy-hash drift into a skipped build and a dead self-heal.
 
 | test | what it proves |
 |---|---|
 | `test-greeter` | the greeter draws a usable prompt, and keeps drawing it |
-| `test-session` | greetd autologin → Sway actually yields a working session |
+| `test-session` | greetd autologin → Sway yields a working session (zuko's path) |
+| `test-session-gdm` | the same, started from the `.desktop` entry by GDM (katara's path) |
+
+The two session tests are one `mkSessionTest` function over the greeter, because the greeters start a session by genuinely different means: greetd runs `den.desktop.sessionCommands` as a command line, GDM execs the generated desktop entry. That is where the unquoted `--cmd` bug lived, and it is the only part of the uwsm switch that behaves differently per host — so both are worth booting.
 
 `test-session` asserts what no evaluation can see: `wayland-session@sway.target` is *reached* (which under uwsm means `uwsm finalize` really ran, since the unit is `Type=notify`), `den-session.target` follows it, waybar/kanshi/swayidle are active **and have not restarted** ten seconds later, and `XDG_CURRENT_DESKTOP=sway` in the session's systemd environment — that last one decides whether `sway-mimeapps.list` is ever read, and it comes from nixpkgs' sway *wrapper*, so it holds on the greetd `--cmd` path that zuko uses.
 
