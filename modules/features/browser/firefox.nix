@@ -1,19 +1,10 @@
 { self, ... }:
 let
-  # LibreWolf-style hardening. Firefox delivers prefs by two mechanisms with
-  # very different rules — this file routes each pref to the one that works:
-  #
-  #   * `programs.firefox.preferences`  -> Firefox's `Preferences` ENTERPRISE
-  #     POLICY, which only honors an allowlist of pref prefixes and SILENTLY
-  #     drops everything else (see Policies.sys.mjs `allowedPrefixes` /
-  #     `allowedSecurityPrefs`). Only allowlisted prefs live here.
-  #   * `programs.firefox.autoConfig`   -> a real autoconfig `.cfg` (no
-  #     allowlist). Prefs outside the policy allowlist go here as
-  #     `defaultPref(...)` so they still apply AND stay user-tweakable.
-  #   * dedicated top-level policies (DisableTelemetry, DisableFirefoxAccounts,
-  #     Certificates) cover things neither pref path sets cleanly.
-  #
-  # Toggle a category by removing its block from the relevant merge below.
+  # LibreWolf-style hardening. Which mechanism a pref goes through matters:
+  # `preferences` is the enterprise policy, which honours an allowlist of
+  # prefixes and SILENTLY drops the rest, so anything outside it goes through
+  # `autoConfig` as defaultPref (which also keeps it user-tweakable). A few
+  # things neither sets cleanly have dedicated policies.
 
   # -- Allowlisted prefs (honored by the Preferences policy) ------------------
 

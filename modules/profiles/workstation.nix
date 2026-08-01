@@ -1,15 +1,10 @@
 { self, ... }:
 {
-  # Julio's laptop-as-daily-driver role: the stack katara and zuko both run.
-  # Composes other profiles, which the layer table permits for exactly this
-  # case -- the alternative is repeating an eight-module import list in every
-  # host file.
+  # The stack katara and zuko both run. Composes other profiles, which the
+  # layer table permits for exactly this case.
   #
-  # Gaming is deliberately NOT here. It was, and it made the role mean "the
-  # union of what these two hosts happen to have" rather than one idea: katara
-  # is a family machine that also carries this stack, and nobody games on it.
-  # Steam, gamescope and the controller drivers are a capability, so the host
-  # that wants them imports profile-gaming itself (zuko does).
+  # Gaming is deliberately not here: it made the role mean "what these two
+  # hosts happen to share" rather than one idea. zuko imports it directly.
   flake.modules.nixos.profile-workstation = {
     key = "den:nixos.profile-workstation";
     imports = with self.modules.nixos; [

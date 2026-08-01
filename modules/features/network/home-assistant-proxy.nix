@@ -1,21 +1,13 @@
 {
   flake.modules.nixos.home-assistant-proxy =
     _:
-    # Home Assistant runs on a separate appliance at 192.168.5.2:8123 (not
-    # managed by this flake). This module just publishes a caddy route so
-    # ha.<base-domain> resolves on the LAN and goes through the same wildcard
-    # TLS cert / LAN-only gating as the rest of the *arr admin UIs.
+    # HA runs on a separate appliance; this only publishes the caddy route, so
+    # it gets the same wildcard cert and LAN-only gating as the *arr UIs.
+    # WebSockets need no extra config -- caddy upgrades them itself.
     #
-    # Caddy v2's reverse_proxy auto-upgrades WebSocket connections, which HA's
-    # frontend relies on -- no extra proxyConfig needed.
-    #
-    # Counterpart config required on the HA box (not enforceable from here):
-    #   http:
-    #     use_x_forwarded_for: true
-    #     trusted_proxies:
-    #       - <appa LAN IPv4>
-    # Without this, HA rejects the X-Forwarded-* headers and the UI shows
-    # every client as the caddy host's IP.
+    # Required on the HA box, not enforceable from here:
+    #   http: { use_x_forwarded_for: true, trusted_proxies: [<appa LAN IPv4>] }
+    # Without it every client shows up as the caddy host.
     {
       key = "den:nixos.home-assistant-proxy";
       services.reverse-proxy.routes.home-assistant = {
@@ -34,20 +26,9 @@
         rateLimit.paths = [ "/auth/*" ];
       };
 
-      # HA itself isn't on appa, so journald-based acquisitions aren't an
-      # option. The detection lives at the caddy layer: every request hits
-      # caddy access logs (already tailed via crowdsecurity/caddy), and
-      # `LePresidente/http-generic-401-bf` fires after repeated 401s on
-      # /auth/* — verified via `cscli explain` against a simulated log
-      # line.
-      #
-      # No explicit hub pin needed: that scenario is one of three docs
-      # inside the multi-doc file `scenarios/crowdsecurity/http-generic-bf.yaml`
-      # in the upstream hub, which gets installed transitively via
-      # `crowdsecurity/base-http-scenarios` (pulled in unconditionally by
-      # the crowdsec-setup script). Pinning by the scenario name fails
-      # because there is no hub *item* by that name — only `cscli scenarios
-      # install crowdsecurity/http-generic-bf` would work, and that's
-      # already covered by the base collection.
+      # HA is not on appa, so detection happens at the caddy layer instead:
+      # http-generic-401-bf fires on repeated 401s in the access log. No hub pin
+      # -- that scenario ships inside http-generic-bf.yaml, which comes in with
+      # base-http-scenarios, and there is no hub item by its own name.
     };
 }

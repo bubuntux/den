@@ -16,20 +16,13 @@ in
   # Surface thinking summaries in the transcript view
   showThinkingSummaries = true;
 
-  # Allow non-destructive operations by default.
+  # `auto` sends anything that is not a read or a working-dir edit to a
+  # classifier instead of prompting; the `allow` list below just skips that
+  # round-trip for the commands this repo uses most.
   #
-  # `auto` sends every action that isn't a read or a working-directory edit to a
-  # separate classifier model instead of prompting. It approves routine work and
-  # blocks escalation: `curl | bash`, force push, prod deploys, exfiltration,
-  # destroying files that predate the session. This is what keeps the session
-  # quiet — the `allow` list below is now an optimization that skips the
-  # classifier round-trip for the commands used most in this repo.
-  #
-  # Only honored from ~/.claude/settings.json, which is exactly what this module
-  # writes; Claude Code ignores `auto` from a project's `.claude/settings.json`
-  # so a checked-out repo can't grant itself auto mode. Needs Opus 4.6+ /
-  # Sonnet 4.6+ / Fable 5 — if unavailable the session silently falls back to
-  # `default` (prompt on first use), which asks *more* than `acceptEdits` did.
+  # Only honoured from ~/.claude/settings.json (a checked-out repo cannot grant
+  # itself auto mode), and needs a recent model -- otherwise it falls back to
+  # `default`, which prompts more than `acceptEdits` did.
   permissions = {
     defaultMode = "auto";
     allow = [

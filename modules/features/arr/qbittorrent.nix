@@ -86,10 +86,8 @@
               QueueingSystemEnabled = false;
               PerformanceWarning = true;
               DefaultSavePath = defaultSavePath;
-              # Skip junk that rides along with media releases — *arrs
-              # hardlink the wanted files out, so excluding these here just
-              # avoids burning seed-tree space and inode count on samples,
-              # nfos, archive parts, hashes, web-bait, and OS cruft.
+              # The *arrs hardlink the wanted files out, so this only avoids
+              # burning seed-tree space on junk that rides along.
               ExcludedFileNames = lib.concatStringsSep ", " [
                 # text/info/release metadata
                 "*.txt"

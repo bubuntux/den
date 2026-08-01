@@ -5,11 +5,8 @@
     let
       port = 2283;
       mediaLocation = "/mnt/data/immich";
-      # Immich verifies a `.immich` sentinel in each of these subdirs on
-      # startup; pre-seed them so the integrity check passes on a custom
-      # mediaLocation (with the default /var/lib/immich the upstream
-      # bootstrap creates them, but with mountChecks already enabled in the
-      # DB the verify runs before that path).
+      # Immich verifies a `.immich` sentinel in each on startup, and on a custom
+      # mediaLocation that check runs before the bootstrap that would create it.
       mountFolders = [
         "encoded-video"
         "thumbs"
@@ -39,49 +36,32 @@
         enable = true;
         host = "0.0.0.0";
         openFirewall = true;
-        # CLIP + face + OCR models peak ~3 GB. The slice
-        # (system-immich.slice) caps both services jointly, but ML alone
-        # could consume the full budget and starve the server during a
-        # smart-tag backfill -- per-service caps on immich-machine-learning
-        # below keep the server's interactive browsing prioritised.
+        # Models peak ~3 GB, and ML alone could eat the slice budget during a
+        # backfill; the per-service caps below keep browsing responsive.
         machine-learning.enable = true;
         inherit port mediaLocation;
-        # Expose the Intel iGPU render node to immich-server so ffmpeg can
-        # use VA-API for transcoding. Default `[ ]` sets PrivateDevices=true
-        # on the unit, which hides /dev/dri entirely. The codec path
-        # (VAAPI vs. QSV vs. disabled) is still chosen in the Immich admin
-        # UI under Video Transcoding -- this option only grants access.
+        # The default `[ ]` sets PrivateDevices=true and hides /dev/dri. This
+        # only grants access; the codec path is chosen in the admin UI.
         accelerationDevices = [ "/dev/dri/renderD128" ];
       };
 
-      # accelerationDevices only handles the systemd DeviceAllow side; the
-      # render node is `crw-rw---- root:render` so ffmpeg still needs group
-      # membership to open it. Mirrors the jellyfin setup -- same iGPU, same
-      # failure mode (silent fallback to CPU transcoding) without these.
+      # DeviceAllow is only half of it: the render node is root:render, so
+      # without the group ffmpeg silently falls back to CPU transcoding.
       users.users.immich.extraGroups = [
         "render"
         "video"
       ];
 
-      # Cap the immich slice so a runaway import job can't OOM-lock the
-      # host or starve other services of CPU/IO. immich-server (and any
-      # spawned sharp/ffmpeg subprocesses) inherit these limits via the
-      # cgroup; if machine-learning is re-enabled it joins the same slice.
-      # Reason: 2026-05-22 kernel page-fault BUG + 11-min I/O storm during
-      # bulk photo ingest on an 8 GB-RAM / 4-core J5040 host.
+      # Added after a 2026-05-22 kernel page-fault BUG and 11-minute I/O storm
+      # during a bulk ingest. Subprocesses inherit these through the cgroup.
       systemd.slices.system-immich.sliceConfig = {
-        # Memory: percent-of-RAM so caps auto-scale with hardware upgrades.
-        # On 8 GB:  high≈2.8 G  max≈4.0 G  swap≈2.0 G
-        # On 16 GB: high≈5.7 G  max≈8.0 G  swap≈4.0 G
-        # MemorySwapMax's % is relative to physical RAM (systemd quirk).
+        # Percentages so the caps scale with the hardware. MemorySwapMax's % is
+        # relative to physical RAM (systemd quirk).
         MemoryHigh = "35%";
         MemoryMax = "50%";
         MemorySwapMax = "25%";
-        # CPU: CPUQuota's "%" is per-core absolute (200% = 2 cores). Hard
-        # cap protects the host from a bulk import even if priority is
-        # high. CPUWeight=100 (default) — interactive photo browsing should
-        # outrank background *arr scans (75) but yield to live streams
-        # (jellyfin/plex at 150).
+        # CPUQuota is per-core absolute (200% = 2 cores). Weight 100: above the
+        # *arr scans at 75, below live streams at 150.
         CPUQuota = "200%";
         CPUWeight = 100;
         # IO: matches CPUWeight tier — interactive priority (default 100).

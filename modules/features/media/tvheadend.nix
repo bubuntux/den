@@ -2,44 +2,23 @@
 {
   flake.modules.nixos.tvheadend =
     { config, pkgs, ... }:
-    # Upstream tvheadend was dropped from nixpkgs in PR #336395 (2024-08-27)
-    # after the 4.3 upgrade attempt found no maintainer. The linuxserver image
-    # tracks current upstream and ships nightly DVB-capable builds, so we run
-    # it via oci-containers. This is the only containerized service on appa
-    # today -- if more containers land, hoist shared patterns (PUID wiring,
-    # tmpfiles dirs) into a helper.
-    #
-    # Web/HTSP-HTTP on 9981 (jellyfin-plugin-tvheadend talks to this);
-    # binary HTSP on 9982 is unused since Kodi clients aren't on this LAN.
+    # Dropped from nixpkgs in PR #336395 for want of a maintainer, so this runs
+    # the linuxserver image -- the only container on appa. Web/HTSP-HTTP on
+    # 9981; binary HTSP on 9982 is unused (no Kodi clients on this LAN).
     let
       port = 9981;
       uid = 989;
       gid = 989;
 
-      # Streamlink (tvhlink-style pipe muxes): we install it on the host via
-      # nixpkgs and bind-mount the resolved store paths directly into the
-      # container. The pip-in-container approach the upstream tvhlink guide
-      # recommends would (a) require internet on container start,
-      # (b) drift from any pinned version, and (c) bury the SOCKS proxy flag
-      # in a /config/.config file that's easy to lose. Two muxes wrappers,
-      # picked per-mux in the tvheadend UI:
+      # Pipe-mux wrappers, picked per mux in the UI: streamlink-vpn goes out the
+      # wg-tvh exit, streamlink direct. Installed on the host and bind-mounted
+      # rather than pip-installed in the container, which would need network at
+      # start and pin nothing.
       #
-      #   pipe:///etc/tvheadend/streamlink-vpn ...   -> via wg-tvh exit
-      #   pipe:///etc/tvheadend/streamlink     ...   -> direct, no VPN
-      #
-      # The container binds /nix/store ro so the wrapper's shebang chain
-      # (bash -> streamlink -> python3 -> site-packages) resolves entirely
-      # inside it.
-      #
-      # socks5h (with the trailing `h`) makes microsocks resolve DNS inside
-      # the namespace too — without it streamlink would still leak hostname
-      # lookups to the container's stub resolver.
-      #
-      # We bind the wrappers as individual file mounts instead of going
-      # through `environment.etc` because the latter lays files down as
-      # /etc/tvheadend/<x> -> /etc/static/tvheadend/<x> -> /nix/store/...,
-      # and mounting /etc/tvheadend alone leaves a dangling symlink to
-      # /etc/static inside the container. Direct file binds skip that hop.
+      # socks5h resolves DNS inside the namespace too; without the `h`,
+      # hostname lookups leak to the container's stub resolver. Bound as
+      # individual files because environment.etc leaves a dangling /etc/static
+      # symlink inside the container.
       socksPort = 1080;
       socksHost = config.vpnNamespaces.wg-tvh.namespaceAddress;
       streamlinkVpn = pkgs.writeShellScriptBin "streamlink-vpn" ''
@@ -48,47 +27,20 @@
           "$@"
       '';
 
-      # XMLTV grabber for the Atresmedia / Spanish FTA channels (Antena 3,
-      # La Sexta, Neox, Nova, Mega, Atreseries, etc.) from the
-      # epgshare01.online community bundle. After rebuild it appears in
-      # Configuration -> Channel/EPG -> EPG Grabber Modules and is enabled
-      # / scheduled from the UI like any other tv_grab_* script.
+      # XMLTV grabber for the Spanish FTA channels; appears in Channel/EPG ->
+      # EPG Grabber Modules after a rebuild. The image's own tv_grab_url takes
+      # the URL positionally and tvheadend calls grabbers with no arguments, so
+      # it silently produces nothing; this bakes the URL in and answers the
+      # --description/--version/--capabilities probes.
       #
-      # The LSIO image ships /usr/bin/tv_grab_url but its bundled body
-      # takes the URL as a positional argument while tvheadend invokes
-      # grabbers with no args during scheduled runs, so it silently
-      # produces nothing in the auto-grab flow. This wrapper bakes the URL
-      # in and implements the standard XMLTV
-      # --description/--version/--capabilities probes tvheadend uses to
-      # discover and label the grabber.
+      # epgshare01 rather than open-epg, whose Spain bundles ship no <category>
+      # elements at all, so nothing can classify programmes. Its channel ids are
+      # dotted (Antena.3.es), so remap streamlink channels once after a switch.
       #
-      # Source choice: open-epg.com's Spain bundles ship zero <category>
-      # elements (verified across spain1..spain9.xml on 2026-05-26), so
-      # Jellyfin / clients can't classify programmes as News / Movie /
-      # Sports / etc. epgshare01's ES1 bundle ships ~17k categories in
-      # Spanish (Informativos / Cine / Películas / Deportes / Series /
-      # Infantil ...) that map to Jellyfin's keyword matcher, plus icons,
-      # ratings, episode numbers, and country tags. Channel IDs use dots
-      # (Antena.3.es) instead of spaces — re-map streamlink channels to
-      # the dotted IDs once in tvheadend UI after switching sources.
-      #
-      # Defensive guards (added after the 2026-05-26 incident where
-      # open-epg.com replaced a .gz path with an HTML page that still
-      # returned 200; combined with an over-frequent grab schedule the
-      # bad payloads saturated tvheadend's single spawn slot and the web
-      # UI stopped responding):
-      #   - --max-time 30 caps each fetch so a wedged upstream can't
-      #     occupy the spawn slot indefinitely
-      #   - set -o pipefail makes a non-gzip body (e.g. HTML error page
-      #     served with 200) fail the gunzip stage and abort the wrapper
-      #   - decompressed response is sanity-checked for an XMLTV preamble
-      #     + <tv> root before any byte is emitted, so the XMLTV parser
-      #     never sees a garbage payload even if gunzip somehow succeeds
-      #   - failures log a clear reason to stderr (tvheadend captures it
-      #     into the journal as `[ERROR] spawn: ...`)
-      #
-      # EPG metadata is not geo-restricted, so the fetch goes out the
-      # host's normal network (NOT via wg-tvh).
+      # The guards are not paranoia: on 2026-05-26 an upstream served an HTML
+      # error page with a 200 for a .gz path, and the bad payloads saturated
+      # tvheadend's single spawn slot until the web UI stopped responding.
+      # EPG is not geo-restricted, so this does not go through wg-tvh.
       tvGrabAtresplayer = pkgs.writeShellScriptBin "tv_grab_es_atresplayer" ''
         set -euo pipefail
 
@@ -130,17 +82,13 @@
         inherit port;
         # The service is the podman unit, not a native `tvheadend.service`.
         unit = "podman-tvheadend";
-        # Recordings + EPG cache live under /mnt/media and /mnt/config; defer
-        # container start until both mount so a missed mount doesn't write into
-        # the underlying root fs and shadow the bind later.
+        # Or a missed mount writes into the root fs and shadows the bind later.
         requiresMounts = [
           "/mnt/config"
           "/mnt/media"
         ];
-        # Mirrors jellyfin/plex: real-time streaming wins CPU contention over
-        # scanners and downloaders. Tvheadend's memory footprint is modest
-        # (sub-200MB observed in the lscr image) but cap above that so a buggy
-        # EPG grabber can't drift unbounded.
+        # Like jellyfin/plex: streaming wins CPU contention over scanners.
+        # Observed sub-200MB, capped above that against a runaway grabber.
         resources = {
           memoryHigh = "5%";
           memoryMax = "10%";
@@ -160,12 +108,8 @@
       };
       users.groups.tvheadend.gid = gid;
 
-      # lscr's tvheadend image sets up an in-container `abc` user at the PUID
-      # we pass in, but it does NOT import the host user's supplementary
-      # groups -- those have to be granted to the container runtime via
-      # --group-add by numeric GID. Without this, the container can read
-      # /dev/dvb (own group via PGID match below) but can't write into
-      # /mnt/media/recordings (owned by the host `media` group).
+      # The image builds its `abc` user from PUID but imports no supplementary
+      # groups, so writing to /mnt/media/recordings needs --group-add by GID.
       virtualisation.oci-containers.containers.tvheadend = {
         image = "lscr.io/linuxserver/tvheadend:latest";
         environment = {
@@ -176,11 +120,7 @@
         volumes = [
           "/mnt/config/tvheadend:/config"
           "/mnt/media/recordings:/recordings"
-          # Streamlink: the runtime closure (python, ffmpeg, site-packages)
-          # plus the two wrappers themselves. /nix/store is already
-          # world-readable on the host; the wrappers are bound as files at
-          # stable container paths so a `pipe:///etc/tvheadend/streamlink*`
-          # mux command works without /etc/static gymnastics.
+          # The streamlink closure; the wrappers are bound as files below.
           "/nix/store:/nix/store:ro"
           "${pkgs.streamlink}/bin/streamlink:/etc/tvheadend/streamlink:ro"
           "${streamlinkVpn}/bin/streamlink-vpn:/etc/tvheadend/streamlink-vpn:ro"
@@ -200,12 +140,8 @@
         ];
       };
 
-      # SOCKS5 daemon confined to the wg-tvh netns. The streamlink-vpn
-      # wrapper points at this. The proxy's egress (the upstream connection
-      # to the actual stream URL) exits via wg0 inside the namespace, so
-      # the source sees the wg-tvh exit IP. The tvheadend container itself
-      # stays on the host network — only the streamlink HTTP fetches are
-      # tunneled.
+      # What streamlink-vpn points at: only the stream fetches are tunneled,
+      # the container itself stays on the host network.
       systemd.services.streamlink-socks = {
         description = "SOCKS5 proxy in the wg-tvh netns (streamlink egress)";
         wantedBy = [ "multi-user.target" ];
@@ -228,20 +164,12 @@
         };
       };
 
-      # The namespace's INPUT chain is DROP by default (vpn-up.nix:36). The
-      # upstream module's only way to install an accept rule on the veth is
-      # via `portMappings`, which ALSO installs a PREROUTING DNAT for
-      # host_ip:from -> namespaceAddress:to. That DNAT is a no-op for
-      # host-local sources (incl. the tvheadend container after podman NAT)
-      # because PREROUTING isn't traversed for locally-originated packets,
-      # so we still reach microsocks via the namespace IP directly — but
-      # the INPUT allow rule the same option installs is mandatory.
+      # Only way to get an INPUT accept rule on the veth (the chain is DROP by
+      # default); the DNAT it also installs is a no-op for local sources.
       #
-      # Side effect: anyone on the LAN dialing appa:1080 will be DNAT'd
-      # into the namespace and gets an unauthenticated SOCKS5 relay through
-      # the wg-tvh exit. Acceptable for a trusted home LAN; add a host
-      # firewall rule blocking 1080 inbound on the LAN interface if that
-      # changes.
+      # Side effect: anyone on the LAN dialing appa:1080 gets an
+      # unauthenticated SOCKS5 relay out the wg-tvh exit. Acceptable on a
+      # trusted LAN -- block 1080 inbound if that changes.
       vpnNamespaces.wg-tvh.portMappings = [
         {
           from = socksPort;
