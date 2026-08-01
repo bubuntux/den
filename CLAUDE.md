@@ -33,7 +33,7 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 nix run .#katara-vm
 
 # Validate: formatting plus the desktop, session-anchor, unit-shape and media checks.
-# Evaluation-only (~1.5 min: the probes are thirteen NixOS evaluations, one of
+# Evaluation-only (~1.5 min: the probes are fourteen NixOS evaluations, one of
 # which also evaluates a user's whole Home Manager config).
 # It does not build hosts -- see the Checks section for why.
 nix flake check
@@ -103,7 +103,7 @@ Two rules carry real weight here:
 
 | check | what it proves |
 |-------|----------------|
-| `desktop-matrix` | six DE/login-manager combinations produce the expected config |
+| `desktop-matrix` | seven DE/login-manager combinations produce the expected config |
 | `desktop-rejects` | four invalid combinations are refused |
 | `session-anchors` | a session's user units stay out of the user's other desktops |
 | `unit-shape` | no surprise systemd directives on units this repo configures |
@@ -115,9 +115,9 @@ All five are **evaluation-only**. Host builds deliberately do *not* live here, e
 nix build .#nixosConfigurations.<host>.config.system.build.toplevel
 ```
 
-The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, let alone one user carrying two, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps thirteen NixOS evaluations affordable (~1.5 min for the whole of `nix flake check`, uncached).
+The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, let alone one user carrying two, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps fourteen NixOS evaluations affordable (~1.5 min for the whole of `nix flake check`, uncached).
 
-`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, Waybar follows `sway-session.target` *only*, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
+`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, Waybar follows `wayland-session@sway.target` *only*, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
 
 `unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
@@ -140,7 +140,9 @@ Two of them, in `modules/core/tests.nix`, deliberately **not** flake checks — 
 | `test-greeter` | the greeter draws a usable prompt, and keeps drawing it |
 | `test-session` | greetd autologin → Sway actually yields a working session |
 
-`test-session` asserts what no evaluation can see: `sway-session.target` is *reached*, `den-session.target` follows it, waybar/kanshi/swayidle are active **and have not restarted** ten seconds later, and `XDG_CURRENT_DESKTOP=sway` in the session's systemd environment — that last one decides whether `sway-mimeapps.list` is ever read, and it turns out to come from nixpkgs' sway *wrapper*, so it survives the greetd `--cmd sway` path that zuko uses.
+`test-session` asserts what no evaluation can see: `wayland-session@sway.target` is *reached* (which under uwsm means `uwsm finalize` really ran, since the unit is `Type=notify`), `den-session.target` follows it, waybar/kanshi/swayidle are active **and have not restarted** ten seconds later, and `XDG_CURRENT_DESKTOP=sway` in the session's systemd environment — that last one decides whether `sway-mimeapps.list` is ever read, and it comes from nixpkgs' sway *wrapper*, so it holds on the greetd `--cmd` path that zuko uses.
+
+Both VM tests preselect the uwsm session, mirroring zuko. That is deliberate: its command is multi-word, so the greeter only renders if `login/greetd.nix` quotes it into a single `--cmd` argument.
 
 The `NRestarts` assertion is the load-bearing one. `is-active` alone is satisfied by a service that starts, dies and is restarted, which is exactly how a bar can be "active" with nothing on screen — and it is what caught kanshi crash-looping on an empty config (`features/desktop/kanshi.nix` now enables it only for a user who has `monitors`). Its first screenshot was a black screen with a mouse cursor and every unit reported active.
 
@@ -301,7 +303,7 @@ What makes one home holding several desktops work is that nothing a session owns
 
 **User units** name the session they belong to:
 
-- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "sway-session.target"`. It is keyed by id rather than a bare list because the key is the name the session announces in `XDG_CURRENT_DESKTOP`, which is what the per-desktop *files* below are named after.
+- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "wayland-session@sway.target"`. It is keyed by id rather than a bare list because the key is the name the session announces in `XDG_CURRENT_DESKTOP`, which is what the per-desktop *files* below are named after.
 - **`den.desktop.sessionAnchors`** (`features/desktop/options.nix`, per host) — the same fact system-side, for system-level user units (`blueman-applet`) and as the gate for "does any installed session need the companion stack" (`nixos.thunar`, `nixos.session-wayland`). A session that ships its own shell publishes nothing, which is why GNOME has no entry.
 - **`den-session.target`** (`session/wayland.nix`) — one unit for the shared companions to name, started by *any* anchor and stopped with it. `wayland.systemd.target` points at it, and some thirty upstream Home Manager modules (kanshi, swayidle, clipman, dunst…) default their binding to that option, so they need no per-unit wiring.
 
@@ -315,7 +317,7 @@ Nothing a session owns may bind to `graphical-session.target`: **every** desktop
 
 - **To add an environment**: create `features/desktop/session/<name>.nix` gated on `lib.elem "<name>" config.den.desktop.environments`, add the name to `sessionNames` in `features/desktop/options.nix`, and import it from `bundle-desktop`. If it grows companion pieces of its own, make it a directory instead — see **Session Layout** below. Then:
 
-  - a session that comes up bare imports `session-wayland` on both sides and publishes its anchor twice — `den.session.anchors.<name>` (home) and `den.desktop.sessionAnchors.<name>` (system). Use the id from the session's `DesktopNames`, since the home-side key names files. One that ships its own shell publishes neither.
+  - a session that comes up bare registers itself with `programs.uwsm.waylandCompositors.<name>` (pointing `binPath` at `/run/current-system/sw/bin/<binary>`), imports `session-wayland` on both sides, and publishes its anchor twice — `den.session.anchors.<name>` (home) and `den.desktop.sessionAnchors.<name>` (system), both `wayland-session@<binary>.target`. Confirm the id with `uwsm start -n -o -F -- <binPath>`, which prints "Selected compositor ID". One that ships its own shell publishes neither.
   - publish `den.desktop.sessionCommands.<name>` if the session can be launched by a bare command — greetd needs it for its fallback and autologin paths, since greetd ignores `services.displayManager.defaultSession` upstream. GNOME deliberately publishes none.
   - anything the session configures per user that is not compositor-specific belongs in `session/wayland.nix`, not in a copy under `session/<name>/`.
 
@@ -326,6 +328,48 @@ Nothing a session owns may bind to `graphical-session.target`: **every** desktop
 - **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each one keeping all of its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so a module a session imports lands on hosts that never selected the session. Either the imported module attaches per user (the HM case above) or it gates itself: `nixos.thunar` and `nixos.session-wayland` follow `config.den.desktop.sessionAnchors != { }`, so they install nowhere else. Gating on one compositor's own switch (`programs.sway.enable`, as thunar used to) works only until a second compositor arrives.
 
 - **A host that writes an option through `home-manager.sharedModules` must declare it there too.** `hosts/*/monitors.nix` pushes `monitors` at every user, and the block imports the schema alongside the values so the option exists even on a host with no session that reads it.
+
+### How a bare session starts (uwsm)
+
+A compositor on its own gives you windows and nothing else: no session target to
+bind helpers to, no XDG autostart, and no environment in the systemd user
+manager. Every compositor solves that differently or not at all — Sway only had
+it through Home Manager, niri ships `niri.service`, and **mangowc ships
+nothing** — so all of them run through
+[uwsm](https://github.com/Vladimir-csp/uwsm) instead, which makes it one answer:
+`wayland-session@<id>.target`, where the id is the basename of the compositor
+binary.
+
+That splits ownership three ways, and the split is the part worth remembering:
+
+| piece | owner |
+|---|---|
+| the binary, and the session environment it exports | `programs.sway` (NixOS) — `wrapperFeatures`, `extraOptions`, `extraSessionCommands` |
+| the compositor's own config | `wayland.windowManager.sway` (Home Manager), with **`package = null`** |
+| starting it, and the units around it | `programs.uwsm` |
+
+Home Manager sets `package = null` because uwsm starts
+`/run/current-system/sw/bin/sway` by absolute path, so the system wrapper is the
+only one that ever runs — upstream documents exactly this pairing. It also
+settles an ambiguity that predates uwsm: both modules used to build a wrapper,
+they differed, and which one you got came down to PATH order.
+
+Two things are load-bearing and easy to omit:
+
+- **`uwsm finalize` must run inside the compositor.** `wayland-wm@<id>.service`
+  is `Type=notify`, so without it the unit never reports ready and systemd kills
+  the session after 30s. It also carries the variables that must reach the
+  systemd/dbus user environment — `SWAYSOCK` above all, which is how Waybar
+  finds the compositor.
+- **Session commands with spaces must be quoted.** `den.desktop.sessionCommands`
+  entries end up inside tuigreet's `--cmd`, which takes a single argument;
+  `login/greetd.nix` runs them through `lib.escapeShellArg` for that reason.
+  Nothing noticed while every command was a bare `sway`, and `uwsm start -F -- …` is what broke it.
+
+Both entries stay in the greeter for now — "Sway" (plain) and "Sway (UWSM)" —
+so a session that fails to come up under uwsm has somewhere to fall back to.
+tuigreet remembers the last session per user, so picking the fallback once is
+enough. Drop `programs.sway`'s own entry once uwsm has proven itself.
 
 ### Session Layout
 

@@ -57,7 +57,13 @@
               "--sessions ${sessionDirs}/wayland-sessions"
               "--xsessions ${sessionDirs}/xsessions"
             ]
-            ++ lib.optional (defaultCommand != null) "--cmd ${defaultCommand}"
+            # Quoted, because this whole list becomes one command line that
+            # greetd splits shell-style: tuigreet's --cmd takes a single
+            # argument, so a session command with spaces in it would otherwise
+            # hand tuigreet the first word and leave the rest as stray
+            # arguments. Nothing noticed while every command was a bare `sway`;
+            # `uwsm start -F -- ...` is the one that broke it.
+            ++ lib.optional (defaultCommand != null) "--cmd ${lib.escapeShellArg defaultCommand}"
           );
           settings.default_session.user = "greeter";
 

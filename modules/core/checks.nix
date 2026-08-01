@@ -99,7 +99,10 @@
             self.modules.nixos.bundle-desktop
           ];
           expect = {
-            sessions = [ "sway" ];
+            sessions = [
+              "sway"
+              "sway-uwsm"
+            ];
             greetd = true;
             gdm = false;
             lightdm = false;
@@ -114,8 +117,38 @@
             useTextGreeter = false;
           };
           # Preserves the pre-split behaviour: greetd ignores defaultSession
-          # upstream, so den.desktop.sessionCommands has to supply --cmd.
+          # upstream, so den.desktop.sessionCommands has to supply --cmd. Still
+          # unquoted here, and correctly so: lib.escapeShellArg leaves a string
+          # that needs no quoting alone. The case below is the one that shows
+          # the quoting.
           cmdContains = "--cmd sway";
+        }
+        {
+          # zuko's shape. The point is the quoting: --cmd takes one argument,
+          # and this session's command is four words plus a store path, so an
+          # unquoted one would hand tuigreet `uwsm` and leave `start -F -- ...`
+          # as stray arguments. Asserting the opening quote is immediately
+          # followed by a store path is what pins that.
+          name = "greetd preselecting the uwsm session (a multi-word command)";
+          modules = [
+            {
+              den.desktop = {
+                environments = [ "sway" ];
+                loginManager = "greetd";
+              };
+              services.displayManager.defaultSession = "sway-uwsm";
+            }
+            self.modules.nixos.bundle-desktop
+          ];
+          expect = {
+            sessions = [
+              "sway"
+              "sway-uwsm"
+            ];
+            greetd = true;
+            sway = true;
+          };
+          cmdContains = "--cmd '/nix/store";
         }
         {
           name = "sway + gnome on greetd";
@@ -136,6 +169,7 @@
             sessions = [
               "gnome"
               "sway"
+              "sway-uwsm"
             ];
             greetd = true;
             gdm = false;
@@ -168,6 +202,7 @@
             sessions = [
               "gnome"
               "sway"
+              "sway-uwsm"
             ];
             greetd = false;
             gdm = true;
@@ -189,7 +224,10 @@
             self.modules.nixos.bundle-desktop
           ];
           expect = {
-            sessions = [ "sway" ];
+            sessions = [
+              "sway"
+              "sway-uwsm"
+            ];
             greetd = false;
             gdm = false;
             lightdm = true;
@@ -218,6 +256,7 @@
             sessions = [
               "gnome"
               "sway"
+              "sway-uwsm"
             ];
             greetd = false;
             gdm = true;
@@ -246,6 +285,7 @@
             sessions = [
               "gnome"
               "sway"
+              "sway-uwsm"
             ];
             greetd = false;
             gdm = true;
@@ -425,7 +465,7 @@
             "swayidle"
           ];
           sessionTarget = "den-session.target";
-          swayAnchor = "sway-session.target";
+          swayAnchor = "wayland-session@sway.target";
 
           # Forcing the activation package's drvPath (an instantiation, not a
           # build) evaluates the WHOLE of this user's Home Manager config. That

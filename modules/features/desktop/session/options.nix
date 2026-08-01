@@ -38,9 +38,14 @@ _: {
             Contributed by each session module. Every user on the host receives
             every installed desktop's config, so the set here is normally all of
             the bare sessions, and the shared companions come up in whichever one
-            the user logged into. Not every value is a `.target`: Sway's is Home
-            Manager's generated sway-session.target, while niri ships no session
-            target and its anchor would be niri.service.
+            the user logged into.
+
+            The values are uniform because uwsm generates them:
+            `wayland-session@<id>.target`, where the id is the basename of the
+            compositor binary it was pointed at. That is the reason to run every
+            bare session through uwsm rather than each compositor's own
+            arrangement -- Sway had one only through Home Manager, niri ships
+            niri.service, and mangowc ships nothing at all.
 
             A module belonging to ONE session must NOT read this -- with two
             desktops in a home it would start that session's bar under the other

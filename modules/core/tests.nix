@@ -50,7 +50,12 @@
               environments = [ "sway" ];
               loginManager = "greetd";
             };
-            services.displayManager.defaultSession = "sway";
+            # Mirrors zuko, and not incidentally: this session's command is
+            # multi-word, so the greeter only renders at all if greetd.nix quotes
+            # it into a single --cmd argument. An unquoted one leaves tuigreet
+            # with stray arguments and no prompt, which is exactly the class of
+            # failure this test exists to catch.
+            services.displayManager.defaultSession = "sway-uwsm";
 
             users.users.alice = {
               isNormalUser = true;
@@ -158,7 +163,7 @@
             # den.desktop.sessionCommands.sway, so the bare `sway` command is
             # under test too.
             services.displayManager = {
-              defaultSession = "sway";
+              defaultSession = "sway-uwsm";
               autoLogin = {
                 enable = true;
                 user = "alice";
@@ -228,9 +233,11 @@
           machine.start()
           machine.wait_for_unit("greetd.service")
 
-          # 1. The anchor is reached. Everything else hangs off this, so if the
-          #    session dies at startup this is where it shows.
-          wait_active("sway-session.target")
+          # 1. The anchor is reached. uwsm's wayland-wm@sway.service is
+          #    Type=notify, so this only goes active once `uwsm finalize` has
+          #    run inside the compositor -- it is a real readiness signal, not
+          #    just "the process was spawned".
+          wait_active("wayland-session@sway.target")
 
           # 2. The shared target follows it. This is the unit that ~35 upstream
           #    Home Manager modules bind to through wayland.systemd.target.

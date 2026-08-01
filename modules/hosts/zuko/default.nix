@@ -33,6 +33,11 @@
     # the profiles; which greeter presents them, and what it preselects, is the
     # host's call.
     den.desktop.loginManager = "greetd";
-    services.displayManager.defaultSession = "sway";
+    # The uwsm-managed entry, not the plain one: uwsm is what puts the session
+    # in a systemd user session, which is where every companion attaches. The
+    # plain "Sway" entry stays in the greeter as a fallback while this is new --
+    # tuigreet remembers the last session per user, so picking it once is enough
+    # to get back to the old path if uwsm ever fails to come up.
+    services.displayManager.defaultSession = "sway-uwsm";
   };
 }
