@@ -185,6 +185,51 @@ Managers** for which settings a profile may set and which belong to the host.
 
 What a host should *not* accumulate is config that belongs to a role: bundles, users, or a whole stack of features. (`appa` used to import `bundle-host` and `user-bbtux` directly; both moved into `profile-nas`, where `profile-workstation` already kept them.) A single feature that only makes sense on one machine is fine — zuko imports `droidcam` and `cachix-push` because no other host wants them.
 
+### Resource caps on appa
+
+appa is a 4-core J5040 with 8 GB, and the services on it will happily starve one
+another: a bulk immich ingest, a qbittorrent recheck and an \*arr library scan can
+pin all four cores between them, at which point the kernel cannot flush its
+journal and sshd stops answering even though nothing has OOM'd. Every service
+therefore declares cgroup caps, mostly through `den.media.services`, and the
+weights form one ladder that only makes sense read together:
+
+| weight | services | why |
+|---|---|---|
+| 1000 | openssh | the machine must stay reachable to fix the rest |
+| 150 | jellyfin, plex, tvheadend | live streams lose to nothing |
+| 125 | crowdsec | ban decisions should stay timely under load |
+| 100 | immich | interactive browsing, above background work |
+| 75 | sonarr, radarr, prowlarr | library scans are background |
+| 50 | qbittorrent, bazarr | bulk, yields to everything |
+| 30 | restic | nightly backup window, yields hardest |
+
+`IOWeight` follows the same number. Two conventions go with it: memory caps are
+**percentages**, so they scale with a RAM upgrade rather than needing a revisit
+(note `MemorySwapMax`'s percentage is relative to physical RAM, a systemd quirk),
+and `CPUQuota` is per-core absolute — `200%` means two cores. The host also
+reserves ~half a core through `systemd.settings.Manager.DefaultCPUAccounting`
+and friends; see `hosts/appa/default.nix`.
+
+A new service on appa picks its tier from the table rather than inventing a
+number, and IO/CPU weights stay equal unless there is a reason.
+
+### Adding a service to CrowdSec
+
+Acquisitions read **journald, not log files**. The file-glob route looks
+reasonable and silently collects nothing: NixOS writes per-service logs mode
+0600, and crowdsec runs as a dynamic user that cannot read them — which is how
+the caddy acquisition sat empty for a while.
+
+The journald source needs care in one place. `crowdsecurity/caddy-logs` runs
+`UnmarshalJSON` on `evt.Parsed.message`, and journald hands over the
+syslog-prefixed line (`May 14 ... caddy[123]: {json}`), which fails to parse — so
+that acquisition passes `--output=cat` to get the bare `MESSAGE` field. The
+grok-based ones (sshd, jellyfin, immich) *want* the prefix, so they must not.
+
+Collections that belong to one service live in that service's module, next to
+its acquisition; only genuinely generic ones sit in `crowdsec.nix`.
+
 ### Naming Conventions
 
 - **Hosts**: Avatar: The Last Airbender characters (katara, zuko, appa)

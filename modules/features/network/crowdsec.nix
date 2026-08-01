@@ -18,7 +18,9 @@
       key = "den:nixos.crowdsec";
       imports = [ self.modules.nixos.sops ];
 
-      # Optional; blank is fine, the unit below skips enrollment then.
+      # Optional; blank is fine, the unit below skips enrollment then. Obtain
+      # with `cscli console enroll` on app.crowdsec.net and store it in
+      # secrets/appa.yaml as `crowdsec_console_key`.
       sops.secrets.crowdsec_console_key = {
         sopsFile = "${self}/secrets/appa.yaml";
       };

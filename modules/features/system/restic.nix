@@ -8,7 +8,8 @@
     #
     # /mnt/config and /var/lib/<svc> are excluded on purpose: the *arr stack
     # keeps live SQLite there and would need a stop/tar/start dance per service
-    # (TODO). immich is fine -- its own pg_dump lands in a backed-up path.
+    # (TODO). immich is fine, but only because its own pg_dump writes into
+    # /mnt/data/immich/backups -- that has to stay enabled in its admin UI.
     #
     # Four jobs share one repo, spaced an hour apart so colliding calendars
     # never race for the repository lock:

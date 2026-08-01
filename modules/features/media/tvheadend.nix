@@ -10,10 +10,13 @@
       uid = 989;
       gid = 989;
 
-      # Pipe-mux wrappers, picked per mux in the UI: streamlink-vpn goes out the
-      # wg-tvh exit, streamlink direct. Installed on the host and bind-mounted
-      # rather than pip-installed in the container, which would need network at
-      # start and pin nothing.
+      # Pipe-mux wrappers, picked per mux in the tvheadend UI:
+      #
+      #   pipe:///etc/tvheadend/streamlink-vpn ...   -> via the wg-tvh exit
+      #   pipe:///etc/tvheadend/streamlink     ...   -> direct
+      #
+      # Installed on the host and bind-mounted rather than pip-installed in the
+      # container, which would need network at start and pin nothing.
       #
       # socks5h resolves DNS inside the namespace too; without the `h`,
       # hostname lookups leak to the container's stub resolver. Bound as
