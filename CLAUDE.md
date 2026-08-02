@@ -314,6 +314,58 @@ by hand.
 The widget hides itself when every GPU reads 0%, so an idle machine shows
 nothing rather than a row of zeroes.
 
+### The dock on katara
+
+katara sits on a Dell WD19TB, and roughly half of its boots come up with the
+externals dark and the machine unresponsive for ten to twenty seconds. The cause
+is not the display config, and the fix is not a kernel bump — both were checked,
+so record the result here rather than re-deriving it.
+
+**The trigger is a USB-C link drop.** The whole dock tree re-enumerates
+(`usb 5-1: USB disconnect`, twenty to seventy seconds after connect), and amdgpu
+then cannot re-train the DP-MST link to the dock's VMM5331 hub. The correlation
+over ten boots is exact:
+
+| dock disconnects | `enabling link 2 failed: 15` | kanshi profile |
+|---|---|---|
+| 0 | 0 | `docked` |
+| ≥1 | ≥2 | `laptop`, externals dark |
+
+The freeze is a consequence, not a second bug: sway blocks in
+`drm_mode_atomic_ioctl` while the driver retries, and logs its own stall
+afterwards — `scheduled expiry is in the past (-17140ms)`. That number is the
+most useful thing in the journal, because it is the only line that measures the
+hang. Alongside it comes `ASSERT(i != copy_of_link_table.stream_count)` at
+`amdgpu_dm_helpers.c:207`, a WARN with `Comm: sway` in the trace, from removing
+an MST payload whose VCPI is no longer in the hardware table. It is teardown
+noise after the sink vanished — a symptom to recognise, not the fault.
+
+**Two dead ends, both already investigated.** There *was* a real MST regression
+in this era — `1788ef30725d` "drm/amd/display: Fix pbn to kbps Conversion",
+which broke daisy-chained DP on 6.17.10 and 6.18.0 — but it was reverted
+upstream on 2025-12-09 (`9837f8d57a54` in `linux-6.18.y`), and every 6.18.4x
+carries the revert. And `fill_dc_mst_payload_table_from_drm` is byte-identical
+between `linux-6.18.y` and mainline master, so no newer kernel changes the
+ASSERT either. Upgrading the kernel is not a fix; verify a claimed one actually
+touches this code before acting on it.
+
+Two hardware facts frame what is left. There is no Thunderbolt or USB4 host —
+`lspci` shows four plain AMD xHCI controllers and `/sys/bus/thunderbolt/devices/`
+is empty — so this Thunderbolt dock runs as an ordinary USB-C one in DP alt mode
+(`/sys/class/typec/port0/port0.0/svid` reads `ff01`). That gives **two** DP
+lanes, every boot, for two 2560×1440 panels: it works, but with no margin to
+absorb a marginal link. Dock firmware and BIOS are both current per LVFS.
+
+`hardware.nix` pins the dock's four Realtek hubs to `power/control=on`. Treat
+that as ruling out a class of cause rather than as the fix: both the USB2 and
+SuperSpeed halves drop in the same second, which is the Type-C connection
+renegotiating rather than a hub suspending. It is free and reversible, so it is
+worth having while the physical side (captive cable, the single USB-C port, the
+dock's own brick) is the remaining suspect.
+
+To catch the next one, watch `journalctl -kf | grep -E "usb 5-1|DM_MST|enabling link|typec|ucsi"` while docked. typec/ucsi chatter before the drop means PD
+renegotiation; a bare `USB disconnect` means the cable or connector.
+
 ### Naming Conventions
 
 - **Hosts**: Avatar: The Last Airbender characters (katara, zuko, appa)
