@@ -10,6 +10,18 @@ _: {
   flake.modules.homeManager.waybar =
     { pkgs, ... }:
     let
+      # Catppuccin Mocha, mirroring the @define-color block in `style` below.
+      # Pango markup cannot reference CSS colour names, so the widget needs the
+      # literals. Colour here means vendor and nothing else -- load is an
+      # underline, see the #custom-gpu rules. AMD is peach rather than the red
+      # its brand suggests: @red is what every alert in this bar uses.
+      gpuVendorColors = {
+        nvidia = "#a6e3a1"; # @green
+        intel = "#89b4fa"; # @blue
+        amd = "#fab387"; # @peach
+        unknown = "#cdd6f4"; # @text
+      };
+
       # One widget for however many GPUs the host has, of whatever make. nvtop
       # covers the mesa vendors in a single JSON shape, so an APU and a hybrid
       # laptop share one code path; NVIDIA is the one exception, and it is
@@ -39,11 +51,21 @@ _: {
               --format=csv,noheader,nounits 2>/dev/null) || nvidia_csv=""
           fi
 
-          jq -nc --argjson nvtop "$nvtop_gpus" --arg nvidia "$nvidia_csv" '
+          jq -nc --argjson nvtop "$nvtop_gpus" --arg nvidia "$nvidia_csv" \
+                 --argjson colors '${builtins.toJSON gpuVendorColors}' '
             # nvtop reports every value unit-suffixed ("47C", "5W"), and "N/A"
             # wherever a backend has no such sensor -- Intel reports no power.
             def num: (tostring | capture("(?<n>[0-9]+(\\.[0-9]+)?)") | .n | tonumber) // 0;
             def mib: (. / 1048576 | floor);
+
+            # The reported name is all there is to go on: nvtop says "AMD Radeon
+            # 780M Graphics" or "Intel Alderlake_p", nvidia-smi always leads with
+            # "NVIDIA". Checked most- to least-specific.
+            def vendor: ascii_downcase
+              | if   test("nvidia|geforce|quadro|tesla") then "nvidia"
+                elif test("intel")                       then "intel"
+                elif test("amd|radeon")                  then "amd"
+                else "unknown" end;
 
             ($nvtop | map({
               name:  (.device_name // "GPU"),
@@ -61,12 +83,17 @@ _: {
               power: (.[3] | num),
               used:  ((.[4] | num) * 1048576),
               total: ((.[5] | num) * 1048576),
-            })) as $gpus
+            }))
+            | map(. + { color: ($colors[.name | vendor] // $colors.unknown) }) as $gpus
             | ($gpus | map(.util) | max // 0) as $peak
             | if $peak == 0 then { text: "", tooltip: "" } else {
-                text: ("󰢮 " + ($gpus | map("\(.util)%") | join(" "))),
+                # Markup, so device names have to be escaped -- waybar renders
+                # both the label and the tooltip through Pango.
+                text: ("󰢮 " + ($gpus
+                  | map("<span color=\"\(.color)\">\(.util)%</span>")
+                  | join(" "))),
                 tooltip: ($gpus | map(
-                  "\(.name)"
+                  "<span color=\"\(.color)\">\(.name | @html)</span>"
                   + "\n󰢮 \(.util)%  󰔏 \(.temp)°C"
                   + (if .power > 0 then "  󱐋 \(.power) W" else "" end)
                   + "\n󰍛 \(.used | mib)MiB / \(.total | mib)MiB"
@@ -527,7 +554,10 @@ _: {
             };
 
             cpu = {
-              format = "󰻠 {usage}%";
+              # Chip-with-pins, not the nf-md cpu glyph: that one is a
+              # gear-in-square indistinguishable from #memory's at 13px, and the
+              # two modules are adjacent.
+              format = "󰘚 {usage}%";
               tooltip = true;
               states = {
                 warning = 70;
@@ -719,8 +749,10 @@ _: {
           }
 
           /* --- Sway mode --- */
+          /* Peach, not red: a mode is a state you are in, not something wrong.
+             @red and @yellow are alert-only across this bar. */
           #mode {
-            color: @red;
+            color: @peach;
             font-weight: bold;
           }
 
@@ -785,8 +817,11 @@ _: {
           }
 
           /* --- Temperature --- */
-          #custom-temp {
-            color: @peach;
+          /* Plain until it matters, like #cpu and #memory -- the three load
+             metrics read the same way. The script emits `warning` at 60C, which
+             had no rule here, so 60-79C was indistinguishable from idle. */
+          #custom-temp.warning {
+            color: @yellow;
           }
 
           #custom-temp.critical {
@@ -794,16 +829,21 @@ _: {
           }
 
           /* --- GPU --- */
+          /* Text colour is vendor identity -- green NVIDIA, blue Intel, peach AMD
+             -- written by the widget as Pango markup, which wins over any colour
+             set here. So load signals through an underline on a channel of its
+             own, and no vendor reading can be mistaken for an alert. The
+             transparent border keeps the label from shifting when one appears. */
           #custom-gpu {
-            color: @green;
+            border-bottom: 2px solid transparent;
           }
 
           #custom-gpu.warning {
-            color: @yellow;
+            border-bottom: 2px solid @yellow;
           }
 
           #custom-gpu.critical {
-            color: @red;
+            border-bottom: 2px solid @red;
           }
 
           /* --- Backlight --- */
@@ -812,8 +852,10 @@ _: {
           }
 
           /* --- Wireplumber --- */
+          /* Mauve rather than pink: this sits immediately right of #custom-gpu,
+             whose AMD reading is peach. */
           #wireplumber {
-            color: @pink;
+            color: @mauve;
           }
 
           #wireplumber.muted {
@@ -822,7 +864,7 @@ _: {
 
           /* --- Power profiles --- */
           #power-profiles-daemon {
-            color: @mauve;
+            color: @teal;
           }
 
           /* --- MPRIS --- */
@@ -833,6 +875,18 @@ _: {
           /* --- Systemd failed units --- */
           #systemd-failed-units {
             color: @red;
+          }
+
+          /* --- Privacy --- */
+          /* Only ever visible while the mic or camera is live, which is the one
+             thing on this bar you most want to notice. */
+          #privacy {
+            color: @red;
+          }
+
+          /* --- GameMode --- */
+          #gamemode {
+            color: @pink;
           }
 
           /* --- Weather --- */

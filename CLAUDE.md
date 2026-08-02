@@ -314,6 +314,64 @@ by hand.
 The widget hides itself when every GPU reads 0%, so an idle machine shows
 nothing rather than a row of zeroes.
 
+**Colour means vendor, never load.** Each percentage is wrapped in a Pango
+`<span>` — green NVIDIA, blue Intel, peach AMD, `@text` for anything
+unrecognised — so on zuko you can tell at a glance which number is the dGPU.
+Load signals on a *different channel*: a coloured `border-bottom` driven by the
+module class, with the base rule carrying a transparent 2px border so the label
+does not shift when one appears.
+
+AMD is `@peach` rather than the red its brand suggests, because `@red` is what
+every alert in this bar already means (`#custom-temp.critical`, battery). The
+underline alone would have kept the two apart, but a vendor colour that is not
+also the alert colour costs nothing.
+
+Two things follow from using markup at all. Pango colours set in a span beat
+anything CSS says, so re-adding a `color:` rule for `#custom-gpu.critical` would
+silently do nothing — that is why the alert is a border. And device names must
+go through jq's `@html`: waybar renders the tooltip as markup too, and a name
+containing `&` would otherwise make Pango reject the whole string and blank the
+widget. `pango-view -q --markup` is the quick way to check a change still
+parses.
+
+The vendor literals live in `gpuVendorColors` in the same file, mirroring the
+`@define-color` block, because markup cannot reference CSS colour names.
+
+### Colour in the bar
+
+One rule, and the GPU widget above is what forced it: **`@red` and `@yellow`
+mean attention and nothing else.** Every other colour is identity. So
+`sway/mode` is `@peach` rather than red (a mode is a state you are in, not
+something wrong), and `#privacy` — visible only while the mic or camera is live
+— is red because it genuinely is an alert.
+
+The three load metrics (`#cpu`, `#memory`, `#custom-temp`) are deliberately
+uncoloured, taking `@text` from the global module rule, and colour only when
+they cross a threshold. Temperature used to be `@peach` full-time, which both
+broke that symmetry and put a second peach next to the GPU widget's AMD reading.
+Note the states come from the modules themselves: `cpu` and `memory` declare
+`states`, while `custom/temp` emits its own class — its `warning` at 60 °C had
+no CSS rule for a while, so 60–79 °C looked identical to idle.
+
+Neighbours must not share a hue family, which is the whole reason `#wireplumber`
+is `@mauve` (it sits immediately right of the GPU) and `#power-profiles-daemon`
+moved to `@teal` to make room. Colours still repeat *across* regions —
+`@lavender` on scratchpad, clock and the idle inhibitor; `@mauve` on mpris and
+wireplumber; `@teal` on weather and ppd — which is fine, as they are never
+adjacent.
+
+Icons get checked the same way, by rendering rather than by reading codepoints:
+
+```bash
+pango-view -q --font "JetBrainsMono Nerd Font 13" --background "#1e1e2e" \
+  --markup --text '󰘚 42%  󰍛 61%' -o /tmp/bar.png
+```
+
+At 13 px the nf-md cpu glyph and the memory glyph are both a gear-in-square and
+were indistinguishable, with the two modules adjacent; `#cpu` uses a
+chip-with-pins now. Anything added to the bar is worth one render at 13 px
+before trusting it.
+
 ### The dock on katara
 
 katara sits on a Dell WD19TB, and roughly half of its boots come up with the
