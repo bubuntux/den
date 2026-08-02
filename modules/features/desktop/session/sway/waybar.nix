@@ -89,9 +89,13 @@ _: {
             | if $peak == 0 then { text: "", tooltip: "" } else {
                 # Markup, so device names have to be escaped -- waybar renders
                 # both the label and the tooltip through Pango.
-                text: ("󰢮 " + ($gpus
-                  | map("<span color=\"\(.color)\">\(.util)%</span>")
-                  | join(" "))),
+                # The icon goes inside the span, so each GPU is one unit in one
+                # colour. A single shared icon would have to take one vendor
+                # colour and would then contradict the reading beside it.
+                # (No apostrophes in here: the jq program is shell single-quoted.)
+                text: ($gpus
+                  | map("<span color=\"\(.color)\">󰢮 \(.util)%</span>")
+                  | join(" ")),
                 tooltip: ($gpus | map(
                   "<span color=\"\(.color)\">\(.name | @html)</span>"
                   + "\n󰢮 \(.util)%  󰔏 \(.temp)°C"

@@ -314,9 +314,12 @@ by hand.
 The widget hides itself when every GPU reads 0%, so an idle machine shows
 nothing rather than a row of zeroes.
 
-**Colour means vendor, never load.** Each percentage is wrapped in a Pango
-`<span>` — green NVIDIA, blue Intel, peach AMD, `@text` for anything
-unrecognised — so on zuko you can tell at a glance which number is the dGPU.
+**Colour means vendor, never load.** Each GPU's icon and percentage sit
+together inside one Pango `<span>` — green NVIDIA, blue Intel, peach AMD,
+`@text` for anything unrecognised — so on zuko you can tell at a glance which
+number is the dGPU. The icon is repeated per GPU rather than shared, because a
+single leading icon would have to take one vendor's colour and would then
+contradict the reading beside it.
 Load signals on a *different channel*: a coloured `border-bottom` driven by the
 module class, with the base rule carrying a transparent 2px border so the label
 does not shift when one appears.
