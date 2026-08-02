@@ -235,8 +235,8 @@ its acquisition; only genuinely generic ones sit in `crowdsec.nix`.
 zuko is the only hybrid host — Intel iGPU plus an NVIDIA dGPU on PRIME offload,
 all of it in `hardware/dell-precision-5680.nix`, where the vendor is a known
 fact. katara is a single AMD APU. So "run this on the discrete card" has to be
-real on one machine and a no-op on the other, and it lives in `profile-gaming`,
-a *capability*, which may not know the vendor.
+real on one machine and absent on the other, and the command it uses ships from
+`profile-gaming`, a *capability*, which may not know the vendor.
 
 `nvidia-offload` cannot be that command. It exports
 `__GLX_VENDOR_LIBRARY_NAME=nvidia` unconditionally, so on an AMD host it breaks
@@ -258,8 +258,25 @@ needs:
 | any of them | `VK_LOADER_DRIVERS_SELECT` (`*nvidia*` / `*radeon*` / `*intel*`) |
 
 With no discrete GPU, or no daemon, it applies nothing and plain `execvp`s the
-command — that fallback is the whole reason a vendor-agnostic profile can ship
-it. Usage is `switcherooctl launch %command%` in a game's Steam launch options.
+command. Usage is `switcherooctl launch %command%` in a game's Steam launch
+options.
+
+**Who turns it on matters, and it is not the profile.** `services.switcherooControl.enable`
+lives on **`hosts/zuko`**, the only machine with two GPUs. It is a 328 MiB
+closure (`pygobject-*-dev` alone is 313 MiB) plus a daemon, and on a single-GPU
+host it can do precisely nothing — the safe no-op fallback is what makes it
+*harmless* there, not what makes it *worth installing*. `profile-gaming` only
+mirrors the decision into Steam's FHS:
+
+```nix
+++ lib.optional config.services.switcherooControl.enable switcheroo-control;
+```
+
+Reading the upstream option beats declaring a `den.*` shadow of it, and it
+leaves the capability profile with no GPU-topology knowledge at all. It briefly
+enabled the daemon itself, which amounted to asserting that a gaming machine has
+a discrete GPU — false for any host that imports `profile-gaming` and has one
+APU.
 
 Two things it is not. It does not set
 `__NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0`; upstream's comment says that is
@@ -276,9 +293,10 @@ bubblewrap auto-binds the host one, and the FHS `/etc/profile` appends the host
 `extraPackages` rather than left to that passthrough, because a Steam launch
 option that resolves to nothing fails with no diagnostic.
 
-If a second desktop host ever grows a dGPU, `services.switcherooControl` moves
-to `bundle-desktop` — GNOME and KDE both read it for the per-app launch menu,
-which has nothing to do with gaming.
+A second host growing a dGPU sets the same one line on itself. Only if that
+became common would `services.switcherooControl` be worth moving to
+`bundle-desktop` — GNOME and KDE both read it for the per-app launch menu, which
+has nothing to do with gaming.
 
 ### GPU metrics in the bar
 
