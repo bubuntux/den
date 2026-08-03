@@ -493,6 +493,32 @@ Three things that shaped the two modules:
   `tic` are needed locally and come from ncurses, already in every host's
   closure. foot, which has no equivalent, still pins `term = xterm-256color`.
 
+- **The theme is chosen against helix's, which is `onedark`** (`features/editor/helix.nix`).
+  Scoring all 463 bundled ghostty themes against that palette by weighted RGB
+  distance ranks **Atom One Dark** first by a factor of four — every accent
+  byte-identical, foreground included. **One Dark Two** is what is actually set:
+  the same family a few points lighter, with a notably brighter foreground
+  (`#e6e6e6` against `#abb2bf`) and only green (`#98c379`) still exact. That is
+  a deliberate preference for the brighter variant, not an oversight — do not
+  "correct" it back to the closest match.
+
+  The theme is taken whole, background included, and that is worth knowing
+  before someone reports it as a bug: `onedark.toml` sets
+  `"ui.background" = { bg = "black" }`, so helix paints `#282C34` across the
+  grid while the theme's `#21252b` stays in ghostty's padding — a slightly
+  darker ring around the editor. Setting `background = "#282c34"` next to the
+  theme removes it, and works regardless of where the key lands, since an
+  explicit colour beats `theme` whatever the order. Verified rather than
+  assumed, because Home Manager sorts keys alphabetically and `background`
+  therefore sits *above* `theme` in the generated file: with `theme` alone
+  `+show-config` reports `background = #21252b`, and with the override it drops
+  out of the report entirely — ghostty omits values equal to its default, and
+  its default background is `#282c34` already.
+
+  Note this makes the terminal One Dark while both bars are Catppuccin Mocha.
+  That is deliberate: the editor fills the window and the bar is a strip, so the
+  terminal matches what is inside it.
+
 - **`window-decoration = server`, and `none` is the trap.** `~/.config/ghostty/config`
   is home-wide, so katara's GNOME user reads the same file — and `none` would
   leave her a window with no titlebar and no close button. `server` is the one

@@ -16,6 +16,10 @@
         # the key replaces it wholesale, so the rest is repeated verbatim.
         shell-integration-features = "cursor,no-sudo,title,ssh-env,ssh-terminfo,path";
 
+        theme = "One Dark Two";
+
+        confirm-close-surface = false;
+
         font-family = "Hack Nerd Font Mono";
         font-size = 12;
         background-opacity = 0.9;
