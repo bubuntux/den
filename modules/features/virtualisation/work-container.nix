@@ -36,7 +36,7 @@
         home = {
           shellAliases = {
             work = "sudo systemctl start container@work.service && machinectl -q shell juliogm@work";
-            cvm = workExec "ssh cvm";
+            cvm = workExec "ssh-cvm";
           };
           packages = with pkgs; [
             work-run
@@ -284,6 +284,30 @@
           config =
             { pkgs, ... }:
             let
+              # Reaching cvm from the host terminal, with that terminal's own
+              # terminfo -- ghostty's ssh-terminfo feature cannot see this ssh.
+              # See CLAUDE.md, "Choosing a terminal".
+              ssh-cvm = pkgs.writeShellScriptBin "ssh-cvm" ''
+                term=''${TERM:-dumb}
+                marker="$HOME/.cache/ssh-cvm/$term"
+
+                if [ ! -e "$marker" ]; then
+                  # The local lookup is its own step because tic exits 0 on
+                  # empty input, so a missing local entry would cache a success.
+                  if terminfo=$(infocmp -0 -x "$term" 2>/dev/null) &&
+                    printf '%s\n' "$terminfo" |
+                      ssh cvm "infocmp $term >/dev/null 2>&1 ||
+                               { mkdir -p ~/.terminfo && tic -x - 2>/dev/null; }"
+                  then
+                    mkdir -p "''${marker%/*}" && : >"$marker"
+                  else
+                    echo "ssh-cvm: no $term terminfo on cvm, using xterm-256color" >&2
+                    exec env TERM=xterm-256color ssh cvm "$@"
+                  fi
+                fi
+
+                exec ssh cvm "$@"
+              '';
               # Translate zoommtg:// / zoomus:// links into the Zoom web client and
               # open them in Chrome as an ad-hoc PWA window (--app=URL).
               zoom-web-open = pkgs.writeShellScriptBin "zoom-web-open" ''
@@ -366,9 +390,15 @@
               xdg.mime.defaultApplications."x-scheme-handler/com.cloudflare.warp" =
                 "com.cloudflare.WarpCli.desktop";
 
+              # machinectl hands the host terminal's TERM to the container shell,
+              # and no ssh wrapper is in that path -- see CLAUDE.md, "Choosing a
+              # terminal".
+              environment.enableAllTerminfo = true;
+
               environment.systemPackages = with pkgs; [
                 cloudflare-warp
                 jetbrains.gateway
+                ssh-cvm
                 # Chrome uses V4L2 for cameras (the default), so it sees the DroidCam
                 # v4l2loopback bound at /dev/video*. (The built-in IPU6 cam is
                 # PipeWire/libcamera-only and won't appear here.) Ozone/Wayland comes

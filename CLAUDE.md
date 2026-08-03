@@ -497,9 +497,11 @@ Three things that shaped the two modules:
   actually is. **`work` is not ssh at all**: `machinectl shell` hands the host's
   `TERM` to the container, which had terminfo for neither terminal, so every
   login shell there greeted itself with `can't find terminal definition`. The
-  container sets `environment.enableAllTerminfo` — a hundred kilobytes of
-  terminfo outputs, and terminal-agnostic, so flipping `den.desktop.terminal`
-  (or arriving from some other terminal over ssh) cannot break it again.
+  container sets `environment.enableAllTerminfo` — 78 KiB across thirteen
+  terminfo outputs (only tmux's references anything, and that is ncurses, which
+  every NixOS system path carries anyway), and terminal-agnostic, so flipping
+  `den.desktop.terminal` — or arriving from some other terminal over ssh —
+  cannot break it again.
   **`cvm` is `ssh` run from `sh -l -c` inside that container**, three processes
   below the zsh that holds the wrapper, so it goes through a container-side
   `ssh-cvm` that repeats what the ghostty feature does: push `infocmp -0 -x`
@@ -511,6 +513,21 @@ Three things that shaped the two modules:
   `infocmp` is a step of its own rather than the head of the pipe, because
   **`tic -x -` exits 0 on empty input** — piping a failed lookup straight into
   ssh would report success and cache it.
+
+- **A new window opens at `~`, and one key is what does it.**
+  `window-inherit-working-directory = false` is the whole change: `Mod+Return`
+  reaches the *running* ghostty (GTK single-instance), which would otherwise
+  clone the focused window's shell cwd. What it falls through to is
+  `working-directory`, whose default is `inherit` when launched from a shell and
+  **`home` from anything else** — `probableCliEnvironment` in
+  `config/Config.zig`, which is also what decides single-instance, so the
+  process serving `Mod+Return` is by definition the non-shell case and the
+  fall-through is already home. Setting `working-directory = "home"` alongside
+  would look tidier and would cost the one behaviour worth keeping: `ghostty`
+  typed in a project shell still opens there, because that launch is "probable
+  CLI" and gets a process of its own. Tabs and splits are untouched —
+  `tab-inherit-working-directory` and `split-inherit-working-directory` are keys
+  of their own, both still true.
 
 - **The theme is chosen against helix's, which is `onedark`** (`features/editor/helix.nix`).
   Scoring all 463 bundled ghostty themes against that palette by weighted RGB

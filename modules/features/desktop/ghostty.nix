@@ -21,6 +21,10 @@
         confirm-close-surface = false;
         resize-overlay = "never";
 
+        # Only the window: tabs and splits have keys of their own, and keep
+        # inheriting. See CLAUDE.md, "Choosing a terminal".
+        window-inherit-working-directory = false;
+
         font-family = "Hack Nerd Font Mono";
         font-size = 12;
         background-opacity = 0.9;
