@@ -37,9 +37,6 @@
           foot
           thunar
           power-profile-auto
-          # Renders a bar per entry in den.session.bar, so it stays inert for a
-          # session that contributes none.
-          waybar
         ];
 
         # Rebinds kanshi, swayidle, clipman, dunst and ~30 other Wayland
@@ -195,6 +192,11 @@
         ];
 
         config = lib.mkIf (config.den.desktop.sessionAnchors != { }) {
+          # The enum values are the renderer module names, so the host's choice
+          # is the lookup. Pushed from here rather than imported by the Home
+          # Manager half, because that half cannot read NixOS config.
+          home-manager.sharedModules = [ self.modules.homeManager.${config.den.desktop.bar} ];
+
           # Same answer for every bare compositor, so it lives here; a session
           # only registers its own entry.
           programs.uwsm.enable = true;

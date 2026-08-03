@@ -4,7 +4,7 @@
   # test-session-gdm. Deliberately packages, not flake checks. See CLAUDE.md,
   # "Booted-VM tests".
   perSystem =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
     let
       greeterTest = pkgs.testers.runNixOSTest {
         name = "greeter-renders";
@@ -84,7 +84,21 @@
           loginModule,
           greeterUnit,
           memorySize ? 2048,
+          bar ? "waybar",
         }:
+        let
+          # waybar names the session it was built for; ironbar is one bar for
+          # all of them. ironbar-weather is left out: the VM has no route to
+          # the forecast API, and the point here is that the bar stays up.
+          barUnits =
+            if bar == "ironbar" then
+              [
+                "ironbar"
+                "ironbar-vars"
+              ]
+            else
+              [ "waybar-sway" ];
+        in
         pkgs.testers.runNixOSTest {
           name = testName;
 
@@ -100,7 +114,7 @@
 
               den.desktop = {
                 environments = [ "sway" ];
-                inherit loginManager;
+                inherit loginManager bar;
               };
 
               # Autologin: the prompt itself is test-greeter's job.
@@ -167,11 +181,19 @@
             wait_active("wayland-session@sway.target")
             wait_active("den-session.target")
 
-            # waybar-sway follows the Sway anchor directly, kanshi and swayidle
-            # the shared target, so both paths are covered. gammastep is
-            # excluded: geoclue has no location in a VM, so it crash-loops
-            # regardless.
-            companions = ["waybar-sway", "kanshi", "swayidle"]
+            # The bar follows its own target (an anchor for waybar, the shared
+            # one for ironbar), kanshi and swayidle the shared target, so both
+            # paths are covered. gammastep is excluded: geoclue has no location
+            # in a VM, so it crash-loops regardless.
+            companions = [${
+              lib.concatMapStringsSep ", " (u: "\"${u}\"") (
+                barUnits
+                ++ [
+                  "kanshi"
+                  "swayidle"
+                ]
+              )
+            }]
             for unit in companions:
                 wait_active(f"{unit}.service")
 
@@ -219,6 +241,17 @@
           loginModule = self.modules.nixos.login-gdm;
           greeterUnit = "display-manager.service";
           memorySize = 4096;
+        };
+
+        # The other bar, on the cheaper greeter: nothing in an evaluation shows
+        # that a bar following den-session.target rather than an anchor really
+        # comes up, nor that its producers survive racing the daemon.
+        test-session-ironbar = mkSessionTest {
+          testName = "sway-session-comes-up-with-ironbar";
+          loginManager = "greetd";
+          loginModule = self.modules.nixos.login-greetd;
+          greeterUnit = "greetd.service";
+          bar = "ironbar";
         };
       };
     };

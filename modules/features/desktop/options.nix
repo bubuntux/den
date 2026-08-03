@@ -52,6 +52,23 @@ in
           '';
         };
 
+        bar = lib.mkOption {
+          type = lib.types.enum [
+            "waybar"
+            "ironbar"
+          ];
+          default = "waybar";
+          description = ''
+            Which status bar a bare Wayland session gets. Single-valued, so the
+            host picks it and only the chosen one is installed; the values are
+            the Home Manager module names, and session-wayland pushes the match.
+
+            The two differ in more than looks: waybar builds one bar per
+            session out of den.session.bar, ironbar builds one bar for all of
+            them. See CLAUDE.md, "Choosing a bar".
+          '';
+        };
+
         sessionCommands = lib.mkOption {
           type = lib.types.attrsOf lib.types.str;
           default = { };

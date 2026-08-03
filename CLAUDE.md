@@ -32,9 +32,10 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 # Test a host in QEMU VM (e.g., katara)
 nix run .#katara-vm
 
-# Validate: formatting plus the desktop, session-anchor, unit-shape and media checks.
-# Evaluation-only (~1.5 min: the probes are fourteen NixOS evaluations, one of
-# which also evaluates a user's whole Home Manager config).
+# Validate: formatting plus the desktop, session-anchor, unit-shape, ironbar-config
+# and media checks. Near enough evaluation-only (~1.5 min: sixteen NixOS
+# evaluations, one of which also evaluates a user's whole Home Manager config;
+# ironbar-config additionally runs ironbar's own validator).
 # It does not build hosts -- see the Checks section for why.
 nix flake check
 
@@ -43,9 +44,10 @@ nix build .#checks.x86_64-linux.desktop-matrix
 
 # Booted-VM tests, deliberately outside `nix flake check` (they boot a machine).
 # Run before touching the greeter or the session plumbing -- see Checks.
-nix build .#test-greeter       # the greeter draws a usable prompt
-nix build .#test-session       # a session comes up via greetd (zuko)
-nix build .#test-session-gdm   # ... and via GDM's .desktop entry (katara)
+nix build .#test-greeter         # the greeter draws a usable prompt
+nix build .#test-session         # a session comes up via greetd (zuko)
+nix build .#test-session-gdm     # ... and via GDM's .desktop entry (katara)
+nix build .#test-session-ironbar # ... and the other bar really comes up
 
 # Format code
 nix fmt
@@ -106,11 +108,13 @@ Two rules carry real weight here:
 |-------|----------------|
 | `desktop-matrix` | seven DE/login-manager combinations produce the expected config |
 | `desktop-rejects` | four invalid combinations are refused |
-| `session-anchors` | a session's user units stay out of the user's other desktops |
+| `session-anchors` | a session's user units stay out of the user's other desktops, under either bar |
 | `unit-shape` | no surprise systemd directives on units this repo configures |
+| `ironbar-config` | the generated ironbar config and stylesheet parse, per ironbar itself |
 | `media-plumbing` | `den.media.services` really generates what it claims, for every entry |
 
-All five are **evaluation-only**. Host builds deliberately do *not* live here, even though `nix flake check` is the obvious place for them: `.github/workflows/_build.yml` already builds every host in a matrix with per-host error logs, and `ci.yml` gates `build` on `check` while `heal` fires on `build` *failing*. A host build inside `checks` moves a caddy-hash drift from `build` (fails → heal runs) to `check` (fails → build skipped → heal never runs), silently disabling the caddy self-heal. Build a host by hand instead:
+All but `ironbar-config` are **evaluation-only**; that one runs a validator over
+two generated files and builds nothing else. Host builds deliberately do *not* live here, even though `nix flake check` is the obvious place for them: `.github/workflows/_build.yml` already builds every host in a matrix with per-host error logs, and `ci.yml` gates `build` on `check` while `heal` fires on `build` *failing*. A host build inside `checks` moves a caddy-hash drift from `build` (fails → heal runs) to `check` (fails → build skipped → heal never runs), silently disabling the caddy self-heal. Build a host by hand instead:
 
 ```bash
 nix build .#nixosConfigurations.<host>.config.system.build.toplevel
@@ -118,7 +122,7 @@ nix build .#nixosConfigurations.<host>.config.system.build.toplevel
 
 The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, let alone one user carrying two, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps fourteen NixOS evaluations affordable (~1.5 min for the whole of `nix flake check`, uncached).
 
-`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, every bar in `den.session.bar` has a unit whose `WantedBy` is *exactly* its own anchor, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
+`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, every bar in `den.session.bar` has a unit whose `WantedBy` is *exactly* its own anchor, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It carries a second, cheap probe for the other bar — `den.desktop.bar = "ironbar"` inverts the rule, since one bar for every session must follow `den-session.target` and not an anchor — which also asserts that choosing one bar uninstalls the other. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
 
 `unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
@@ -134,19 +138,20 @@ Writing `session-anchors` also showed what a check of this shape cannot do: the 
 
 ### Booted-VM tests
 
-Three of them, in `modules/core/tests.nix`, deliberately **not** flake checks — `nix flake check` gates CI's `build` job and `heal` only fires when `build` fails, so anything heavy or flaky in `checks` turns a caddy-hash drift into a skipped build and a dead self-heal.
+Four of them, in `modules/core/tests.nix`, deliberately **not** flake checks — `nix flake check` gates CI's `build` job and `heal` only fires when `build` fails, so anything heavy or flaky in `checks` turns a caddy-hash drift into a skipped build and a dead self-heal.
 
 | test | what it proves |
 |---|---|
 | `test-greeter` | the greeter draws a usable prompt, and keeps drawing it |
 | `test-session` | greetd autologin → Sway yields a working session (zuko's path) |
 | `test-session-gdm` | the same, started from the `.desktop` entry by GDM (katara's path) |
+| `test-session-ironbar` | the other bar comes up, on the target it follows rather than an anchor |
 
-The two session tests are one `mkSessionTest` function over the greeter, because the greeters start a session by genuinely different means: greetd runs `den.desktop.sessionCommands` as a command line, GDM execs the generated desktop entry. That is where the unquoted `--cmd` bug lived, and it is the only part of the uwsm switch that behaves differently per host — so both are worth booting.
+The three session tests are one `mkSessionTest` function, over the greeter and the bar. The greeters start a session by genuinely different means: greetd runs `den.desktop.sessionCommands` as a command line, GDM execs the generated desktop entry. That is where the unquoted `--cmd` bug lived, and it is the only part of the uwsm switch that behaves differently per host — so both are worth booting. The third varies the bar instead of the greeter, on the cheaper of the two: ironbar follows `den-session.target` rather than an anchor and its producers race the daemon at login, and neither shows up in an evaluation.
 
-Both session tests assert what no evaluation can see: `wayland-session@sway.target` is *reached* (which under uwsm means `uwsm finalize` really ran, since the unit is `Type=notify`), `den-session.target` follows it, waybar/kanshi/swayidle are active **and have not restarted** ten seconds later, and `XDG_CURRENT_DESKTOP=sway` in the session's systemd environment — that last one decides whether `sway-mimeapps.list` is ever read, and it comes from nixpkgs' sway *wrapper*, so it holds on the greetd `--cmd` path as well as GDM's desktop-entry path.
+All three session tests assert what no evaluation can see: `wayland-session@sway.target` is *reached* (which under uwsm means `uwsm finalize` really ran, since the unit is `Type=notify`), `den-session.target` follows it, the bar (waybar-sway, or ironbar plus its producer) with kanshi and swayidle are active **and have not restarted** ten seconds later, and `XDG_CURRENT_DESKTOP=sway` in the session's systemd environment — that last one decides whether `sway-mimeapps.list` is ever read, and it comes from nixpkgs' sway *wrapper*, so it holds on the greetd `--cmd` path as well as GDM's desktop-entry path.
 
-All three preselect the uwsm session, mirroring the hosts. That is deliberate: its command is multi-word, so the greeter only renders if `login/greetd.nix` quotes it into a single `--cmd` argument.
+All four preselect the uwsm session, mirroring the hosts. That is deliberate: its command is multi-word, so the greeter only renders if `login/greetd.nix` quotes it into a single `--cmd` argument.
 
 The `NRestarts` assertion is the load-bearing one. `is-active` alone is satisfied by a service that starts, dies and is restarted, which is exactly how a bar can be "active" with nothing on screen — and it is what caught kanshi crash-looping on an empty config (`features/desktop/kanshi.nix` now enables it only for a user who has `monitors`). Its first screenshot was a black screen with a mouse cursor and every unit reported active.
 
@@ -314,7 +319,79 @@ only needed for multi-NVIDIA setups — upstream switcheroo omits it deliberatel
 the nixpkgs script sets it. And none of this replaces `hardware.nvidia.prime`,
 which is what makes offload possible at all.
 
+### Choosing a bar
+
+`den.desktop.bar` picks the renderer — `"waybar"` (default) or `"ironbar"` — and
+the enum values are the Home Manager module names, so `nixos.session-wayland`
+pushes the match at every user and the other one is never installed. It is
+host-level and single-valued for the same reason `loginManager` is.
+
+The two are not interchangeable implementations of one design; they disagree
+about the thing this repo cares most about:
+
+| | waybar | ironbar |
+|---|---|---|
+| bars per host | one **per session**, from `den.session.bar` | **one**, for all sessions |
+| what starts it | that session's anchor | `den-session.target` |
+| module state across monitors | one instance **per output** | also per output |
+| the way out of that | scope modules per output, or cache | **ironvars** |
+| toolkit | GTK3 | GTK4 |
+
+**Measured, not assumed** — one script polled at 2s across two outputs for ~9s:
+waybar ran it **10 times**, ironbar **10 times**, yambar/eww/quickshell 5, 5 and
+4\. Ironbar does *not* fix per-monitor duplication by existing, and the note that
+used to sit at the top of `waybar.nix` recommending it for that reason was
+wrong.
+
+What ironbar has instead is
+[**ironvars**](https://github.com/JakeStanger/ironbar/wiki/ironvars): global
+values in the daemon, set over IPC (`ironbar var set KEY VALUE`) and referenced
+as `#name` anywhere a dynamic string is taken. One producer, every bar updates.
+Verified the same way: one `ironbar var set` put the value on both monitors
+while an embedded `{{2000:script}}` next to it ran 8 times in 4 ticks. So
+`features/desktop/ironbar.nix` has **no polling module at all** — the GPU,
+weather, failed-unit and power-profile readings come from two producer services
+(`ironbar-vars` at 5s, `ironbar-weather` at 900s, split so a 10s curl timeout
+cannot stall the GPU reading), and `set_var` swallows failure because a producer
+outlives any one bar process and can beat the daemon to the socket at login.
+
+Three more things that shaped the ironbar file:
+
+- **One bar for every session works because ironbar detects its compositor at
+  startup**, from `SWAYSOCK` / `HYPRLAND_INSTANCE_SIGNATURE` / `NIRI_SOCKET`, in
+  that order (`src/clients/compositor/mod.rs`). So `workspaces` needs no
+  per-session variant — which is the whole reason this renderer ignores
+  `den.session.bar`. Two consequences: a new session must export its socket
+  through `uwsm finalize` the way sway does with `SWAYSOCK`, and a compositor
+  ironbar does not know (**mangowc**) makes `workspaces` fail — the module is
+  dropped with `failed to create module` in the journal and a gap in the bar,
+  exactly waybar's failure mode.
+- **A module goes in only where every installed session can back it.** ironbar's
+  matrix is per module — `workspaces` is sway/hyprland/niri, `bindmode` is
+  sway/hyprland — so `supportedBy` in the file mirrors that and drops a module
+  the moment a host installs a session that cannot serve it. Adding niri
+  therefore removes the mode indicator by itself, with no edit.
+- **Native modules replace three of waybar's four exec widgets**: `brightness`
+  for `custom/backlight`, `inhibit` for `custom/idle-inhibitor`, and `sys_info`
+  for cpu, memory *and* `custom/temp`. Note `{temp_c}` with no sensor reduces
+  with `max`, so it is the hottest sensor on the board, not waybar's package
+  reading — expect a couple of degrees' difference. Nothing replaces `privacy`,
+  `gamemode` or `sway/scratchpad`.
+
+Both renderers take their GPU and weather numbers from **`self.lib.barScripts`**
+(`features/desktop/bar-scripts.nix`), a function of `pkgs` rather than a module,
+so switching bars cannot change what the bar says. waybar consumes their JSON
+directly; ironbar pipes `.text`/`.tooltip` into ironvars.
+
+`ironbar --validate-config` rejects unknown fields and bad enum variants and
+needs no display, so the generated config and stylesheet go through it in the
+`ironbar-config` check. Give it a `HOME`: without one it dies on its own log
+directory before it reads the config, and reports that instead.
+
 ### One bar per session
+
+That heading is waybar's half of the story; the shape below applies when
+`den.desktop.bar = "waybar"`, and `den.session.bar` simply goes unread otherwise.
 
 Waybar lives in `features/desktop/waybar.nix` and names no compositor. Of the
 twenty-odd modules on it, four ever did: workspaces, mode, scratchpad and the
@@ -848,13 +925,19 @@ evaluation.
    systemd/session integration turned off, and `uwsm finalize <VARS>` as the
    **first** startup command.
 
-1. **Give it a bar.** A file next to the session's own, contributing
-   `den.session.bar.<name>` and imported by the Home Manager half — see **One
-   bar per session**. Skipping this is legal (the bar renders nothing) but
-   leaves the session with no workspaces and no window title. Whatever the
-   compositor's modules read has to reach the systemd user environment through
-   `uwsm finalize`, the way `SWAYSOCK` does: niri's, for instance, is
-   `NIRI_SOCKET`.
+1. **Give it a bar.** Whichever renderer the host picked, the compositor's IPC
+   socket has to reach the systemd user environment through `uwsm finalize`, the
+   way `SWAYSOCK` does — niri's is `NIRI_SOCKET`. Then:
+
+   - **waybar** needs a file next to the session's own contributing
+     `den.session.bar.<name>`, imported by the Home Manager half (see **One bar
+     per session**). Skipping it is legal but leaves the session with no
+     workspaces and no window title.
+   - **ironbar** needs nothing, because it detects the compositor itself — but
+     check it against `supportedBy` in `features/desktop/ironbar.nix`: a session
+     ironbar cannot drive silently drops `workspaces` from *every* host that
+     installs it, and one it drives only partly (niri, no `bindmode`) drops that
+     module for everyone. Extend that attrset rather than the module list.
 
 1. **Host:** add `"<name>"` to `den.desktop.environments` (usually via a
    profile). To preselect it under greetd, `services.displayManager.defaultSession = "<name>"`. Under **GDM, leave `defaultSession` unset** — see below.
@@ -911,7 +994,7 @@ modules/features/desktop/session/
     _startup.nix
 ```
 
-The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `foot` is a terminal, `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), `waybar` is a bar whose compositor-specific quarter arrives through `den.session.bar` (see **One bar per session**), and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
+The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `foot` is a terminal, `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), `waybar` and `ironbar` are bars that learn the compositor from `den.session.bar` and from the environment respectively (see **Choosing a bar**), `bar-scripts` holds the two readings they share, and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
 
 `session/wayland.nix` is where that rule leads for a *group* of them. Notifications, launcher, locker, idle handling, colour temperature, keyring and tray applets are each DE-agnostic, but they only make sense together — no host wants a subset — so they are one module ("the parts a compositor omits") rather than nine files. Sway's own copies of these were what made the first attempt at a second session look expensive.
 

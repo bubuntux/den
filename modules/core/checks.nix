@@ -346,6 +346,9 @@
             self.modules.nixos.profile-workstation
             {
               den.desktop.loginManager = "gdm";
+              # Pinned, not defaulted: this probe is about the per-session
+              # bars, which only waybar builds.
+              den.desktop.bar = "waybar";
               services.displayManager.defaultSession = "gnome";
               # A display layout, pushed schema-and-values the way every host
               # does it. kanshi is only enabled for a user who has monitors, so
@@ -443,6 +446,46 @@
               "the shared mimeapps.list sets inode/directory (${
                 lib.generators.toPretty { } sharedDefault
               }), which would follow the user into GNOME"
+        );
+
+      # --- the other bar -----------------------------------------------------
+      #
+      # ironbar is one bar for every session, so it follows the shared target
+      # rather than an anchor -- the opposite of the rule above, and the reason
+      # it needs its own probe. Cheap on purpose: no activation package is
+      # forced, only the units are read.
+      ironbarFailures =
+        let
+          c = probe [
+            self.modules.nixos.bundle-host
+            self.modules.nixos.profile-workstation
+            {
+              den.desktop.loginManager = "greetd";
+              den.desktop.bar = "ironbar";
+              services.displayManager.defaultSession = "sway";
+            }
+          ];
+          units = c.home-manager.users.bbtux.systemd.user.services;
+          wantedBy = n: units.${n}.Install.WantedBy or [ ];
+          sessionTarget = "den-session.target";
+          expected = [
+            "ironbar"
+            "ironbar-vars"
+            "ironbar-weather"
+          ];
+        in
+        lib.concatMap (
+          n:
+          lib.optional (!(units ? ${n})) "${n}.service is missing when den.desktop.bar = \"ironbar\""
+          ++
+            lib.optional (units ? ${n} && wantedBy n != [ sessionTarget ])
+              "${n}.service should be WantedBy ${sessionTarget} only (got ${
+                lib.generators.toPretty { } (wantedBy n)
+              })"
+        ) expected
+        # Choosing one bar must uninstall the other, or a host would run both.
+        ++ map (n: "${n}.service exists even though den.desktop.bar = \"ironbar\"") (
+          lib.filter (lib.hasPrefix "waybar") (lib.attrNames units)
         );
 
       # --- unit shape --------------------------------------------------------
@@ -611,8 +654,29 @@
       checks = {
         desktop-matrix = mkCheck "desktop-matrix" (lib.concatMap checkCase cases);
         desktop-rejects = mkCheck "desktop-rejects" (lib.concatMap checkReject rejects);
-        session-anchors = mkCheck "session-anchors" anchorFailures;
+        session-anchors = mkCheck "session-anchors" (anchorFailures ++ ironbarFailures);
         unit-shape = mkCheck "unit-shape" (lib.concatMap checkShape unitShapes);
+
+        # ironbar's config is hand-built here and read by nothing else until a
+        # session starts, so let ironbar itself parse it. --validate-config
+        # rejects unknown fields and bad enum variants, and needs no display.
+        ironbar-config =
+          let
+            hm =
+              (probe [
+                self.modules.nixos.bundle-host
+                self.modules.nixos.profile-workstation
+                { den.desktop.bar = "ironbar"; }
+              ]).home-manager.users.bbtux;
+            file = n: hm.xdg.configFile."ironbar/${n}".source;
+          in
+          pkgs.runCommand "check-ironbar-config" { } ''
+            # Without a home it fails on its own log directory before it ever
+            # reads the config, and reports that instead of the real error.
+            export HOME=$TMPDIR
+            ${lib.getExe pkgs.ironbar} -c ${file "config.json"} -t ${file "style.css"} --validate-config
+            touch $out
+          '';
       }
       # appa is the only host with media services, and only on its own system.
       // lib.optionalAttrs (compatibleHosts ? appa) {
