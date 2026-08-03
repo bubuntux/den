@@ -477,22 +477,23 @@
           ];
           units = c.home-manager.users.bbtux.systemd.user.services;
           wantedBy = n: units.${n}.Install.WantedBy or [ ];
-          sessionTarget = "den-session.target";
-          expected = [
-            "ironbar"
-            "ironbar-vars"
-            "ironbar-weather"
-          ];
+          # The bar follows the session; its producers follow the bar, so
+          # starting one unit by hand brings up the whole set.
+          expected = {
+            ironbar = [ "den-session.target" ];
+            ironbar-vars = [ "ironbar.service" ];
+            ironbar-weather = [ "ironbar.service" ];
+          };
         in
         lib.concatMap (
           n:
           lib.optional (!(units ? ${n})) "${n}.service is missing when den.desktop.bar = \"ironbar\""
           ++
-            lib.optional (units ? ${n} && wantedBy n != [ sessionTarget ])
-              "${n}.service should be WantedBy ${sessionTarget} only (got ${
+            lib.optional (units ? ${n} && wantedBy n != expected.${n})
+              "${n}.service should be WantedBy ${lib.head expected.${n}} only (got ${
                 lib.generators.toPretty { } (wantedBy n)
               })"
-        ) expected
+        ) (lib.attrNames expected)
         # The loser is installed and inert. Present, so `systemctl --user start`
         # reaches it; wanted by nothing, so the session never brings up two bars.
         ++ lib.optional (

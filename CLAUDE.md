@@ -334,17 +334,24 @@ rebuild:
 
 ```console
 $ systemctl --user stop waybar-sway
-$ systemctl --user start ironbar ironbar-vars ironbar-weather
+$ systemctl --user start ironbar
 ```
+
+One unit, because the two producers are `WantedBy=ironbar.service` rather than
+the session target — Home Manager writes `<unit>.wants/` for a service just as
+it does for a target — and `PartOf` it, so they stop with it too. There are two
+of them rather than one because their cadences differ by 180×: a 10s curl
+timeout in the 900s weather fetch must not stall the 5s GPU reading.
 
 katara carries both for that reason. It is not the default because ironbar's
 closure is **212 MiB on top of waybar's** (47 paths, 26 of them `-dev` outputs
 worth 89 MiB — measured with `comm` over the two `nix path-info -r` listings),
 and a host that has settled on one bar should not pay for the other. Each
-renderer hangs its `Install.WantedBy` on `den.session.activeBar` matching its own
-name — the user-scoped restatement of `den.desktop.bar`, since Home Manager
-cannot read NixOS config — and `session-anchors` asserts both halves: the active
-bar's units name their target exactly, the inactive one's name nothing.
+renderer hangs the `Install.WantedBy` of *the unit the session starts* on
+`den.session.activeBar` matching its own name — the user-scoped restatement of
+`den.desktop.bar`, since Home Manager cannot read NixOS config — and
+`session-anchors` asserts the whole topology: the bar names its target exactly,
+its producers name the bar, and the losing renderer's units name nothing.
 
 The two are not interchangeable implementations of one design; they disagree
 about the thing this repo cares most about:
@@ -370,10 +377,10 @@ as `#name` anywhere a dynamic string is taken. One producer, every bar updates.
 Verified the same way: one `ironbar var set` put the value on both monitors
 while an embedded `{{2000:script}}` next to it ran 8 times in 4 ticks. So
 `features/desktop/ironbar.nix` has **no polling module at all** — the GPU,
-weather, failed-unit and power-profile readings come from two producer services
-(`ironbar-vars` at 5s, `ironbar-weather` at 900s, split so a 10s curl timeout
-cannot stall the GPU reading), and `set_var` swallows failure because a producer
-outlives any one bar process and can beat the daemon to the socket at login.
+weather, failed-unit and power-profile readings come from the two producer
+services above, and `set_var` swallows failure because a producer outlives any
+one bar process and, `After=ironbar.service` notwithstanding, can still beat the
+daemon to the socket at login.
 
 Three more things that shaped the ironbar file:
 

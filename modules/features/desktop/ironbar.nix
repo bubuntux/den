@@ -52,6 +52,9 @@
       # to every bar as an ironvar. This is the whole reason a second renderer
       # is worth having: `ironbar var set` is one process for N monitors, where
       # a script module is N processes.
+      #
+      # A producer hangs off the bar rather than the session, so the session
+      # wants one unit and `systemctl --user start ironbar` brings the lot.
       varsService =
         {
           name,
@@ -62,8 +65,8 @@
         {
           Unit = {
             Description = "Ironbar values for ${name}";
-            PartOf = [ sessionTarget ];
-            After = [ sessionTarget ];
+            PartOf = [ "ironbar.service" ];
+            After = [ "ironbar.service" ];
           };
           Service = {
             ExecStart = lib.getExe (
@@ -84,7 +87,7 @@
             );
             Restart = "on-failure";
           };
-          Install.WantedBy = lib.optional active sessionTarget;
+          Install.WantedBy = [ "ironbar.service" ];
         };
 
       settings = {
