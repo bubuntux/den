@@ -36,6 +36,7 @@
           # Process monitoring
           bottom
           htop
+          (self.lib.nvtop pkgs)
           pv
 
           # Request/parsers

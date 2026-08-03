@@ -1,4 +1,5 @@
-_: {
+{ self, ... }:
+{
   # The two readings no bar has a native module for. Shared, so waybar and
   # ironbar cannot drift into showing different numbers -- a function of pkgs
   # rather than a module, since both renderers only want the derivations.
@@ -18,17 +19,14 @@ _: {
       };
     in
     {
-      # One widget for however many GPUs the host has, of whatever make. nvtop
-      # covers the mesa vendors in a single JSON shape, so an APU and a hybrid
-      # laptop share one code path; NVIDIA is the one exception, and it is
-      # nvidia-smi rather than nvtop's own backend because that backend builds
-      # against cudatoolkit -- a 3.9 GiB, largely uncached closure for numbers
-      # the driver's own tool already reports.
+      # One widget for however many GPUs the host has, of whatever make: nvtop
+      # emits one JSON shape for every backend, so katara's APU, zuko's hybrid
+      # pair and a discrete card all share this code path.
       gpu = pkgs.writeShellApplication {
         name = "bar-gpu";
-        runtimeInputs = with pkgs; [
-          jq
-          (nvtopPackages.full.override { nvidia = false; })
+        runtimeInputs = [
+          pkgs.jq
+          (self.lib.nvtop pkgs)
         ];
         text = ''
           nvtop_gpus='[]'
@@ -37,17 +35,7 @@ _: {
             nvtop_gpus=$(jq -c 'map(del(.processes))' <<<"$snapshot") || nvtop_gpus='[]'
           fi
 
-          # nvidia-smi comes from the driver, not a package, so it is only ever
-          # on PATH via the system profile.
-          export PATH="/run/current-system/sw/bin:$PATH"
-          nvidia_csv=""
-          if command -v nvidia-smi >/dev/null 2>&1; then
-            nvidia_csv=$(nvidia-smi \
-              --query-gpu=name,utilization.gpu,temperature.gpu,power.draw,memory.used,memory.total \
-              --format=csv,noheader,nounits 2>/dev/null) || nvidia_csv=""
-          fi
-
-          jq -nc --argjson nvtop "$nvtop_gpus" --arg nvidia "$nvidia_csv" \
+          jq -nc --argjson nvtop "$nvtop_gpus" \
                  --argjson colors '${builtins.toJSON gpuVendorColors}' '
             # nvtop reports every value unit-suffixed ("47C", "5W"), and "N/A"
             # wherever a backend has no such sensor -- Intel reports no power.
@@ -55,8 +43,8 @@ _: {
             def mib: (. / 1048576 | floor);
 
             # The reported name is all there is to go on: nvtop says "AMD Radeon
-            # 780M Graphics" or "Intel Alderlake_p", nvidia-smi always leads with
-            # "NVIDIA". Checked most- to least-specific.
+            # 780M Graphics", "Intel Alderlake_p", or whatever NVML hands over,
+            # which leads with "NVIDIA". Checked most- to least-specific.
             def vendor: ascii_downcase
               | if   test("nvidia|geforce|quadro|tesla") then "nvidia"
                 elif test("intel")                       then "intel"
@@ -70,15 +58,6 @@ _: {
               power: (.power_draw | num),
               used:  (.mem_used   | num),
               total: (.mem_total  | num),
-            }))
-            # nvidia-smi reports memory in MiB, where nvtop reports bytes.
-            + ($nvidia | split("\n") | map(select(length > 0) | split(", ") | {
-              name:  .[0],
-              util:  (.[1] | num),
-              temp:  (.[2] | num),
-              power: (.[3] | num),
-              used:  ((.[4] | num) * 1048576),
-              total: ((.[5] | num) * 1048576),
             }))
             | map(. + { color: ($colors[.name | vendor] // $colors.unknown) }) as $gpus
             | ($gpus | map(.util) | max // 0) as $peak

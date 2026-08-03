@@ -72,7 +72,7 @@ Features ──→ Bundles ──→ Profiles ──→ Hosts
 
 Note the direction of two edges that are easy to get backwards: **users are imported by profiles**, not by hosts (a role knows who operates the machine), and **hardware is imported by hosts**, not by profiles.
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, ghostty, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` the pieces only Sway uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, ghostty, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` the pieces only Sway uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, nvtop, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
 - **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
@@ -493,6 +493,25 @@ Three things that shaped the two modules:
   `tic` are needed locally and come from ncurses, already in every host's
   closure. foot, which has no equivalent, still pins `term = xterm-256color`.
 
+  That limit bites twice on zuko, and each half is answered where the shell
+  actually is. **`work` is not ssh at all**: `machinectl shell` hands the host's
+  `TERM` to the container, which had terminfo for neither terminal, so every
+  login shell there greeted itself with `can't find terminal definition`. The
+  container sets `environment.enableAllTerminfo` — a hundred kilobytes of
+  terminfo outputs, and terminal-agnostic, so flipping `den.desktop.terminal`
+  (or arriving from some other terminal over ssh) cannot break it again.
+  **`cvm` is `ssh` run from `sh -l -c` inside that container**, three processes
+  below the zsh that holds the wrapper, so it goes through a container-side
+  `ssh-cvm` that repeats what the ghostty feature does: push `infocmp -0 -x`
+  through `tic -x -`, fall back to `xterm-256color` when that fails, and cache
+  the success under `~/.cache/ssh-cvm/$TERM` — a path bind-mounted from the
+  host, so it outlives the container. Two things that shaped those nine lines:
+  the marker is keyed on `$TERM` rather than on the host, so a terminal switch
+  re-runs the install rather than trusting a stale success; and the local
+  `infocmp` is a step of its own rather than the head of the pipe, because
+  **`tic -x -` exits 0 on empty input** — piping a failed lookup straight into
+  ssh would report success and cache it.
+
 - **The theme is chosen against helix's, which is `onedark`** (`features/editor/helix.nix`).
   Scoring all 463 bundled ghostty themes against that palette by weighted RGB
   distance ranks **Atom One Dark** first by a factor of four — every accent
@@ -604,22 +623,59 @@ katara's single AMD APU alone. It replaced a `custom/intel-gpu` and a
 carried two permanently-empty widgets polling every 5s.
 
 `nvtop -s` emits one JSON shape for every backend, which is what collapses the
-two scripts into one. **But do not reach for `nvtopPackages.full`**: its NVIDIA
-backend takes `cudatoolkit` as a build input, and `cuda-merged` is a 3.9 GiB
-closure with many uncached paths — so every host build, and the booted-VM
-session test, would drag CUDA in for six numbers. The test is where it surfaces:
-that machine sets no `allowUnfree`, so `nix flake check` fails to *evaluate*
-rather than merely building something huge. Hence
+two scripts into one — `print_snapshot` (`src/interface.c`) prints the same
+fields out of `dynamic_info` whichever backend filled them, so every vendor
+takes one code path. That derivation lives in **`self.lib.nvtop`**
+(`features/system/nvtop.nix`) rather than in the bar file, because
+`bundle-base` also puts it on `$PATH` for interactive use and the two must be
+the same store path — a bare `nvtop` in `home.packages` would be stock
+`nvtopPackages.full`, which is the CUDA build below.
+
+**`nvtopPackages.full` is affordable only with a stub for `cudatoolkit`:**
 
 ```nix
-(nvtopPackages.full.override { nvidia = false; })   # mesa vendors, free, seconds to build
+pkgs.nvtopPackages.full.override { cudatoolkit = pkgs.emptyDirectory; }
 ```
 
-with NVIDIA coming from `nvidia-smi` instead — it ships with the driver, costs
-no closure, and reports the same fields. That one vendor branch is the price of
-not vendoring CUDA into a status bar. Two details that go with it: nvidia-smi is
-only ever on `PATH` through `/run/current-system/sw/bin`, and it reports memory
-in MiB where nvtop reports bytes.
+There is deliberately no `nvidia = true` beside it: `nvidia ? false` is the
+default of `build-nvtop.nix`, but `full` is `callPackage ./build-nvtop.nix defaultSupport`, and `defaultSupport` turns on every default family — NVIDIA
+included — on Linux. Setting it changes nothing (verified: byte-identical store
+path), so the stub is the only thing this repo actually overrides.
+
+Stock `nvtopPackages.full` on this pin is 22 derivations to build plus 2.0 GiB
+to download (3.3 GiB unpacked), because `cudatoolkit` pulls `cuda-merged`. And
+it is worse than merely large: CUDA is unfree, so the booted-VM session test —
+which sets no `allowUnfree` — fails to **evaluate**, not merely to build. Note
+that tracking nixpkgs does not fix this. [PR #521327](https://github.com/NixOS/nixpkgs/pull/521327)
+already narrowed master to `cudaPackages.cuda_nvml_dev` (2026-05-17, not on our
+`nixos-26.05` pin), but that package is `CUDA EULA` / `free = false` too, so the
+eval wall stands either way.
+
+The stub is safe because **nvtop needs no CUDA at all** — this is a nixpkgs
+packaging artifact, not an upstream requirement. `extract_gpuinfo_nvidia.c`
+includes no NVML header; it vendors every enum and signature itself and resolves
+the library with `dlopen("libnvidia-ml.so.1")` + `dlsym`, and
+[`src/CMakeLists.txt`](https://github.com/Syllo/nvtop/blob/3.3.2/src/CMakeLists.txt#L53)
+under `if(NVIDIA_SUPPORT)` only adds a source file — no `target_link_libraries`,
+no `find_package`, and no mention of CUDA anywhere in the build files. What
+*does* matter is `addDriverRunpath`, which nixpkgs applies when `nvidia = true`
+and which is how the `dlopen` finds `/run/opengl-driver/lib`. Measured against
+`nvidia = false`: identical 54.8 MiB closure, the same four references, zero
+cuda paths, and `RUNPATH` gaining `/run/opengl-driver/lib` at the front. If
+nixpkgs ever genuinely links NVML the stub breaks the build loudly rather than
+mis-reporting, which is the failure mode to want.
+
+Two consequences of dropping the old `nvidia-smi` branch, which used to supply
+the NVIDIA numbers: the script no longer needs `/run/current-system/sw/bin` on
+`PATH` (nvidia-smi ships with the driver, not a package, so it was only ever
+reachable there), nor the MiB→bytes fixup (nvidia-smi reported MiB where nvtop
+reports bytes). Power now reads a whole watt, since nvtop does `power_draw / 1000` in integer math where nvidia-smi gave decimals — consistent with the AMD
+and Intel readings, which were always integers.
+
+**The NVIDIA path is only testable on zuko.** katara has no discrete card, so
+`nvtop -s` there proves the mesa side and nothing more. The failure mode if NVML
+is unreachable is silent: nvtop skips the backend and the dGPU simply drops out
+of the widget, so confirm with `nvtop -s` on zuko rather than assuming.
 
 nvtop's Intel backend reads DRM fdinfo, not perf counters, so the bar no longer
 needs `intel_gpu_top` or its `CAP_PERFMON` wrapper. zuko still sets
