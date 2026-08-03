@@ -648,16 +648,25 @@ takes one code path. That derivation lives in **`self.lib.nvtop`**
 the same store path — a bare `nvtop` in `home.packages` would be stock
 `nvtopPackages.full`, which is the CUDA build below.
 
-**`nvtopPackages.full` is affordable only with a stub for `cudatoolkit`:**
+**`nvtopPackages.full` is affordable only by answering `cudatoolkit` with
+nothing:**
 
 ```nix
-pkgs.nvtopPackages.full.override { cudatoolkit = pkgs.emptyDirectory; }
+pkgs.nvtopPackages.full.override { cudatoolkit = null; }
 ```
+
+That argument carries no default — only the family booleans do — so `callPackage`
+fills it from `pkgs.cudatoolkit` and it has to be overridden rather than dropped.
+`null` is what stdenv documents for an absent dependency
+(`isSingularDependency`, `pkgs/stdenv/generic/make-derivation.nix`), and it beats
+a `pkgs.emptyDirectory` stub on the one axis that matters here: if nixpkgs ever
+interpolates the argument (`-I${cudatoolkit}/include`), `null` fails loudly where
+an empty directory would quietly produce a flag pointing at nothing.
 
 There is deliberately no `nvidia = true` beside it: `nvidia ? false` is the
 default of `build-nvtop.nix`, but `full` is `callPackage ./build-nvtop.nix defaultSupport`, and `defaultSupport` turns on every default family — NVIDIA
 included — on Linux. Setting it changes nothing (verified: byte-identical store
-path), so the stub is the only thing this repo actually overrides.
+path), so `cudatoolkit` is the only thing this repo actually overrides.
 
 Stock `nvtopPackages.full` on this pin is 22 derivations to build plus 2.0 GiB
 to download (3.3 GiB unpacked), because `cudatoolkit` pulls `cuda-merged`. And
@@ -668,7 +677,7 @@ already narrowed master to `cudaPackages.cuda_nvml_dev` (2026-05-17, not on our
 `nixos-26.05` pin), but that package is `CUDA EULA` / `free = false` too, so the
 eval wall stands either way.
 
-The stub is safe because **nvtop needs no CUDA at all** — this is a nixpkgs
+Answering it with nothing is safe because **nvtop needs no CUDA at all** — this is a nixpkgs
 packaging artifact, not an upstream requirement. `extract_gpuinfo_nvidia.c`
 includes no NVML header; it vendors every enum and signature itself and resolves
 the library with `dlopen("libnvidia-ml.so.1")` + `dlsym`, and
@@ -679,7 +688,7 @@ no `find_package`, and no mention of CUDA anywhere in the build files. What
 and which is how the `dlopen` finds `/run/opengl-driver/lib`. Measured against
 `nvidia = false`: identical 54.8 MiB closure, the same four references, zero
 cuda paths, and `RUNPATH` gaining `/run/opengl-driver/lib` at the front. If
-nixpkgs ever genuinely links NVML the stub breaks the build loudly rather than
+nixpkgs ever genuinely links NVML this breaks the build loudly rather than
 mis-reporting, which is the failure mode to want.
 
 Two consequences of dropping the old `nvidia-smi` branch, which used to supply
