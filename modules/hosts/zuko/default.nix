@@ -29,11 +29,12 @@
     networking.hostName = "zuko";
     system.stateVersion = "25.11";
 
-    # The only hybrid-GPU machine here (Intel iGPU + NVIDIA dGPU), and the only
-    # one where switcherooctl has anything to offload to. A 328 MiB python/gi
-    # closure and a daemon, so it stays off the single-GPU hosts rather than
-    # riding along with profile-gaming.
-    services.switcherooControl.enable = true;
+    # The only hybrid-GPU machine here (Intel iGPU + NVIDIA dGPU), so it is the
+    # only one that installs a render-offload command. `hardware.nvidia.prime`
+    # in dell-precision-5680.nix already generates the script; this just gives
+    # it the vendor-free name every host would use, so a Steam launch option
+    # reads `gpu-offload %command%` whatever the machine.
+    hardware.nvidia.prime.offload.offloadCmdMainProgram = "gpu-offload";
 
     # Profiles install the environments; the host picks the greeter. No
     # defaultSession: Sway is the only session here.

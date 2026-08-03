@@ -235,68 +235,83 @@ its acquisition; only genuinely generic ones sit in `crowdsec.nix`.
 zuko is the only hybrid host — Intel iGPU plus an NVIDIA dGPU on PRIME offload,
 all of it in `hardware/dell-precision-5680.nix`, where the vendor is a known
 fact. katara is a single AMD APU. So "run this on the discrete card" has to be
-real on one machine and absent on the other, and the command it uses ships from
-`profile-gaming`, a *capability*, which may not know the vendor.
+real on one machine and simply absent on the other.
 
-`nvidia-offload` cannot be that command. It exports
-`__GLX_VENDOR_LIBRARY_NAME=nvidia` unconditionally, so on an AMD host it breaks
-every game launched through it — silently, and only at runtime. The mesa
-equivalent is a different variable entirely
-([`DRI_PRIME=pci-0000_03_00_0`](https://docs.mesa3d.org/envvars.html#envvar-DRI_PRIME),
-the udev `ID_PATH_TAG`, not `1`), so a wrapper has to branch on the driver.
+**The dispatch happens at eval time, not at runtime.** The host already knows
+its own GPU topology, so nothing needs to discover it while a game launches.
+Each host that can offload installs a command called **`gpu-offload`**, and a
+Steam launch option reads `gpu-offload %command%` whatever the machine:
 
-[`switcherooctl launch`](https://gitlab.freedesktop.org/hadess/switcheroo-control/-/blob/3.0/src/switcheroo-control.c#L282)
-is that branch already written — `services.switcherooControl.enable`, the
-freedesktop daemon behind GNOME's "Launch using Discrete Graphics Card". Its
-udev rules tag the discrete GPU per driver and it applies what that driver
-needs:
-
-| dGPU driver | environment applied |
+| host | what provides `gpu-offload` |
 |---|---|
-| `nvidia` | `__GLX_VENDOR_LIBRARY_NAME`, `__NV_PRIME_RENDER_OFFLOAD`, `__VK_LAYER_NV_optimus` |
-| `amdgpu`, `radeon`, `i915`, `xe` | `DRI_PRIME=<ID_PATH_TAG>` |
-| any of them | `VK_LOADER_DRIVERS_SELECT` (`*nvidia*` / `*radeon*` / `*intel*`) |
+| zuko | `hardware.nvidia.prime.offload.enableOffloadCmd`, renamed via `offloadCmdMainProgram` |
+| a future AMD-dGPU host | its own `writeShellScriptBin` exporting `DRI_PRIME` |
+| katara, or anything single-GPU | nothing — there is no second card to reach |
 
-With no discrete GPU, or no daemon, it applies nothing and plain `execvp`s the
-command. Usage is `switcherooctl launch %command%` in a game's Steam launch
-options.
-
-**Who turns it on matters, and it is not the profile.** `services.switcherooControl.enable`
-lives on **`hosts/zuko`**, the only machine with two GPUs. It is a 328 MiB
-closure (`pygobject-*-dev` alone is 313 MiB) plus a daemon, and on a single-GPU
-host it can do precisely nothing — the safe no-op fallback is what makes it
-*harmless* there, not what makes it *worth installing*. `profile-gaming` only
-mirrors the decision into Steam's FHS:
+zuko therefore costs **zero extra closure**: nixpkgs already generates that
+script (`hardware/video/nvidia.nix`) and the Dell module already enables it.
+The host only renames it:
 
 ```nix
-++ lib.optional config.services.switcherooControl.enable switcheroo-control;
+hardware.nvidia.prime.offload.offloadCmdMainProgram = "gpu-offload";
 ```
 
-Reading the upstream option beats declaring a `den.*` shadow of it, and it
-leaves the capability profile with no GPU-topology knowledge at all. It briefly
-enabled the daemon itself, which amounted to asserting that a gaming machine has
-a discrete GPU — false for any host that imports `profile-gaming` and has one
-APU.
+`profile-gaming` contributes nothing to this. It is a *capability* and may not
+know the GPU topology; Steam reaches the host command through `PATH` (see
+below). A single-GPU host has no `gpu-offload` at all, so a launch option
+copied there fails loudly rather than silently rendering on the wrong card.
 
-Two things it is not. It does not set
-`__NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0`; upstream's comment says that is
-only for multi-NVIDIA setups. And it does not replace `hardware.nvidia.prime`,
+The AMD side, when it is ever needed, is
+[`DRI_PRIME=pci-0000_03_00_0`](https://docs.mesa3d.org/envvars.html#envvar-DRI_PRIME)
+— the udev `ID_PATH_TAG`, **not** `1`. Do not reuse the NVIDIA script for it:
+that one exports `__GLX_VENDOR_LIBRARY_NAME=nvidia` unconditionally, which on
+an AMD host breaks every game launched through it, silently and only at
+runtime.
+
+**Steam needs no `extraPackages` entry for this**, which was checked by running
+it rather than by reading the source:
+
+```console
+$ steam-run sh -c 'command -v nixos-version'
+/run/current-system/sw/bin/nixos-version
+```
+
+The FHS rootfs carries no `/run` of its own, so bubblewrap auto-binds the host
+one, and the FHS `/etc/profile` appends the host `$PATH` after `/usr/bin`.
+Anything in `environment.systemPackages` is therefore reachable from a launch
+option. `profile-gaming` used to hand-roll a `writeShellScriptBin "nvidia-offload"` into `extraPackages`, byte-identical to the one nixpkgs
+already installs; it was never needed.
+
+#### Why not switcheroo-control
+
+[`switcherooctl launch`](https://gitlab.freedesktop.org/hadess/switcheroo-control/-/blob/3.0/src/switcheroo-control.c#L282)
+does the same job by asking a D-Bus daemon which card is discrete, then applying
+`__GLX_VENDOR_LIBRARY_NAME`/`__NV_PRIME_RENDER_OFFLOAD`/`__VK_LAYER_NV_optimus`
+for `nvidia`, or `DRI_PRIME=<ID_PATH_TAG>` for `amdgpu`/`radeon`/`i915`/`xe`,
+plus `VK_LOADER_DRIVERS_SELECT` for either. It was used here briefly. Three
+reasons it lost, worth knowing before anyone reaches for it again:
+
+- **It duplicates something already present.** zuko gets the NVIDIA script free
+  from `enableOffloadCmd`; switcheroo adds a **328 MiB** closure
+  (`pygobject-*-dev` alone is 313 MiB) plus a daemon to do the same thing.
+- **Its failure mode is silent.** `switcherooctl` wraps `Gio.bus_get_sync` in a
+  bare `except` and falls through to a plain `os.execvp`, so an unreachable
+  daemon means the game runs on the iGPU with no error — bad framerates, not a
+  message. Eval-time dispatch cannot fail that way.
+- **Runtime discovery buys nothing here.** Its vendor-neutrality only pays off
+  when the machine is unknown at build time, which is never true of a NixOS
+  host.
+
+Its one remaining advantage is the GNOME/KDE "Launch using Discrete Graphics
+Card" menu, which reads that D-Bus service. zuko runs Sway, so that is worth
+nothing today. A future hybrid host running GNOME would be a real reason to
+enable `services.switcherooControl` again — alongside `gpu-offload`, not
+instead of it.
+
+One NVIDIA detail either way: `__NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0` is
+only needed for multi-NVIDIA setups — upstream switcheroo omits it deliberately,
+the nixpkgs script sets it. And none of this replaces `hardware.nvidia.prime`,
 which is what makes offload possible at all.
-
-`profile-gaming` used to hand-roll a `writeShellScriptBin "nvidia-offload"` into
-Steam's `extraPackages`, byte-identical to the one
-`hardware.nvidia.prime.offload.enableOffloadCmd` already installs (nixpkgs
-`hardware/video/nvidia.nix`) and which the Dell module already enables. It was
-never needed even for the FHS: the rootfs carries no `/run` of its own, so
-bubblewrap auto-binds the host one, and the FHS `/etc/profile` appends the host
-`$PATH`. `switcheroo-control` is nonetheless listed in
-`extraPackages` rather than left to that passthrough, because a Steam launch
-option that resolves to nothing fails with no diagnostic.
-
-A second host growing a dGPU sets the same one line on itself. Only if that
-became common would `services.switcherooControl` be worth moving to
-`bundle-desktop` — GNOME and KDE both read it for the per-app launch menu, which
-has nothing to do with gaming.
 
 ### GPU metrics in the bar
 

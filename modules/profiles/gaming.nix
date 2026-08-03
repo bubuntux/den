@@ -1,12 +1,7 @@
 { self, ... }:
 {
   flake.modules.nixos.profile-gaming =
-    {
-      config,
-      pkgs,
-      lib,
-      ...
-    }:
+    { pkgs, ... }:
     let
       # Desktop entry for Steam with gamemode
       steam-gamemode-desktop = pkgs.makeDesktopItem {
@@ -37,17 +32,10 @@
         protontricks.enable = true;
         # Enable extest for Steam Input on Wayland
         extest.enable = true;
-        extraPackages =
-          with pkgs;
-          [
-            gamescope
-          ]
-          # Render offload, as `switcherooctl launch %command%` in a game's
-          # launch options. In the FHS explicitly rather than through the host
-          # PATH, since a missing launch-option command fails silently. Follows
-          # the daemon, which only a host with two GPUs turns on -- this profile
-          # has no business asserting that a gaming machine has one.
-          ++ lib.optional config.services.switcherooControl.enable switcheroo-control;
+        # No render-offload command here: a host with two GPUs installs its own
+        # `gpu-offload`, and Steam's FHS reaches it through the host PATH.
+        # See CLAUDE.md, "GPU render offload".
+        extraPackages = with pkgs; [ gamescope ];
       };
 
       # Steam hardware udev rules (controllers, VR headsets)
