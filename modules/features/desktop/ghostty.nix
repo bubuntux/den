@@ -19,6 +19,7 @@
         theme = "One Dark Two";
 
         confirm-close-surface = false;
+        resize-overlay = "never";
 
         font-family = "Hack Nerd Font Mono";
         font-size = 12;
