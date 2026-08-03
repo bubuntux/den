@@ -22,6 +22,7 @@
     imports = with self.modules.nixos; [
       profile-family
       profile-workstation
+      profile-gaming
       inputs.nixos-hardware.nixosModules.common-cpu-amd
       inputs.nixos-hardware.nixosModules.common-gpu-amd
     ];
