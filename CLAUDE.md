@@ -122,7 +122,7 @@ nix build .#nixosConfigurations.<host>.config.system.build.toplevel
 
 The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, let alone one user carrying two, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps fourteen NixOS evaluations affordable (~1.5 min for the whole of `nix flake check`, uncached).
 
-`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, every bar in `den.session.bar` has a unit whose `WantedBy` is *exactly* its own anchor, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It carries a second, cheap probe for the other bar — `den.desktop.bar = "ironbar"` inverts the rule, since one bar for every session must follow `den-session.target` and not an anchor — which also asserts that choosing one bar uninstalls the other. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
+`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, every bar in `den.session.bar` has a unit whose `WantedBy` is *exactly* its own anchor, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It carries a second, cheap probe for the other bar — `den.desktop.bar = "ironbar"` inverts the rule, since one bar for every session must follow `den-session.target` and not an anchor — with both installed, so it also asserts the loser's units exist and are wanted by nothing. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
 
 `unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
@@ -323,8 +323,28 @@ which is what makes offload possible at all.
 
 `den.desktop.bar` picks the renderer — `"waybar"` (default) or `"ironbar"` — and
 the enum values are the Home Manager module names, so `nixos.session-wayland`
-pushes the match at every user and the other one is never installed. It is
-host-level and single-valued for the same reason `loginManager` is.
+pushes the match at every user. It is host-level and single-valued for the same
+reason `loginManager` is.
+
+**Which bars exist and which one starts are separate questions.**
+`den.desktop.barsInstalled` (default `[ bar ]`) is the set that gets units at
+all; `bar` is the one an anchor *wants*. Everything else is installed and inert,
+so comparing them inside a live session is two `systemctl --user` lines and no
+rebuild:
+
+```console
+$ systemctl --user stop waybar-sway
+$ systemctl --user start ironbar ironbar-vars ironbar-weather
+```
+
+katara carries both for that reason. It is not the default because ironbar's
+closure is **212 MiB on top of waybar's** (47 paths, 26 of them `-dev` outputs
+worth 89 MiB — measured with `comm` over the two `nix path-info -r` listings),
+and a host that has settled on one bar should not pay for the other. Each
+renderer hangs its `Install.WantedBy` on `den.session.activeBar` matching its own
+name — the user-scoped restatement of `den.desktop.bar`, since Home Manager
+cannot read NixOS config — and `session-anchors` asserts both halves: the active
+bar's units name their target exactly, the inactive one's name nothing.
 
 The two are not interchangeable implementations of one design; they disagree
 about the thing this repo cares most about:
@@ -707,6 +727,8 @@ Which of the settings a **profile** may set and which belong to the **host** fol
 |---|---|---|
 | `den.desktop.environments` | yes, lists concatenate (`apply = lib.unique`) | profiles |
 | `den.desktop.loginManager` | no, single value | host |
+| `den.desktop.bar` | no, single value | host |
+| `den.desktop.barsInstalled` | yes, lists concatenate (`apply = lib.unique`) | host, when comparing bars |
 | `services.displayManager.defaultSession` | no, single value | host |
 | `services.displayManager.autoLogin.*` | no, single value | host |
 

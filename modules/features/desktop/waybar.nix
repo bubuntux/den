@@ -700,6 +700,10 @@
       # it rather than letting the lookup throw.
       bars = lib.filterAttrs (id: _: config.den.session.anchors ? ${id}) config.den.session.bar;
 
+      # Installed either way; only the bar the session starts is wanted by an
+      # anchor, so the other can be reached with `systemctl --user start`.
+      active = config.den.session.activeBar == "waybar";
+
       barFiles = lib.mapAttrs (
         id: bar:
         jsonFormat.generate "waybar-${id}.json" (
@@ -754,7 +758,7 @@
             KillMode = "mixed";
             Restart = "on-failure";
           };
-          Install.WantedBy = [ anchor ];
+          Install.WantedBy = lib.optional active anchor;
         }
       ) barFiles;
     };

@@ -35,5 +35,10 @@
     # shari stays in GNOME and bbtux in Sway. No defaultSession on purpose --
     # under GDM it wipes that memory every boot (see CLAUDE.md).
     den.desktop.loginManager = "gdm";
+
+    den.desktop.barsInstalled = [
+      "waybar"
+      "ironbar"
+    ];
   };
 }

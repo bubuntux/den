@@ -194,8 +194,16 @@
         config = lib.mkIf (config.den.desktop.sessionAnchors != { }) {
           # The enum values are the renderer module names, so the host's choice
           # is the lookup. Pushed from here rather than imported by the Home
-          # Manager half, because that half cannot read NixOS config.
-          home-manager.sharedModules = [ self.modules.homeManager.${config.den.desktop.bar} ];
+          # Manager half, because that half cannot read NixOS config -- which is
+          # also why activeBar is restated for the user.
+          home-manager.sharedModules =
+            map (bar: self.modules.homeManager.${bar}) config.den.desktop.barsInstalled
+            ++ [
+              {
+                key = "den:homeManager.active-bar";
+                den.session.activeBar = config.den.desktop.bar;
+              }
+            ];
 
           # Same answer for every bare compositor, so it lives here; a session
           # only registers its own entry.

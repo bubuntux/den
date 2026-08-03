@@ -52,6 +52,9 @@
         sway = c.programs.sway.enable;
         gnome = c.services.desktopManager.gnome.enable;
         autoLoginUser = c.services.displayManager.autoLogin.user;
+        # Defaults to just the bar that starts: the second one is ~210 MiB a
+        # host does not pay for unless it asked to compare them.
+        barsInstalled = c.den.desktop.barsInstalled;
         hmUsers = lib.sort (a: b: a < b) (lib.attrNames c.home-manager.users);
         greeterCmd =
           if c.services.greetd.enable then c.services.greetd.settings.default_session.command else "";
@@ -87,6 +90,7 @@
             # probe with no user module has no homes. The profile cases below do.
             hmUsers = [ ];
             useTextGreeter = false;
+            barsInstalled = [ "waybar" ];
           };
           # --cmd takes a single argument, so a multi-word session command has
           # to arrive quoted or tuigreet gets stray arguments and draws no
@@ -462,6 +466,12 @@
             {
               den.desktop.loginManager = "greetd";
               den.desktop.bar = "ironbar";
+              # Both installed, which is the interesting case: the units of the
+              # bar that did not win must exist and be wanted by nothing.
+              den.desktop.barsInstalled = [
+                "waybar"
+                "ironbar"
+              ];
               services.displayManager.defaultSession = "sway";
             }
           ];
@@ -483,10 +493,15 @@
                 lib.generators.toPretty { } (wantedBy n)
               })"
         ) expected
-        # Choosing one bar must uninstall the other, or a host would run both.
-        ++ map (n: "${n}.service exists even though den.desktop.bar = \"ironbar\"") (
-          lib.filter (lib.hasPrefix "waybar") (lib.attrNames units)
-        );
+        # The loser is installed and inert. Present, so `systemctl --user start`
+        # reaches it; wanted by nothing, so the session never brings up two bars.
+        ++ lib.optional (
+          !(lib.any (lib.hasPrefix "waybar") (lib.attrNames units))
+        ) "no waybar unit exists even though barsInstalled asks for it"
+        ++ map (
+          n:
+          "${n}.service is WantedBy ${lib.generators.toPretty { } (wantedBy n)} but ironbar is the active bar"
+        ) (lib.filter (n: lib.hasPrefix "waybar" n && wantedBy n != [ ]) (lib.attrNames units));
 
       # --- unit shape --------------------------------------------------------
       #

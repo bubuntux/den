@@ -6,6 +6,13 @@ let
     "sway"
     "gnome"
   ];
+
+  # Both are Home Manager module names, which is what makes the option values
+  # the lookup in session/wayland.nix.
+  barNames = [
+    "waybar"
+    "ironbar"
+  ];
 in
 {
   # Two knobs only -- what to install, and which greeter presents it. Session
@@ -53,19 +60,29 @@ in
         };
 
         bar = lib.mkOption {
-          type = lib.types.enum [
-            "waybar"
-            "ironbar"
-          ];
+          type = lib.types.enum barNames;
           default = "waybar";
           description = ''
-            Which status bar a bare Wayland session gets. Single-valued, so the
-            host picks it and only the chosen one is installed; the values are
-            the Home Manager module names, and session-wayland pushes the match.
+            Which status bar a session starts. Single-valued, so the host picks
+            it; the value is a Home Manager module name and session-wayland
+            pushes the match.
 
             The two differ in more than looks: waybar builds one bar per
             session out of den.session.bar, ironbar builds one bar for all of
             them. See CLAUDE.md, "Choosing a bar".
+          '';
+        };
+
+        barsInstalled = lib.mkOption {
+          type = lib.types.listOf (lib.types.enum barNames);
+          default = [ cfg.bar ];
+          defaultText = lib.literalExpression "[ config.den.desktop.bar ]";
+          apply = lib.unique;
+          description = ''
+            Which bars get units at all. Everything here but `bar` is installed
+            and never started, so `systemctl --user start <other>` compares them
+            inside one session with no rebuild -- at the cost of its closure,
+            which for ironbar next to waybar is ~210 MiB.
           '';
         };
 
@@ -112,6 +129,14 @@ in
               den.desktop: environments ${lib.generators.toPretty { } cfg.environments} are
               installed but loginManager = "none" and autoLogin is disabled, so
               nothing can start a session.
+            '';
+          }
+          {
+            assertion = lib.elem cfg.bar cfg.barsInstalled;
+            message = ''
+              den.desktop: bar = "${cfg.bar}" is not in barsInstalled
+              (${lib.generators.toPretty { } cfg.barsInstalled}), so the bar the
+              session starts would have no units.
             '';
           }
           {

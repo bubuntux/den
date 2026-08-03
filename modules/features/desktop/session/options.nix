@@ -26,6 +26,20 @@ _: {
           '';
         };
 
+        activeBar = lib.mkOption {
+          type = lib.types.str;
+          default = "waybar";
+          description = ''
+            Which installed bar this session starts. A renderer hangs its unit's
+            WantedBy on being the match, so the others are present but never
+            pulled in by the session.
+
+            The host's view is `den.desktop.bar`; Home Manager cannot read NixOS
+            config, so session-wayland states both. Not an enum on purpose --
+            the set of names lives with the host option.
+          '';
+        };
+
         bar = lib.mkOption {
           type = lib.types.attrsOf (
             lib.types.submodule {

@@ -25,6 +25,10 @@
 
       installedSessions = lib.attrNames config.den.session.anchors;
 
+      # Installed either way; only the bar the session starts is wanted by the
+      # target, so the other can be reached with `systemctl --user start`.
+      active = config.den.session.activeBar == "ironbar";
+
       # Ironbar's own support matrix, from its docs. A module goes in only when
       # every session on this host can back it: one config serves them all, and
       # a module whose compositor is missing is dropped with an error in the
@@ -80,7 +84,7 @@
             );
             Restart = "on-failure";
           };
-          Install.WantedBy = [ sessionTarget ];
+          Install.WantedBy = lib.optional active sessionTarget;
         };
 
       settings = {
@@ -337,7 +341,7 @@
             ExecStart = "${ironbar} -c ${configFile} -t ${styleFile}";
             Restart = "on-failure";
           };
-          Install.WantedBy = [ sessionTarget ];
+          Install.WantedBy = lib.optional active sessionTarget;
         };
 
         ironbar-vars = varsService {
