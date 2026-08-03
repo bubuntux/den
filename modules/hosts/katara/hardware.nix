@@ -26,13 +26,6 @@
       boot.kernelModules = [ "kvm-amd" ];
       boot.extraModulePackages = [ ];
 
-      # The WD19TB's own Realtek hubs -- 5487/5413 are the USB2 halves, 0487/0413
-      # the SuperSpeed ones, and all four must be pinned or the pair goes down
-      # together. See CLAUDE.md, "The dock on katara" for what a drop costs.
-      services.udev.extraRules = ''
-        SUBSYSTEM=="usb", ATTR{idVendor}=="0bda", ATTR{idProduct}=="5487|5413|0487|0413", ATTR{power/control}="on"
-      '';
-
       fileSystems."/" = {
         device = "/dev/disk/by-uuid/1f24fa25-4b1e-4433-a643-0a585c1a5134";
         fsType = "ext4";
