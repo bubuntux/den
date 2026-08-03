@@ -37,6 +37,9 @@
           foot
           thunar
           power-profile-auto
+          # Renders a bar per entry in den.session.bar, so it stays inert for a
+          # session that contributes none.
+          waybar
         ];
 
         # Rebinds kanshi, swayidle, clipman, dunst and ~30 other Wayland

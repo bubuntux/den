@@ -26,6 +26,43 @@ _: {
           '';
         };
 
+        bar = lib.mkOption {
+          type = lib.types.attrsOf (
+            lib.types.submodule {
+              options = {
+                modules = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [ ];
+                  example = [ "sway/workspaces" ];
+                  description = ''
+                    The compositor's own Waybar modules, placed at the head of
+                    modules-left. Everything else on the bar is shared.
+                  '';
+                };
+
+                settings = lib.mkOption {
+                  type = lib.types.attrs;
+                  default = { };
+                  description = ''
+                    Waybar configuration for those modules, merged over the
+                    shared bar; a key defined in both wins here.
+                  '';
+                };
+              };
+            }
+          );
+          default = { };
+          description = ''
+            Desktop id -> the part of the bar only that compositor understands,
+            keyed like `anchors` above. Each entry becomes a config and a
+            systemd user unit of its own, started by that session's anchor.
+
+            One bar cannot serve two compositors: Waybar drops a module it
+            cannot create and carries on with a gap. See CLAUDE.md, "One bar
+            per session".
+          '';
+        };
+
         wallpaper = lib.mkOption {
           type = lib.types.path;
           default = pkgs.nixos-artwork.wallpapers.binary-black.gnomeFilePath;

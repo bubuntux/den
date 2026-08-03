@@ -416,14 +416,25 @@
           ++ lib.optional (
             (hm.systemd.user.targets.den-session.Install.WantedBy or [ ]) != [ swayAnchor ]
           ) "${sessionTarget} is not started by ${swayAnchor}"
-          # ... and the bar is the counter-case: its modules are sway/*, so it must
-          # follow Sway alone and not the union of the user's sessions.
-          ++
-            lib.optional
-              (!(lib.elem swayAnchor (wantedBy "waybar")) || lib.elem sessionTarget (wantedBy "waybar"))
-              "waybar.service should be WantedBy ${swayAnchor} only (got ${
-                lib.generators.toPretty { } (wantedBy "waybar")
-              })"
+          # ... and the bars are the counter-case: each is built from one
+          # compositor's modules, so it follows that session's anchor alone and
+          # not the union of the user's sessions.
+          ++ lib.optional (
+            hm.den.session.bar == { }
+          ) "no session contributes a bar, so the assertions below cannot fail"
+          ++ lib.concatMap (
+            id:
+            let
+              unit = "waybar-${id}";
+              anchor = hm.den.session.anchors.${id};
+            in
+            lib.optional (!(units ? ${unit})) "${unit}.service is missing from a user who has the ${id} session"
+            ++
+              lib.optional (units ? ${unit} && wantedBy unit != [ anchor ])
+                "${unit}.service should be WantedBy ${anchor} only (got ${
+                  lib.generators.toPretty { } (wantedBy unit)
+                })"
+          ) (lib.attrNames hm.den.session.bar)
           ++ lib.optional (
             mimeFor "sway" == null || !lib.hasInfix "thunar.desktop" (mimeFor "sway")
           ) "sway-mimeapps.list does not point inode/directory at thunar"

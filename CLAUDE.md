@@ -118,7 +118,7 @@ nix build .#nixosConfigurations.<host>.config.system.build.toplevel
 
 The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, let alone one user carrying two, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps fourteen NixOS evaluations affordable (~1.5 min for the whole of `nix flake check`, uncached).
 
-`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, Waybar follows `wayland-session@sway.target` *only*, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
+`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, every bar in `den.session.bar` has a unit whose `WantedBy` is *exactly* its own anchor, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
 
 `unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
@@ -314,10 +314,58 @@ only needed for multi-NVIDIA setups — upstream switcheroo omits it deliberatel
 the nixpkgs script sets it. And none of this replaces `hardware.nvidia.prime`,
 which is what makes offload possible at all.
 
+### One bar per session
+
+Waybar lives in `features/desktop/waybar.nix` and names no compositor. Of the
+twenty-odd modules on it, four ever did: workspaces, mode, scratchpad and the
+window title. Those arrive from the session through **`den.session.bar`**, keyed
+by desktop id exactly like `den.session.anchors`:
+
+```nix
+# session/sway/waybar.nix
+den.session.bar.sway = {
+  modules = [ "sway/workspaces" "sway/mode" "sway/scratchpad" "sway/window" ];
+  settings = { "sway/window".max-length = 45; /* ... */ };
+};
+```
+
+`modules` leads `modules-left`; `settings` merges over the shared bar. Everything
+else — GPU, temperature, weather, clock, tray, the swayidle toggle — is written
+once and read by every session.
+
+**Each entry gets a config and a systemd user unit of its own**, started by that
+session's anchor and nothing else. That is forced by Home Manager, not chosen:
+`programs.waybar` writes exactly one `waybar/config` and one `waybar.service`,
+and `systemd.targets` is a list of targets that all start *the same process with
+the same config*. One config cannot serve two compositors — Waybar logs
+`Disabling module "{}", {}` for anything it cannot create and carries on with a
+gap in the bar, which is a silent failure of the sort this repo keeps rejecting.
+So the module sets `systemd.enable = false`, leaves `settings` at its default so
+no `waybar/config` is written (Home Manager skips the file when it is empty),
+keeps only the package and the stylesheet, and generates the pair per entry.
+
+Three things that follow, and are easy to undo by accident:
+
+- **The unit names its anchor and nothing else.** Home Manager's own unit is
+  also `WantedBy=tray.target`, which is shared across the home: a tray applet
+  starting in one session would pull in *every* session's bar. `session-anchors`
+  asserts the `WantedBy` list equals `[ anchor ]`, so re-adding it fails there.
+- **`ExecStart` names store paths**, not `~/.config`. The files under
+  `waybar/<id>.json` are written all the same, for running a bar by hand.
+- **The stylesheet stays shared, dead selectors and all.** `#workspaces`,
+  `#mode`, `#scratchpad` and `#window` are the ids whichever compositor supplies
+  those modules — niri's workspaces module carries the same
+  `button.focused/.active/.urgent` classes — and a rule matching no widget costs
+  nothing. Splitting the CSS per session would cost the ability to read the bar's
+  colour scheme in one place, which **Colour in the bar** below depends on.
+
+A session that ships its own shell contributes no entry and gets no bar, with no
+gating needed anywhere: the renderer maps over `den.session.bar`, which is empty.
+
 ### GPU metrics in the bar
 
-`custom/gpu` (`session/sway/waybar.nix`) is one widget for however many GPUs the
-host has, of whatever make — zuko's Intel iGPU and NVIDIA dGPU side by side,
+`custom/gpu` (`features/desktop/waybar.nix`) is one widget for however many GPUs
+the host has, of whatever make — zuko's Intel iGPU and NVIDIA dGPU side by side,
 katara's single AMD APU alone. It replaced a `custom/intel-gpu` and a
 `custom/nvidia-gpu` that were each hardcoded to one vendor's tool, so katara
 carried two permanently-empty widgets polling every 5s.
@@ -800,6 +848,14 @@ evaluation.
    systemd/session integration turned off, and `uwsm finalize <VARS>` as the
    **first** startup command.
 
+1. **Give it a bar.** A file next to the session's own, contributing
+   `den.session.bar.<name>` and imported by the Home Manager half — see **One
+   bar per session**. Skipping this is legal (the bar renders nothing) but
+   leaves the session with no workspaces and no window title. Whatever the
+   compositor's modules read has to reach the systemd user environment through
+   `uwsm finalize`, the way `SWAYSOCK` does: niri's, for instance, is
+   `NIRI_SOCKET`.
+
 1. **Host:** add `"<name>"` to `den.desktop.environments` (usually via a
    profile). To preselect it under greetd, `services.displayManager.defaultSession = "<name>"`. Under **GDM, leave `defaultSession` unset** — see below.
 
@@ -847,7 +903,7 @@ modules/features/desktop/session/
   gnome.nix             # one file is enough
   sway/
     default.nix         # nixos.sway + homeManager.sway
-    waybar.nix          # bar -- hardcodes sway/workspaces, sway/mode, swayidle
+    waybar.nix          # den.session.bar.sway -- the four sway/* modules only
     dictation.nix       # writes wayland.windowManager.sway.config.keybindings
     _keybindings.nix    # `_` fragments: curried functions, not flake-parts
     _modes.nix          #   modules, imported by ./default.nix
@@ -855,7 +911,7 @@ modules/features/desktop/session/
     _startup.nix
 ```
 
-The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `foot` is a terminal, `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
+The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `foot` is a terminal, `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), `waybar` is a bar whose compositor-specific quarter arrives through `den.session.bar` (see **One bar per session**), and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
 
 `session/wayland.nix` is where that rule leads for a *group* of them. Notifications, launcher, locker, idle handling, colour temperature, keyring and tray applets are each DE-agnostic, but they only make sense together — no host wants a subset — so they are one module ("the parts a compositor omits") rather than nine files. Sway's own copies of these were what made the first attempt at a second session look expensive.
 

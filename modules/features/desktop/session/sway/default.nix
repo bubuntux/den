@@ -44,7 +44,7 @@ in
           session-wayland
           session-options
           monitors
-          waybar
+          waybar-sway
           # dictation
         ];
 

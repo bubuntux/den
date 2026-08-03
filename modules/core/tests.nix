@@ -167,10 +167,11 @@
             wait_active("wayland-session@sway.target")
             wait_active("den-session.target")
 
-            # waybar follows the Sway anchor directly, kanshi and swayidle the
-            # shared target, so both paths are covered. gammastep is excluded:
-            # geoclue has no location in a VM, so it crash-loops regardless.
-            companions = ["waybar", "kanshi", "swayidle"]
+            # waybar-sway follows the Sway anchor directly, kanshi and swayidle
+            # the shared target, so both paths are covered. gammastep is
+            # excluded: geoclue has no location in a VM, so it crash-loops
+            # regardless.
+            companions = ["waybar-sway", "kanshi", "swayidle"]
             for unit in companions:
                 wait_active(f"{unit}.service")
 
