@@ -1,15 +1,16 @@
 # Sway keybindings configuration
-# This file returns a function that takes pkgs and mod, then returns keybindings
+# This file returns a function that takes pkgs, mod, the terminal command and
+# the launcher command, then returns keybindings
 # It's imported by default.nix, not as a flake-parts module
-pkgs: mod: {
+pkgs: mod: terminal: menu: {
   # Terminal
-  "${mod}+Return" = "exec foot";
+  "${mod}+Return" = "exec ${terminal}";
 
   # Kill window
   "${mod}+Shift+q" = "kill";
 
   # Launcher
-  "${mod}+d" = "exec rofi -terminal foot -show combi -combi-modes drun#run -modes combi";
+  "${mod}+d" = "exec ${menu}";
 
   # Reload
   "${mod}+Shift+c" = "reload";

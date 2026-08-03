@@ -13,6 +13,11 @@ let
     "waybar"
     "ironbar"
   ];
+
+  terminalNames = [
+    "ghostty"
+    "foot"
+  ];
 in
 {
   # Two knobs only -- what to install, and which greeter presents it. Session
@@ -83,6 +88,20 @@ in
             and never started, so `systemctl --user start <other>` compares them
             inside one session with no rebuild -- at the cost of its closure,
             which for ironbar next to waybar is ~210 MiB.
+          '';
+        };
+
+        terminal = lib.mkOption {
+          type = lib.types.enum terminalNames;
+          default = "ghostty";
+          description = ''
+            Which terminal a session installs and its keybindings spawn.
+            Single-valued, so the host picks it; the value is a Home Manager
+            module name and session-wayland pushes the match.
+
+            The command is not the module name -- foot is reached through
+            footclient -- so the module states its own in den.session.terminal.
+            See CLAUDE.md, "Choosing a terminal".
           '';
         };
 

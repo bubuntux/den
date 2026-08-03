@@ -18,8 +18,12 @@ in
         ...
       }:
       let
+        # Whichever terminal the host picked, named by its own module.
+        terminal = config.den.session.terminal;
+        menu = "rofi -terminal ${terminal} -show combi -combi-modes drun#run -modes combi";
+
         # Import configuration fragments (curried functions, underscore prefix to avoid import-tree)
-        keybindings = import ./_keybindings.nix pkgs mod;
+        keybindings = import ./_keybindings.nix pkgs mod terminal menu;
         rules = import ./_rules.nix;
         modes = import ./_modes.nix pkgs mod;
         startupCommands = import ./_startup.nix pkgs;
@@ -65,8 +69,7 @@ in
 
           config = {
             modifier = mod;
-            terminal = "foot";
-            menu = "rofi -terminal foot -show combi -combi-modes drun#run -modes combi";
+            inherit terminal menu;
 
             # Enable Num Lock by default
             input."type:keyboard".xkb_numlock = "enabled";
@@ -268,7 +271,6 @@ in
               export WLR_NO_HARDWARE_CURSORS=1
             '';
             extraPackages = with pkgs; [
-              foot
               wmenu
               swaylock
               swayidle

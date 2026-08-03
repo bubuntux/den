@@ -504,6 +504,70 @@
           "${n}.service is WantedBy ${lib.generators.toPretty { } (wantedBy n)} but ironbar is the active bar"
         ) (lib.filter (n: lib.hasPrefix "waybar" n && wantedBy n != [ ]) (lib.attrNames units));
 
+      # --- the terminal ------------------------------------------------------
+      #
+      # den.desktop.terminal has to install one terminal and uninstall the
+      # other, and the command sway spawns has to be the one that module states
+      # -- footclient, not foot, which no evaluated package list would show.
+      terminalFailures =
+        let
+          # foot reaches its server through footclient; ghostty is spawned
+          # directly. Keyed by module name, which is what the option takes.
+          expected = {
+            foot = "footclient";
+            ghostty = "ghostty";
+          };
+
+          # One probe per terminal, bound once: each is a whole NixOS plus Home
+          # Manager evaluation, and footServer below reads the same home.
+          homes = lib.mapAttrs (
+            name: _:
+            (probe [
+              self.modules.nixos.bundle-host
+              self.modules.nixos.profile-workstation
+              {
+                den.desktop.loginManager = "greetd";
+                den.desktop.terminal = name;
+                services.displayManager.defaultSession = "sway";
+              }
+            ]).home-manager.users.bbtux
+          ) expected;
+
+          check =
+            name:
+            let
+              hm = homes.${name};
+              other = if name == "foot" then "ghostty" else "foot";
+              enabled = t: hm.programs.${t}.enable or false;
+              spawned = hm.wayland.windowManager.sway.config.terminal;
+            in
+            lib.optional (
+              !enabled name
+            ) "programs.${name}.enable is false when den.desktop.terminal = \"${name}\""
+            ++ lib.optional (enabled other) "programs.${other} is installed even though den.desktop.terminal = \"${name}\""
+            ++ lib.optional (
+              spawned != expected.${name}
+            ) "sway spawns ${spawned} when den.desktop.terminal = \"${name}\", expected ${expected.${name}}"
+            ++ lib.optional (
+              !lib.hasInfix "-terminal ${expected.${name}} " hm.wayland.windowManager.sway.config.menu
+            ) "the rofi launcher does not pass -terminal ${expected.${name}}";
+
+          # The server is a companion like any other: it must follow the shared
+          # session target, not graphical-session.target, or a GNOME login in
+          # the same home starts a foot server it has no terminal for.
+          footServer =
+            let
+              unit = homes.foot.systemd.user.services.foot or null;
+            in
+            lib.optional (unit == null) "foot.service is missing when den.desktop.terminal = \"foot\""
+            ++
+              lib.optional (unit != null && (unit.Install.WantedBy or [ ]) != [ "den-session.target" ])
+                "foot.service should be WantedBy den-session.target only (got ${
+                  lib.generators.toPretty { } (unit.Install.WantedBy or [ ])
+                })";
+        in
+        lib.concatMap check (lib.attrNames expected) ++ footServer;
+
       # --- unit shape --------------------------------------------------------
       #
       # Directive *names* per section, never their values: values carry store
@@ -671,6 +735,7 @@
         desktop-matrix = mkCheck "desktop-matrix" (lib.concatMap checkCase cases);
         desktop-rejects = mkCheck "desktop-rejects" (lib.concatMap checkReject rejects);
         session-anchors = mkCheck "session-anchors" (anchorFailures ++ ironbarFailures);
+        terminal-choice = mkCheck "terminal-choice" terminalFailures;
         unit-shape = mkCheck "unit-shape" (lib.concatMap checkShape unitShapes);
 
         # ironbar's config is hand-built here and read by nothing else until a
@@ -691,6 +756,26 @@
             # reads the config, and reports that instead of the real error.
             export HOME=$TMPDIR
             ${lib.getExe pkgs.ironbar} -c ${file "config.json"} -t ${file "style.css"} --validate-config
+            touch $out
+          '';
+
+        # Same reasoning as ironbar-config: the keys are hand-written and
+        # nothing reads them until a terminal starts. +validate-config rejects
+        # unknown fields and bad enum variants (window-decoration takes none,
+        # not false) and needs no display.
+        ghostty-config =
+          let
+            hm =
+              (probe [
+                self.modules.nixos.bundle-host
+                self.modules.nixos.profile-workstation
+                { den.desktop.terminal = "ghostty"; }
+              ]).home-manager.users.bbtux;
+          in
+          pkgs.runCommand "check-ghostty-config" { } ''
+            export HOME=$TMPDIR
+            ${lib.getExe pkgs.ghostty} +validate-config \
+              --config-file=${hm.xdg.configFile."ghostty/config".source}
             touch $out
           '';
       }

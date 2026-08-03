@@ -34,7 +34,6 @@
         imports = with self.modules.homeManager; [
           session-options
           kanshi
-          foot
           thunar
           power-profile-auto
         ];
@@ -192,13 +191,14 @@
         ];
 
         config = lib.mkIf (config.den.desktop.sessionAnchors != { }) {
-          # The enum values are the renderer module names, so the host's choice
-          # is the lookup. Pushed from here rather than imported by the Home
-          # Manager half, because that half cannot read NixOS config -- which is
-          # also why activeBar is restated for the user.
+          # The enum values are the renderer and terminal module names, so the
+          # host's choice is the lookup. Pushed from here rather than imported
+          # by the Home Manager half, because that half cannot read NixOS config
+          # -- which is also why activeBar is restated for the user.
           home-manager.sharedModules =
             map (bar: self.modules.homeManager.${bar}) config.den.desktop.barsInstalled
             ++ [
+              self.modules.homeManager.${config.den.desktop.terminal}
               {
                 key = "den:homeManager.active-bar";
                 den.session.activeBar = config.den.desktop.bar;

@@ -77,6 +77,20 @@ _: {
           '';
         };
 
+        terminal = lib.mkOption {
+          type = lib.types.str;
+          example = "footclient";
+          description = ''
+            The command a session's keybindings spawn for a terminal, stated by
+            whichever terminal module session-wayland pushed. Not the module
+            name: foot is reached through footclient when its server is running.
+
+            Deliberately has no default. A terminal module that forgets to set
+            it fails evaluation here, rather than leaving Mod+Return bound to a
+            binary that is not installed.
+          '';
+        };
+
         wallpaper = lib.mkOption {
           type = lib.types.path;
           default = pkgs.nixos-artwork.wallpapers.binary-black.gnomeFilePath;

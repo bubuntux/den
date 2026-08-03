@@ -32,10 +32,11 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 # Test a host in QEMU VM (e.g., katara)
 nix run .#katara-vm
 
-# Validate: formatting plus the desktop, session-anchor, unit-shape, ironbar-config
-# and media checks. Near enough evaluation-only (~1.5 min: sixteen NixOS
-# evaluations, one of which also evaluates a user's whole Home Manager config;
-# ironbar-config additionally runs ironbar's own validator).
+# Validate: formatting plus the desktop, session-anchor, terminal-choice,
+# unit-shape, ironbar-config, ghostty-config and media checks. Near enough
+# evaluation-only (~1.5 min: nineteen NixOS evaluations, one of which also
+# evaluates a user's whole Home Manager config; the two *-config checks
+# additionally run ironbar's and ghostty's own validators).
 # It does not build hosts -- see the Checks section for why.
 nix flake check
 
@@ -71,7 +72,7 @@ Features ──→ Bundles ──→ Profiles ──→ Hosts
 
 Note the direction of two edges that are easy to get backwards: **users are imported by profiles**, not by hosts (a role knows who operates the machine), and **hardware is imported by hosts**, not by profiles.
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` the pieces only Sway uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, ghostty, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` the pieces only Sway uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
 - **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
@@ -109,12 +110,14 @@ Two rules carry real weight here:
 | `desktop-matrix` | seven DE/login-manager combinations produce the expected config |
 | `desktop-rejects` | four invalid combinations are refused |
 | `session-anchors` | a session's user units stay out of the user's other desktops, under either bar |
+| `terminal-choice` | `den.desktop.terminal` installs one terminal, uninstalls the other, and sway spawns the command that one states |
 | `unit-shape` | no surprise systemd directives on units this repo configures |
 | `ironbar-config` | the generated ironbar config and stylesheet parse, per ironbar itself |
+| `ghostty-config` | the generated ghostty config parses, per ghostty itself |
 | `media-plumbing` | `den.media.services` really generates what it claims, for every entry |
 
-All but `ironbar-config` are **evaluation-only**; that one runs a validator over
-two generated files and builds nothing else. Host builds deliberately do *not* live here, even though `nix flake check` is the obvious place for them: `.github/workflows/_build.yml` already builds every host in a matrix with per-host error logs, and `ci.yml` gates `build` on `check` while `heal` fires on `build` *failing*. A host build inside `checks` moves a caddy-hash drift from `build` (fails → heal runs) to `check` (fails → build skipped → heal never runs), silently disabling the caddy self-heal. Build a host by hand instead:
+All but the two `*-config` checks are **evaluation-only**; those run a validator
+over generated files and build nothing else. Host builds deliberately do *not* live here, even though `nix flake check` is the obvious place for them: `.github/workflows/_build.yml` already builds every host in a matrix with per-host error logs, and `ci.yml` gates `build` on `check` while `heal` fires on `build` *failing*. A host build inside `checks` moves a caddy-hash drift from `build` (fails → heal runs) to `check` (fails → build skipped → heal never runs), silently disabling the caddy self-heal. Build a host by hand instead:
 
 ```bash
 nix build .#nixosConfigurations.<host>.config.system.build.toplevel
@@ -124,15 +127,19 @@ The desktop checks carry the most weight, because `den.desktop`'s assertions are
 
 `session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, every bar in `den.session.bar` has a unit whose `WantedBy` is *exactly* its own anchor, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It carries a second, cheap probe for the other bar — `den.desktop.bar = "ironbar"` inverts the rule, since one bar for every session must follow `den-session.target` and not an anchor — with both installed, so it also asserts the loser's units exist and are wanted by nothing. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
 
+`terminal-choice` exists because the terminal is the one thing a session names that is *not* the option's value: `den.desktop.terminal = "foot"` has to reach `Mod+Return` as **footclient**. A package list would look right in both cases, so the check reads `wayland.windowManager.sway.config.terminal` and the rofi launcher's `-terminal` argument instead, once per enum value, and asserts the losing terminal is not installed. It also pins foot's server unit to `den-session.target`, since a server bound to `graphical-session.target` would start under a GNOME login that has no foot to talk to it. Two of its four properties are guarded by the module system before the check ever runs — `den.session.terminal` has no default, so pushing no terminal module fails evaluation, and pushing two fails on conflicting definitions.
+
 `unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
 `media-plumbing` asserts properties over every `den.media.services` entry rather than a golden snapshot, so a service added later is covered for free. Note that `requiresMounts` is checked by *containment*, not equality — the upstream service modules add their own state directories to `RequiresMountsFor` (jellyfin contributes three).
 
-**Adding a case** means appending to `cases` (with an `expect` attrset, and optionally `cmdContains` to assert on the greeter command line), to `rejects` (which passes when evaluation throws *or* any assertion reports false), to `unitShapes`, or — for a companion that must follow the session — to `companions` in `anchorFailures`.
+**Adding a case** means appending to `cases` (with an `expect` attrset, and optionally `cmdContains` to assert on the greeter command line), to `rejects` (which passes when evaluation throws *or* any assertion reports false), to `unitShapes`, to `expected` in `terminalFailures` (module name → the command it states, which also adds its probe), or — for a companion that must follow the session — to `companions` in `anchorFailures`.
 
 **When adding or changing a check, prove it bites.** Break the thing on purpose, confirm the check fails with a message that names the problem, then revert. A check that has never failed is not known to work. Every check here was validated that way: removing `den.desktop.sessionCommands.sway` made `desktop-matrix` report the missing `--cmd sway`; neutralising the "nothing can start a session" assertion made `desktop-rejects` report "was accepted, expected rejection"; dropping LightDM's `services.xserver.enable` failed on both the assertion and the expectation; re-enabling `useTextGreeter` made `unit-shape` list all seven directives it adds; breaking the registry's umask and namespace-address derivation made `media-plumbing` name the affected services.
 
 `session-anchors` was validated four times over, once per property it holds: dropping `wayland.systemd.target` from `session/wayland.nix` made it name kanshi, swayidle and idle-inhibit-init as bound to `graphical-session.target`; giving `homeManager.gnome` its own `xdg.userDirs.desktop` made it report the conflicting definition; and moving thunar's association back into the shared `mimeapps.list` made it report that the default "would follow the user into GNOME".
+
+`terminal-choice` was validated three times: making `homeManager.foot` state `den.session.terminal = "foot"` rather than `footclient` made it report both the wrong spawn and the wrong `-terminal` argument; dropping the terminal push from `session/wayland.nix` failed earlier still, on `den.session.terminal` having no value; and pointing foot's `server.systemdTarget` at `graphical-session.target` made it name the unit and print the target it got.
 
 Writing `session-anchors` also showed what a check of this shape cannot do: the first attempt tried to prove the conflict case with `xdg.portal.config`, which merges into a list rather than conflicting, so the check passed on genuinely broken input. Pick an option that is single-valued when testing a collision.
 
@@ -414,6 +421,102 @@ directly; ironbar pipes `.text`/`.tooltip` into ironvars.
 needs no display, so the generated config and stylesheet go through it in the
 `ironbar-config` check. Give it a `HOME`: without one it dies on its own log
 directory before it reads the config, and reports that instead.
+
+### Choosing a terminal
+
+`den.desktop.terminal` picks the terminal — `"ghostty"` (default) or `"foot"` —
+and like `den.desktop.bar` the enum values are the Home Manager module names, so
+`nixos.session-wayland` pushes the match at every user and the other one is never
+installed. Host-level and single-valued, for the same reason.
+
+**It was not chosen for the GPU.** foot renders on the CPU into shm buffers and
+sits at the top of published Wayland latency benchmarks; at 2×1440p60 there is no
+throughput problem for a GPU to solve, and some GL terminals are *slower* to the
+screen because they wait on a frame callback. What ghostty brings is defaults,
+shell integration and the kitty graphics protocol. What it costs is a live
+dependency on the GL stack, which foot does not have — so foot stays in the enum
+as the fallback when a driver update goes wrong, not as a legacy entry.
+
+The closure argument is the one that is easy to get backwards. Measured against
+`cache.nixos.org`, ghostty's full closure is **1018 MiB** against foot's 95 —
+but nearly all of it is libadwaita, GTK4, pipewire and gst-plugins-bad, which
+katara already has from GNOME:
+
+| | full closure | not already on katara |
+|---|---|---|
+| foot | 95 MiB | 0 |
+| ghostty | 1018 MiB | **29 MiB** |
+| kitty | 595 MiB | 66 MiB |
+| alacritty | 235 MiB | 12 MiB |
+| wezterm | 247 MiB | 165 MiB |
+
+zuko is where that stops holding: sway with waybar brings no GTK4, so ghostty
+pulls the toolkit for real there. Selecting `"ironbar"` on a host changes the
+answer again, since that bar is GTK4 too.
+
+Three things that shaped the two modules:
+
+- **The command is not the module name.** foot is reached through
+  **footclient**, because `programs.foot.server.enable` gives a `foot.service`
+  the session starts and a client that attaches to it instead of paying process
+  startup per window. So each module states its own command in
+  **`den.session.terminal`**, and sway reads that rather than the host option —
+  Home Manager cannot see NixOS config, the same wall that put `den.session.anchors`
+  next to `den.desktop.sessionAnchors`. The option has **no default** on purpose:
+  a terminal module that forgets to set it fails evaluation, rather than leaving
+  `Mod+Return` bound to a binary nothing installed.
+
+- **foot's server target needs no override.** `programs.foot.server.systemdTarget`
+  defaults to `wayland.systemd.target`, which `session-wayland` already points at
+  `den-session.target` — so it lands on the session anchor for free. Setting it
+  to `graphical-session.target` would start a foot server under a GNOME login in
+  the same home; `terminal-choice` asserts it does not.
+
+- **`TERM` is left alone; the ssh features handle the remote instead.** ghostty
+  announces `xterm-ghostty`, whose terminfo is on no remote host, and the
+  obvious fix — `term = xterm-256color` — is the wrong one: it makes every
+  *local* program treat ghostty as an xterm, losing undercurl and the rest of
+  what the real entry describes, to solve a problem that only exists over ssh.
+  `shell-integration-features` carries a targeted answer, off by default:
+  `ssh-terminfo` installs ghostty's entry on the remote with `infocmp`/`tic` on
+  first connection and caches that it did, and `ssh-env` forwards `COLORTERM`
+  and friends — together they fall back to `xterm-256color` *only* when the
+  install fails, which is exactly the old behaviour, only when needed. Setting
+  the key replaces the whole default list, so `cursor,no-sudo,title,path` are
+  repeated verbatim alongside the two being switched on.
+
+  Its limit is worth knowing before trusting it: it is a **shell function
+  wrapping `ssh`**, so it is not inherited by child processes. `ssh` from a
+  script, `mosh`, or a tool that spawns its own (rsync, git, gcloud) gets
+  `xterm-ghostty` on a host with no such terminfo. That only bites an
+  interactive TUI, which is not usually how those are reached. `infocmp` and
+  `tic` are needed locally and come from ncurses, already in every host's
+  closure. foot, which has no equivalent, still pins `term = xterm-256color`.
+
+- **`window-decoration = server`, and `none` is the trap.** `~/.config/ghostty/config`
+  is home-wide, so katara's GNOME user reads the same file — and `none` would
+  leave her a window with no titlebar and no close button. `server` is the one
+  value that is right in both: sway serves `org_kde_kwin_server_decoration` and
+  then honours `titlebar = false`, while GNOME does not serve it and ghostty
+  documents the fallback as client-side decorations, which is the headerbar she
+  wants. This is the `xdg.userDirs.desktop` tie-break again — least wrong in the
+  desktop that did not ask for it. Note the option is an enum
+  (`auto`/`client`/`server`/`none`), not the boolean it once was, so `false` is
+  rejected outright and `ghostty-config` is what says so.
+
+`ghostty +validate-config` catches both of those last two classes and needs no
+display, so the generated config goes through it in the `ghostty-config` check.
+It wants a `HOME`, exactly like ironbar's validator.
+
+Nothing installs a terminal system-wide any more: `programs.sway.extraPackages`
+used to carry `foot`, which was both a second install path and the wrong terminal
+the moment this option existed.
+
+ghostty comes from **nixpkgs, not [its own flake](https://ghostty.org/docs/install/pre)**.
+That page is the *prerelease* one: its flake tracks `tip`, and upstream publishes
+no tagged release beyond it — `v1.3.1` is the newest tag and is exactly what
+nixpkgs has, prebuilt at 16.6 MB. The flake would buy a source build of Zig and
+a new input to track a nightly, for a version that is already current.
 
 ### One bar per session
 
@@ -1023,7 +1126,7 @@ modules/features/desktop/session/
     _startup.nix
 ```
 
-The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `foot` is a terminal, `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), `waybar` and `ironbar` are bars that learn the compositor from `den.session.bar` and from the environment respectively (see **Choosing a bar**), `bar-scripts` holds the two readings they share, and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
+The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `ghostty` and `foot` are terminals the host picks between with `den.desktop.terminal` (see **Choosing a terminal**), `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), `waybar` and `ironbar` are bars that learn the compositor from `den.session.bar` and from the environment respectively (see **Choosing a bar**), `bar-scripts` holds the two readings they share, and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
 
 `session/wayland.nix` is where that rule leads for a *group* of them. Notifications, launcher, locker, idle handling, colour temperature, keyring and tray applets are each DE-agnostic, but they only make sense together — no host wants a subset — so they are one module ("the parts a compositor omits") rather than nine files. Sway's own copies of these were what made the first attempt at a second session look expensive.
 
