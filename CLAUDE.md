@@ -33,10 +33,10 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 nix run .#katara-vm
 
 # Validate: formatting plus the desktop, session-anchor, terminal-choice,
-# unit-shape, ironbar-config, ghostty-config and media checks. Near enough
-# evaluation-only (~1.5 min: nineteen NixOS evaluations, one of which also
-# evaluates a user's whole Home Manager config; the two *-config checks
-# additionally run ironbar's and ghostty's own validators).
+# unit-shape, ironbar-config, ghostty-config, niri-config and media checks. Near
+# enough evaluation-only (~1.5 min: twenty-one NixOS evaluations, one of which
+# also evaluates a user's whole Home Manager config; the three *-config checks
+# additionally run ironbar's, ghostty's and niri's own validators).
 # It does not build hosts -- see the Checks section for why.
 nix flake check
 
@@ -49,6 +49,7 @@ nix build .#test-greeter         # the greeter draws a usable prompt
 nix build .#test-session         # a session comes up via greetd (zuko)
 nix build .#test-session-gdm     # ... and via GDM's .desktop entry (katara)
 nix build .#test-session-ironbar # ... and the other bar really comes up
+nix build .#test-session-niri    # ... and the other compositor's plumbing (only that)
 
 # Format code
 nix fmt
@@ -72,7 +73,7 @@ Features ──→ Bundles ──→ Profiles ──→ Hosts
 
 Note the direction of two edges that are easy to get backwards: **users are imported by profiles**, not by hosts (a role knows who operates the machine), and **hardware is imported by hosts**, not by profiles.
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, ghostty, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` the pieces only Sway uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, nvtop, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, ghostty, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` and `session/niri/` the pieces only those compositors use — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, nvtop, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
 - **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
@@ -107,27 +108,30 @@ Two rules carry real weight here:
 
 | check | what it proves |
 |-------|----------------|
-| `desktop-matrix` | seven DE/login-manager combinations produce the expected config |
+| `desktop-matrix` | nine DE/login-manager combinations produce the expected config |
 | `desktop-rejects` | four invalid combinations are refused |
 | `session-anchors` | a session's user units stay out of the user's other desktops, under either bar |
-| `terminal-choice` | `den.desktop.terminal` installs one terminal, uninstalls the other, and sway spawns the command that one states |
+| `terminal-choice` | `den.desktop.terminal` installs one terminal, uninstalls the other, and both bare sessions spawn the command that one states |
 | `unit-shape` | no surprise systemd directives on units this repo configures |
 | `ironbar-config` | the generated ironbar config and stylesheet parse, per ironbar itself |
 | `ghostty-config` | the generated ghostty config parses, per ghostty itself |
+| `niri-config` | the generated niri config parses, per niri itself |
 | `media-plumbing` | `den.media.services` really generates what it claims, for every entry |
 
-All but the two `*-config` checks are **evaluation-only**; those run a validator
+All but the three `*-config` checks are **evaluation-only**; those run a validator
 over generated files and build nothing else. Host builds deliberately do *not* live here, even though `nix flake check` is the obvious place for them: `.github/workflows/_build.yml` already builds every host in a matrix with per-host error logs, and `ci.yml` gates `build` on `check` while `heal` fires on `build` *failing*. A host build inside `checks` moves a caddy-hash drift from `build` (fails → heal runs) to `check` (fails → build skipped → heal never runs), silently disabling the caddy self-heal. Build a host by hand instead:
 
 ```bash
 nix build .#nixosConfigurations.<host>.config.system.build.toplevel
 ```
 
-The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, let alone one user carrying two, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps fourteen NixOS evaluations affordable (~1.5 min for the whole of `nix flake check`, uncached).
+The desktop checks carry the most weight, because `den.desktop`'s assertions are all that stand between a typo and a machine with no way to log in — and no host exercises the two-environment path, let alone one user carrying three, so it would rot unnoticed. They read `config.assertions` and a handful of option values rather than forcing `system.build.toplevel`, which keeps sixteen NixOS evaluations affordable (~1.5 min for the whole of `nix flake check`, uncached).
 
-`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (both desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts four things: each shared companion follows `den-session.target`, every bar in `den.session.bar` has a unit whose `WantedBy` is *exactly* its own anchor, `sway-mimeapps.list` is what points folders at thunar, and the shared `mimeapps.list` does not. It carries a second, cheap probe for the other bar — `den.desktop.bar = "ironbar"` inverts the rule, since one bar for every session must follow `den-session.target` and not an anchor — with both installed, so it also asserts the loser's units exist and are wanted by nothing. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
+`session-anchors` covers the failure mode `desktop-matrix` structurally cannot see. Home Manager config lands in a *home*, not in a session — and since every user now gets every installed desktop, every evaluated option value can be correct while a unit is bound to `graphical-session.target`, which every desktop starts. It probes katara (all three desktops, GDM) through **shari**, who only ever logs into GNOME and is therefore where an escaping companion shows up, and asserts six things: each shared companion follows `den-session.target`, `den-session.target` itself is started by *every* anchor (miss one and that session comes up with no companions at all), every bar in `den.session.bar` has a unit whose `WantedBy` is *exactly* its own anchor, `niri-wallpaper` likewise names niri's anchor alone, `<desktop>-mimeapps.list` points folders at thunar for every bare session, and the shared `mimeapps.list` does not. It carries a second, cheap probe for the other bar — `den.desktop.bar = "ironbar"` inverts the rule, since one bar for every session must follow `den-session.target` and not an anchor — with both installed, so it also asserts the loser's units exist and are wanted by nothing. It also forces her `home.activationPackage.drvPath`, so an option two desktops define differently fails here rather than at switch time. That full Home Manager evaluation is the bulk of the check's cost; the desktop cases read `attrNames` and stay cheap.
 
 `terminal-choice` exists because the terminal is the one thing a session names that is *not* the option's value: `den.desktop.terminal = "foot"` has to reach `Mod+Return` as **footclient**. A package list would look right in both cases, so the check reads `wayland.windowManager.sway.config.terminal` and the rofi launcher's `-terminal` argument instead, once per enum value, and asserts the losing terminal is not installed. It also pins foot's server unit to `den-session.target`, since a server bound to `graphical-session.target` would start under a GNOME login that has no foot to talk to it. Two of its four properties are guarded by the module system before the check ever runs — `den.session.terminal` has no default, so pushing no terminal module fails evaluation, and pushing two fails on conflicting definitions.
+
+Its probes install **both** bare sessions, because niri needs the check more than sway does: sway states the terminal through a Home Manager option the module system will type-check, while niri's config is a hand-written KDL string on this pin, so there is nothing to read the command back out of. So for niri the check greps the generated text for `spawn "<command>"` — and for the *absence* of the other terminal's, since a leftover literal is exactly how that string goes wrong.
 
 `unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
@@ -135,17 +139,21 @@ The desktop checks carry the most weight, because `den.desktop`'s assertions are
 
 **Adding a case** means appending to `cases` (with an `expect` attrset, and optionally `cmdContains` to assert on the greeter command line), to `rejects` (which passes when evaluation throws *or* any assertion reports false), to `unitShapes`, to `expected` in `terminalFailures` (module name → the command it states, which also adds its probe), or — for a companion that must follow the session — to `companions` in `anchorFailures`.
 
+Note what `cmdContains` can pin beyond a store path, because the niri case leans on it: `"-- /run/current-system/sw/bin/niri'"` asserts the *closing* quote, so one string covers both that `sessionCommands` was keyed correctly (an unkeyed session silently produces no `--cmd` at all — greetd warns, it does not assert) and that the multi-word command survived `escapeShellArg` as one argument.
+
 **When adding or changing a check, prove it bites.** Break the thing on purpose, confirm the check fails with a message that names the problem, then revert. A check that has never failed is not known to work. Every check here was validated that way: removing `den.desktop.sessionCommands.sway` made `desktop-matrix` report the missing `--cmd sway`; neutralising the "nothing can start a session" assertion made `desktop-rejects` report "was accepted, expected rejection"; dropping LightDM's `services.xserver.enable` failed on both the assertion and the expectation; re-enabling `useTextGreeter` made `unit-shape` list all seven directives it adds; breaking the registry's umask and namespace-address derivation made `media-plumbing` name the affected services.
 
 `session-anchors` was validated four times over, once per property it holds: dropping `wayland.systemd.target` from `session/wayland.nix` made it name kanshi, swayidle and idle-inhibit-init as bound to `graphical-session.target`; giving `homeManager.gnome` its own `xdg.userDirs.desktop` made it report the conflicting definition; and moving thunar's association back into the shared `mimeapps.list` made it report that the default "would follow the user into GNOME".
 
-`terminal-choice` was validated three times: making `homeManager.foot` state `den.session.terminal = "foot"` rather than `footclient` made it report both the wrong spawn and the wrong `-terminal` argument; dropping the terminal push from `session/wayland.nix` failed earlier still, on `den.session.terminal` having no value; and pointing foot's `server.systemdTarget` at `graphical-session.target` made it name the unit and print the target it got.
+`terminal-choice` was validated three times: making `homeManager.foot` state `den.session.terminal = "foot"` rather than `footclient` made it report both the wrong spawn and the wrong `-terminal` argument; dropping the terminal push from `session/wayland.nix` failed earlier still, on `den.session.terminal` having no value; and pointing foot's `server.systemdTarget` at `graphical-session.target` made it name the unit and print the target it got. Its niri half was validated by hardcoding `spawn "foot"` in `_config.nix`, which made it report both terminals as unspawned.
+
+The niri additions were validated the same way, and one attempt failed to bite, which is worth knowing: **`niri validate` accepts a bogus argument on a bare node** — `prefer-no-csd true` passes — so that is not a usable break. A typo'd *action* is: `close-windo` made `niri-config` print "expected `quit`, `suspend`, or one of 133 others". Mis-keying `den.desktop.sessionCommands.niri` to `niri-uwsm` made `desktop-matrix` print the whole greeter command line and name the missing infix. Pointing `niri-wallpaper`'s `Install.WantedBy` at `graphical-session.target` made `session-anchors` report it twice over — once from the blanket rule, once from the unit's own assertion.
 
 Writing `session-anchors` also showed what a check of this shape cannot do: the first attempt tried to prove the conflict case with `xdg.portal.config`, which merges into a list rather than conflicting, so the check passed on genuinely broken input. Pick an option that is single-valued when testing a collision.
 
 ### Booted-VM tests
 
-Four of them, in `modules/core/tests.nix`, deliberately **not** flake checks — `nix flake check` gates CI's `build` job and `heal` only fires when `build` fails, so anything heavy or flaky in `checks` turns a caddy-hash drift into a skipped build and a dead self-heal.
+Five of them, in `modules/core/tests.nix`, deliberately **not** flake checks — `nix flake check` gates CI's `build` job and `heal` only fires when `build` fails, so anything heavy or flaky in `checks` turns a caddy-hash drift into a skipped build and a dead self-heal.
 
 | test | what it proves |
 |---|---|
@@ -153,16 +161,21 @@ Four of them, in `modules/core/tests.nix`, deliberately **not** flake checks —
 | `test-session` | greetd autologin → Sway yields a working session (zuko's path) |
 | `test-session-gdm` | the same, started from the `.desktop` entry by GDM (katara's path) |
 | `test-session-ironbar` | the other bar comes up, on the target it follows rather than an anchor |
+| `test-session-niri` | the other compositor's session plumbing — **and nothing on screen**, see below |
 
-The three session tests are one `mkSessionTest` function, over the greeter and the bar. The greeters start a session by genuinely different means: greetd runs `den.desktop.sessionCommands` as a command line, GDM execs the generated desktop entry. That is where the unquoted `--cmd` bug lived, and it is the only part of the uwsm switch that behaves differently per host — so both are worth booting. The third varies the bar instead of the greeter, on the cheaper of the two: ironbar follows `den-session.target` rather than an anchor and its producers race the daemon at login, and neither shows up in an evaluation.
+The four session tests are one `mkSessionTest` function, over the greeter, the bar and the session. The greeters start a session by genuinely different means: greetd runs `den.desktop.sessionCommands` as a command line, GDM execs the generated desktop entry. That is where the unquoted `--cmd` bug lived, and it is the only part of the uwsm switch that behaves differently per host — so both are worth booting. The third varies the bar instead of the greeter, on the cheaper of the two: ironbar follows `den-session.target` rather than an anchor and its producers race the daemon at login, and neither shows up in an evaluation. The fourth varies the compositor, because everything uwsm does is generic in principle and had only ever been exercised by one.
 
-All three session tests assert what no evaluation can see: `wayland-session@sway.target` is *reached* (which under uwsm means `uwsm finalize` really ran, since the unit is `Type=notify`), `den-session.target` follows it, the bar (waybar-sway, or ironbar plus its producer) with kanshi and swayidle are active **and have not restarted** ten seconds later, and `XDG_CURRENT_DESKTOP=sway` in the session's systemd environment — that last one decides whether `sway-mimeapps.list` is ever read, and it comes from nixpkgs' sway *wrapper*, so it holds on the greetd `--cmd` path as well as GDM's desktop-entry path.
+All four session tests assert what no evaluation can see: `wayland-session@<session>.target` is *reached* (which under uwsm means `uwsm finalize` really ran, since the unit is `Type=notify`), `den-session.target` follows it, the bar (waybar-`<session>`, or ironbar plus its producer) with kanshi and swayidle are active **and have not restarted** ten seconds later, and `XDG_CURRENT_DESKTOP=<session>` in the session's systemd environment — that last one decides whether `<session>-mimeapps.list` is ever read. For sway it comes from nixpkgs' *wrapper*, so it holds on the greetd `--cmd` path as well as GDM's desktop-entry path; for niri, which has no wrapper, uwsm exports it from the compositor id.
 
-All four preselect the uwsm session, mirroring the hosts. That is deliberate: its command is multi-word, so the greeter only renders if `login/greetd.nix` quotes it into a single `--cmd` argument.
+All five preselect the uwsm session, mirroring the hosts. That is deliberate: its command is multi-word, so the greeter only renders if `login/greetd.nix` quotes it into a single `--cmd` argument.
 
 The `NRestarts` assertion is the load-bearing one. `is-active` alone is satisfied by a service that starts, dies and is restarted, which is exactly how a bar can be "active" with nothing on screen — and it is what caught kanshi crash-looping on an empty config (`features/desktop/kanshi.nix` now enables it only for a user who has `monitors`). Its first screenshot was a black screen with a mouse cursor and every unit reported active.
 
-Two environment notes for anyone extending it: sway needs `WLR_RENDERER = "pixman"` and `-vga none -device virtio-gpu-pci` (both lifted from nixpkgs' own `nixos/tests/sway.nix`), and gammastep is excluded from the assertions because geoclue has no location to give in a VM, so it crash-loops there regardless of configuration.
+**`test-session-niri` proves strictly less than the sway runs, and this is the one thing to know before trusting it.** niri is smithay, and smithay **refuses software EGL outright** — `ensure!(!egl_device.is_software(), "software EGL renderers are skipped")` in `src/backend/tty.rs`, with no config key and no environment variable to override it (upstream's reason: llvmpipe segfaults importing dmabufs from other renderers). A nix build sandbox has no real render node, so niri comes up with **zero outputs**: the journal reads `failed to initialize renderer, falling back to primary gpu` then `no allocator available for device`, `lxqt-policykit-agent` logs `There are no outputs - creating placeholder screen`, and the screenshot is uwsm's console output rather than a desktop. Every unit is nevertheless active with no restarts, so the test passes — read it as a test of the *session plumbing* only. That plumbing is real and was the actual integration risk: the anchor is reached, so `uwsm finalize` ran from niri's own `spawn-at-startup`; `NIRI_SOCKET` and `DISPLAY` both appear in the log as exported (the latter being xwayland-satellite); and the rewritten session entry is what greetd used. **That a bar appears has to be checked by hand on real hardware**, where the GPU is not software and the rejection never fires. sway does not have this problem because wlroots takes a software renderer by name (`WLR_RENDERER = "pixman"`), which is why its screenshot shows a real waybar over a real wallpaper — compare the two screenshots if you ever doubt which is which.
+
+Do not try to fix this with `-device virtio-gpu-gl-pci`: virgl needs host GPU access, which a nix build sandbox does not have. nixpkgs' own `nixos/tests/cosmic` is smithay too and simply never screenshots a compositor-rendered frame.
+
+Two environment notes for anyone extending it: `-vga none -device virtio-gpu-pci` is needed by both sessions (`-vga std` exposes no DRM node at all, lifted from nixpkgs' own `nixos/tests/sway.nix`) while `WLR_RENDERER` is set only for sway, since it means nothing to a non-wlroots compositor; and gammastep is excluded from the assertions because geoclue has no location to give in a VM, so it crash-loops there regardless of configuration.
 
 Writing `media-plumbing` also caught a bug in the check rather than the code — asserting list equality on `RequiresMountsFor` failed for four services because upstream contributes its own entries. Expect that: a new check's first failure is as likely to be its own fault as the code's.
 
@@ -403,14 +416,28 @@ Three more things that shaped the ironbar file:
 - **A module goes in only where every installed session can back it.** ironbar's
   matrix is per module — `workspaces` is sway/hyprland/niri, `bindmode` is
   sway/hyprland — so `supportedBy` in the file mirrors that and drops a module
-  the moment a host installs a session that cannot serve it. Adding niri
-  therefore removes the mode indicator by itself, with no edit.
+  the moment a host installs a session that cannot serve it. This was written as a
+  prediction and is now what happens: katara installs niri, so its ironbar has no
+  mode indicator, and no file was edited to make that so.
 - **Native modules replace three of waybar's four exec widgets**: `brightness`
   for `custom/backlight`, `inhibit` for `custom/idle-inhibitor`, and `sys_info`
   for cpu, memory *and* `custom/temp`. Note `{temp_c}` with no sensor reduces
   with `max`, so it is the hottest sensor on the board, not waybar's package
   reading — expect a couple of degrees' difference. Nothing replaces `privacy`,
   `gamemode` or `sway/scratchpad`.
+- **The clock module cannot show a second timezone**, so the extra zones are
+  labels rather than more clocks. `ClockModule` (`src/modules/clock.rs`) is
+  hardcoded to `chrono::Local` and offers only `format`, `format_popup`,
+  `locale`, `show_week_numbers` and the layout keys — `chrono-tz` is not even a
+  dependency, so a second `{ type = "clock"; }` prints local time twice. Setting
+  `TZ` on the unit is no way out either: it is process-wide, so it would move
+  *every* clock on the bar. `extraClocks` therefore drives one label per zone off
+  the 5s producer, which bounds each remote clock to 5s of staleness and costs
+  one `date` call — the local clock stays a real `clock` module, so it keeps the
+  calendar popup the labels have no equivalent for. Their format carries `%a`
+  because the point of a remote clock is a zone whose *date* differs: local Mon
+  22:40 is already Tue in both UTC and Tokyo, so a bare `%H:%M` reads as an
+  impossible time rather than tomorrow.
 
 Both renderers take their GPU and weather numbers from **`self.lib.barScripts`**
 (`features/desktop/bar-scripts.nix`), a function of `pkgs` rather than a module,
@@ -911,7 +938,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
   1. Run `nix fmt` to ensure consistent code style
   1. Stage files with `git add` (the flake only sees tracked files)
 
-- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is evaluation-only, but still takes ~1.5 min because the desktop probes are thirteen NixOS evaluations; run a single check by name while iterating. Host builds are CI's job (see **Checks**)
+- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is near enough evaluation-only, but still takes ~1.5 min because the desktop probes are sixteen NixOS evaluations; run a single check by name while iterating. Host builds are CI's job (see **Checks**)
 
 - **Committing**: Always present changes and proposed commit message to the user for explicit approval before committing
 
@@ -943,7 +970,7 @@ Which of the settings a **profile** may set and which belong to the **host** fol
 
 | setting | mergeable? | set by |
 |---|---|---|
-| `den.desktop.environments` | yes, lists concatenate (`apply = lib.unique`) | profiles |
+| `den.desktop.environments` | yes, lists concatenate (`apply = lib.unique`) | profiles — or a host adding one of its own |
 | `den.desktop.loginManager` | no, single value | host |
 | `den.desktop.bar` | no, single value | host |
 | `den.desktop.barsInstalled` | yes, lists concatenate (`apply = lib.unique`) | host, when comparing bars |
@@ -961,10 +988,12 @@ den.desktop.environments = [          den.desktop.environments = [ "sway" ];
 
 # hosts/katara/default.nix -- imports both roles, then picks one greeter
 den.desktop.loginManager = "gdm";
-services.displayManager.defaultSession = "gnome";
+den.desktop.environments = [ "niri" ];   # one of its own, on trial
 ```
 
-katara is the worked example: two roles, both environments installed, and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path.
+katara is the worked example: two roles, three environments installed, and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path.
+
+Note the third entry comes from the **host**, not a role, and that is the one place the table above bends: because the option merges, a host can add an environment its roles do not install, and that is right for something being tried on one machine (see **The niri session**). It stays wrong for anything settled — a role is where an environment belongs once it is not an experiment. `defaultSession` is deliberately absent here; under GDM it wipes every user's remembered session on each boot.
 
 **There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. There used to be a `den.desktop.users` naming one desktop per person, and it never did what it looked like: the greeter offers every installed session to everyone regardless, so all it decided was whose home would be *unprepared* for the session they chose — which is exactly what happened to bbtux, whose entry said sway on a machine whose default session is GNOME.
 
@@ -1119,9 +1148,12 @@ it is harmless in a session that already has one.
 
 ### Adding a desktop environment
 
-Sway is the worked example; read `session/sway/default.nix` alongside this. The
-steps are each small, but missing one tends to fail at login rather than at
-evaluation.
+There are two worked examples now, and they differ in the two places that matter
+most, so read whichever is closer: **sway** has a Home Manager module for its
+config and a nixpkgs *wrapper* for its package, while **niri** has neither — see
+**The niri session** below for what that costs. Read `session/sway/default.nix` or
+`session/niri/default.nix` alongside this. The steps are each small, but missing
+one tends to fail at login rather than at evaluation.
 
 1. **Name it.** Add `"<name>"` to `sessionNames` in `features/desktop/options.nix`.
 
@@ -1142,16 +1174,39 @@ evaluation.
    # See "How a bare session starts" above for why, and for the buildCommand
    # -vs- postBuild trap. A compositor that ships no entry of its own is the
    # one case where waylandCompositors is the right tool.
-   programs.<name>.package = pkgs.<name>.overrideAttrs (old: { ... });
+   programs.<name>.package = <see below>;
 
    den.desktop.sessionAnchors.<name> = "wayland-session@<id>.target";
    den.desktop.sessionCommands.<name> =
      "${lib.getExe pkgs.uwsm} start -F -- /run/current-system/sw/bin/<binary>";
    ```
 
-   The session environment (toolkit variables and the like) goes **here**, on
-   whatever the compositor's NixOS module offers, because uwsm starts the system
-   binary by absolute path. Anything set in a Home Manager wrapper never runs.
+   **How to rewrite that entry depends on what the package is, and getting it
+   wrong costs a full rebuild rather than an error.** sway's `programs.sway.package`
+   is a `symlinkJoin` wrapper, so appending to its `buildCommand` is nearly free.
+   niri's is `rustPlatform.buildRustPackage` — an `overrideAttrs` on `postInstall`
+   there would recompile the whole compositor from source to change one 6-line
+   text file. So niri wraps instead:
+
+   ```nix
+   package = pkgs.symlinkJoin {
+     name = "niri-uwsm-session-${pkgs.niri.version}";
+     paths = [ pkgs.niri ];
+     inherit (pkgs.niri) meta passthru;   # providedSessions lives in passthru
+     postBuild = ''rm $out/share/wayland-sessions/niri.desktop && cat > ... '';
+   };
+   ```
+
+   `lndir` gives real directories with symlinked leaves, so `rm` then `cat` works.
+   Carry `passthru` across or `services.displayManager.sessionPackages` rejects the
+   package: it validates against `passthru.providedSessions`.
+
+   The session environment (toolkit variables and the like) goes **here** when the
+   compositor's NixOS module offers a hook for it, because uwsm starts the system
+   binary by absolute path and anything set in a Home Manager wrapper never runs.
+   `programs.sway` has `extraSessionCommands`; **`programs.niri` has no
+   equivalent**, so niri's go in `~/.config/uwsm/env-niri`, which uwsm's env
+   preloader sources — see **The niri session**.
 
 1. **Home Manager half:**
 
@@ -1163,7 +1218,10 @@ evaluation.
 
    plus the compositor's config, with its package set to `null` and its own
    systemd/session integration turned off, and `uwsm finalize <VARS>` as the
-   **first** startup command.
+   **first** startup command. If Home Manager has no module for the compositor —
+   which is niri's case on the `release-26.05` pin — the config is a hand-written
+   file under `xdg.configFile`; write it as **`.text`, not a `writeText` `source`**,
+   so a check can read what is in it without building anything.
 
 1. **Give it a bar.** Whichever renderer the host picked, the compositor's IPC
    socket has to reach the systemd user environment through `uwsm finalize`, the
@@ -1182,16 +1240,22 @@ evaluation.
 1. **Host:** add `"<name>"` to `den.desktop.environments` (usually via a
    profile). To preselect it under greetd, `services.displayManager.defaultSession = "<name>"`. Under **GDM, leave `defaultSession` unset** — see below.
 
-1. **Prove it boots.** `modules/core/tests.nix` is Sway-shaped; give the new
-   session the same treatment rather than trusting evaluation. `nix flake check`
-   will not tell you a session comes up.
+1. **Prove it boots.** `mkSessionTest` in `modules/core/tests.nix` takes a
+   `session` argument, so this is one more entry in `packages` — `nix flake check`
+   will not tell you a session comes up. Then **look at the screenshot**: a
+   compositor with no software-rendering fallback passes every unit assertion
+   while drawing nothing at all, which is exactly what `test-session-niri` does.
+   See **Booted-VM tests**.
 
 Five things that are easy to get wrong, in the order they bite:
 
 - **The id is the binary's basename, not your session name.** Hyprland's binary
   is `Hyprland`, so its anchor is `wayland-session@Hyprland.target`. Confirm
   with `uwsm start -n -o -F -- <binPath>`, which prints "Selected compositor ID"
-  and "Initial Desktop Names" without touching anything.
+  and "Initial Desktop Names" without touching anything. Run it with
+  `env -u XDG_CURRENT_DESKTOP -u SWAYSOCK`: inside a live session it reports the
+  *current* desktop's names rather than the ones the new session would get, which
+  reads exactly like a bug in the thing you are adding.
 - **The anchor *key* names files, the *value* names a unit.** `thunar.nix`
   builds `<key>-mimeapps.list` from `den.session.anchors`, and XDG lowercases
   the desktop name when it looks that file up. So the key is the lowercased id
@@ -1215,9 +1279,110 @@ Five things that are easy to get wrong, in the order they bite:
 A session that ships its own shell (GNOME) skips all of this: no uwsm entry, no
 anchors, no `session-wayland`, no session command.
 
+### The niri session
+
+katara's third session, and the second bare compositor. **It is on trial**, which
+is why `den.desktop.environments = [ "niri" ]` sits in `hosts/katara/default.nix`
+rather than in a profile: the option merges, so a host can add one on top of what
+its roles install, and zuko shares `profile-workstation` and should not pay for
+this. Move it into a profile if and when it stops being an experiment.
+
+**The keybindings are deliberately upstream's**, transcribed from niri's own
+`resources/default-config.kdl` (in the package's `doc` output) with four changes
+and no more: the terminal and launcher spawn what this repo installs, the lock key
+goes through logind, and the orca screen-reader bind is dropped because orca is not
+installed and a bind to a missing binary is the silent-failure shape this repo
+rejects. So **`Mod+T` opens a terminal and `Mod+Q` closes a window** — niri's
+bindings, not sway's `Mod+Return`/`Mod+Shift+Q`. Do not "fix" that to match sway
+without being asked; it is the point of the first pass.
+
+Eight things about this session that are not visible in the file:
+
+- **Home Manager has no niri module on the `release-26.05` pin.** `wayland.windowManager.niri`
+  exists upstream but not here, so the whole session config is one hand-written KDL
+  string in `_config.nix`. Two consequences: it is written as `xdg.configFile.<n>.text`
+  rather than a `writeText` `source`, so `terminal-choice` can grep it for free; and
+  it gets its own `niri-config` check, because a typo there does not fail evaluation
+  — niri falls back to its built-in defaults and you find out at login. Revisit all
+  of this when the pin gains the module.
+
+- **Nothing sets outputs, on purpose.** kanshi owns them for every session here, and
+  niri really does implement `zwlr_output_manager_v1` (`src/protocols/output_management.rs`,
+  including `CreateConfiguration`, so it is writable and not just introspection). It
+  reports `make`/`model`/`serial_number` per head, which is what katara's
+  identity-keyed profiles ("Dell Inc. DELL U2722DE J85KV83") match on. Note niri
+  reports the head *name* as make-model-serial too when it has them
+  (`format_make_model_serial_or_connector`), where sway reports the connector — so
+  `niri msg outputs` reads differently from `swaymsg -t get_outputs`. An `output`
+  node in the config would fight kanshi rather than help it.
+
+- **niri draws no wallpaper**, where sway has `output "*" bg`. So one layer-shell
+  client supplies it, as a user unit anchored to niri — `wbg` rather than `swaybg`:
+  same protocol, 20 KiB, and no sway in the closure. `session-anchors` pins its
+  `WantedBy`, and `test-session-niri` includes it in the `NRestarts` set, since a
+  wallpaper that died is the one companion whose failure looks like the compositor's.
+
+- **The lock key names logind, not a locker.** `spawn "loginctl" "lock-session"`
+  fires the Lock signal that `services.swayidle` in `session/wayland.nix` already
+  handles, so the niri config never mentions swaylock. That keeps the choice of
+  locker in one place for every session — and swaylock does work here (niri serves
+  `ext-session-lock-v1`), it just is not niri's business which one it is.
+
+- **`programs.niri` has no `extraSessionCommands`**, so the toolkit variables sway
+  gets from its wrapper go in `~/.config/uwsm/env-niri` instead, which uwsm's env
+  preloader sources: `libexec/uwsm/prepare-env.sh` walks every config dir and, per
+  dir, sources `uwsm/env` then `uwsm/env-<name>` (plus `.d/` directories) **for each
+  lowercased entry of `XDG_CURRENT_DESKTOP`** — not the uwsm compositor id. Those
+  coincide for niri; they would not for Hyprland, whose id is `Hyprland` and whose
+  file is `env-hyprland`. Same trap as the anchor key naming `<desktop>-mimeapps.list`.
+  `env-niri` and not `env`: the file is home-wide like everything Home Manager
+  writes, and only the per-desktop name keeps it out of a GNOME login in the same
+  home. Verified in the VM log rather than from the README —
+  `Loading environment from "/home/alice/.config/uwsm/env-niri"`, followed by all six
+  names being marked for export.
+
+- **X11 goes through `xwayland-satellite`**, pinned by store path in the config
+  because niri's default is a bare name on `PATH` and a lookup that misses disables
+  X11 with nothing but a journal line. The VM test log showing `DISPLAY (already set)`
+  at finalize time is that path working.
+
+- **`prefer-no-csd` is set, and it is what makes ghostty behave.** ghostty asks the
+  compositor for decorations (`window-decoration = server`, see **Choosing a
+  terminal**), and niri serves `org_kde_kwin_server_decoration` — so without this
+  every window in a tiling session would carry a GTK headerbar. It is not a
+  keybinding, which is why it is set despite the vanilla-first rule.
+
+- **Screen capture is the GNOME portal, not wlr.** niri implements the GNOME
+  screencast D-Bus API — that is its `xdp-gnome-screencast` build feature — so
+  `xdg.portal.config.niri` points ScreenCast and Screenshot at `gnome`, mirroring the
+  `niri-portals.conf` the package ships. `useNautilus = false` keeps FileChooser on
+  gtk, which is what `session/wayland.nix` already asks for and what a session using
+  thunar wants.
+
+Two loose ends worth knowing rather than fixing:
+
+- **`swayidle` now carries both compositors' blanking commands.** It is one unit on
+  `den-session.target`, and each session appends its own timeout — `swaymsg 'output * power off'`
+  and `niri msg action power-off-monitors` — so on katara both fire at 360s and the
+  one whose socket is absent exits non-zero and does nothing. Harmless, and noisy in
+  the journal. The clean fix is a per-session idle-command registry keyed like
+  `den.session.anchors`; not worth it for one line until a third bare session shows up.
+- **ironbar loses its mode indicator on any host that installs niri.** `bindmode` is
+  sway/hyprland only, and `supportedBy` in `features/desktop/ironbar.nix` drops a
+  module the moment one installed session cannot back it. That was predicted in
+  **Choosing a bar** before niri existed, and it is now what actually happens on
+  katara. waybar is unaffected — it builds one bar per session.
+
+The package's own `niri.service` and `niri-shutdown.target` are installed by
+nixpkgs' `systemd.packages` and are inert: `niri.service` has no `[Install]`
+section, so nothing pulls it in, and only `niri-session` would have started it.
+That is fine to leave alone — but it is also why the shipped `Exec=niri-session`
+desktop entry has to be rewritten rather than kept: it binds the session to
+`graphical-session.target`, which is precisely the target no companion here follows.
+
 ### Session Layout
 
-A session that brings companion pieces becomes a directory, so the tree says who owns what. GNOME needs none (it keeps its state in GSettings and mutter manages its own outputs), so it stays a single file; Sway carries the pieces that speak its IPC:
+A session that brings companion pieces becomes a directory, so the tree says who owns what. GNOME needs none (it keeps its state in GSettings and mutter manages its own outputs), so it stays a single file; Sway and niri carry the pieces that speak their IPC:
 
 ```
 modules/features/desktop/session/
@@ -1232,7 +1397,16 @@ modules/features/desktop/session/
     _modes.nix          #   modules, imported by ./default.nix
     _rules.nix
     _startup.nix
+  niri/
+    default.nix         # nixos.niri + homeManager.niri
+    waybar.nix          # den.session.bar.niri -- niri/workspaces and niri/window
+    _config.nix         # the whole config.kdl, as one curried function
 ```
+
+niri's config is *one* fragment where sway has four, and that is the shape of the
+difference rather than a stylistic choice: sway's config is an attrset the Home
+Manager module merges, so splitting it costs nothing, while niri's is a single KDL
+string on this pin and splitting it would just be string concatenation.
 
 The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `ghostty` and `foot` are terminals the host picks between with `den.desktop.terminal` (see **Choosing a terminal**), `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), `waybar` and `ironbar` are bars that learn the compositor from `den.session.bar` and from the environment respectively (see **Choosing a bar**), `bar-scripts` holds the two readings they share, and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
 

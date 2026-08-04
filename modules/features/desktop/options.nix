@@ -4,6 +4,7 @@ let
   # entry here plus its session file and a bundle-desktop import.
   sessionNames = [
     "sway"
+    "niri"
     "gnome"
   ];
 

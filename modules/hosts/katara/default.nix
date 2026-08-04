@@ -40,5 +40,10 @@
       "waybar"
       "ironbar"
     ];
+
+    # At host level rather than in a profile: this is one machine trying niri
+    # out, and zuko -- which shares profile-workstation -- should not pay for it.
+    # The option merges, so it adds to what the roles above install.
+    den.desktop.environments = [ "niri" ];
   };
 }

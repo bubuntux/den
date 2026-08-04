@@ -50,6 +50,7 @@
         lightdm = c.services.xserver.displayManager.lightdm.enable;
         xserver = c.services.xserver.enable;
         sway = c.programs.sway.enable;
+        niri = c.programs.niri.enable;
         gnome = c.services.desktopManager.gnome.enable;
         autoLoginUser = c.services.displayManager.autoLogin.user;
         # Defaults to just the bar that starts: the second one is ~210 MiB a
@@ -152,6 +153,65 @@
             gdm = true;
             lightdm = false;
             sway = true;
+            gnome = true;
+          };
+        }
+        {
+          # The second bare compositor, and the one that proves nothing about
+          # uwsm was sway-shaped. The trailing quote in cmdContains is the whole
+          # point: it pins both that sessionCommands was keyed "niri" (rewriting
+          # the shipped entry keeps the plain id) and that the multi-word command
+          # reached tuigreet as one --cmd argument.
+          name = "niri on greetd";
+          modules = [
+            {
+              den.desktop = {
+                environments = [ "niri" ];
+                loginManager = "greetd";
+              };
+              services.displayManager.defaultSession = "niri";
+            }
+            self.modules.nixos.bundle-desktop
+          ];
+          expect = {
+            sessions = [ "niri" ];
+            greetd = true;
+            gdm = false;
+            sway = false;
+            niri = true;
+            gnome = false;
+            useTextGreeter = false;
+          };
+          cmdContains = "-- /run/current-system/sw/bin/niri'";
+        }
+        {
+          # katara's shape: three sessions in one greeter, two of them bare
+          # compositors sharing every companion.
+          name = "sway + niri + gnome on gdm (katara)";
+          modules = [
+            {
+              den.desktop = {
+                environments = [
+                  "sway"
+                  "niri"
+                  "gnome"
+                ];
+                loginManager = "gdm";
+              };
+            }
+            self.modules.nixos.bundle-desktop
+          ];
+          expect = {
+            sessions = [
+              "gnome"
+              "niri"
+              "sway"
+            ];
+            greetd = false;
+            gdm = true;
+            lightdm = false;
+            sway = true;
+            niri = true;
             gnome = true;
           };
         }
@@ -353,6 +413,11 @@
               # Pinned, not defaulted: this probe is about the per-session
               # bars, which only waybar builds.
               den.desktop.bar = "waybar";
+              # katara's third session, added here rather than by a profile for
+              # the same reason the host does it. Two bare compositors in one
+              # home is what makes the per-session scoping load-bearing rather
+              # than theoretical.
+              den.desktop.environments = [ "niri" ];
               services.displayManager.defaultSession = "gnome";
               # A display layout, pushed schema-and-values the way every host
               # does it. kanshi is only enabled for a user who has monitors, so
@@ -393,14 +458,14 @@
             "swayidle"
           ];
           sessionTarget = "den-session.target";
-          swayAnchor = "wayland-session@sway.target";
+          anchors = lib.attrValues hm.den.session.anchors;
 
           # drvPath, not a build: forces the whole config, so an option two
           # desktops define differently fails here rather than at switch time.
           evaluated = hm.home.activationPackage.drvPath;
 
-          # thunar is right in Sway and wrong in GNOME, and both are in this
-          # home: Sway gets it, the shared list must not.
+          # thunar is right in a bare session and wrong in GNOME, and both are in
+          # this home: every bare session gets it, the shared list must not.
           mimeFor = desktop: hm.xdg.configFile."${desktop}-mimeapps.list".text or null;
           sharedDefault = hm.xdg.mimeApps.defaultApplications."inode/directory" or null;
         in
@@ -413,16 +478,19 @@
           )
           ++ lib.concatMap (
             n:
-            lib.optional (!(units ? ${n})) "${n}.service is missing from a user who has the Sway session"
+            lib.optional (!(units ? ${n})) "${n}.service is missing from a user who has a bare session"
             ++ lib.optional (
               units ? ${n} && !(lib.elem sessionTarget (wantedBy n))
             ) "${n}.service is not WantedBy ${sessionTarget} (got ${lib.generators.toPretty { } (wantedBy n)})"
           ) companions
           # The shared target is what turns a list of anchors into the single unit
-          # those companions name, so it has to be started by each of them.
-          ++ lib.optional (
-            (hm.systemd.user.targets.den-session.Install.WantedBy or [ ]) != [ swayAnchor ]
-          ) "${sessionTarget} is not started by ${swayAnchor}"
+          # those companions name, so it has to be started by every one of them
+          # -- miss one and that session comes up with no companions at all.
+          ++
+            lib.optional ((hm.systemd.user.targets.den-session.Install.WantedBy or [ ]) != anchors)
+              "${sessionTarget} is not started by every anchor ${lib.generators.toPretty { } anchors} (got ${
+                lib.generators.toPretty { } (hm.systemd.user.targets.den-session.Install.WantedBy or [ ])
+              })"
           # ... and the bars are the counter-case: each is built from one
           # compositor's modules, so it follows that session's anchor alone and
           # not the union of the user's sessions.
@@ -442,9 +510,27 @@
                   lib.generators.toPretty { } (wantedBy unit)
                 })"
           ) (lib.attrNames hm.den.session.bar)
-          ++ lib.optional (
-            mimeFor "sway" == null || !lib.hasInfix "thunar.desktop" (mimeFor "sway")
-          ) "sway-mimeapps.list does not point inode/directory at thunar"
+          # The other unit belonging to one session rather than the home: niri
+          # draws no wallpaper of its own, where sway's is a compositor setting.
+          ++ (
+            let
+              anchor = hm.den.session.anchors.niri;
+            in
+            lib.optional (
+              !(units ? niri-wallpaper)
+            ) "niri-wallpaper.service is missing from a user who has the niri session"
+            ++
+              lib.optional (units ? niri-wallpaper && wantedBy "niri-wallpaper" != [ anchor ])
+                "niri-wallpaper.service should be WantedBy ${anchor} only (got ${
+                  lib.generators.toPretty { } (wantedBy "niri-wallpaper")
+                })"
+          )
+          ++ lib.concatMap (
+            desktop:
+            lib.optional (
+              mimeFor desktop == null || !lib.hasInfix "thunar.desktop" (mimeFor desktop)
+            ) "${desktop}-mimeapps.list does not point inode/directory at thunar"
+          ) (lib.attrNames hm.den.session.anchors)
           ++
             lib.optional (sharedDefault != null)
               "the shared mimeapps.list sets inode/directory (${
@@ -528,6 +614,10 @@
               {
                 den.desktop.loginManager = "greetd";
                 den.desktop.terminal = name;
+                # Both bare sessions, because each states the spawn command in
+                # its own syntax and only one of them has a Home Manager module
+                # to be wrong about it.
+                den.desktop.environments = [ "niri" ];
                 services.displayManager.defaultSession = "sway";
               }
             ]).home-manager.users.bbtux
@@ -540,6 +630,9 @@
               other = if name == "foot" then "ghostty" else "foot";
               enabled = t: hm.programs.${t}.enable or false;
               spawned = hm.wayland.windowManager.sway.config.terminal;
+              # A hand-written KDL string, so the command is only ever as right
+              # as this infix -- there is no option to read it back out of.
+              niriConfig = hm.xdg.configFile."niri/config.kdl".text;
             in
             lib.optional (
               !enabled name
@@ -550,7 +643,11 @@
             ) "sway spawns ${spawned} when den.desktop.terminal = \"${name}\", expected ${expected.${name}}"
             ++ lib.optional (
               !lib.hasInfix "-terminal ${expected.${name}} " hm.wayland.windowManager.sway.config.menu
-            ) "the rofi launcher does not pass -terminal ${expected.${name}}";
+            ) "the rofi launcher does not pass -terminal ${expected.${name}}"
+            ++ lib.optional (
+              !lib.hasInfix ''spawn "${expected.${name}}";'' niriConfig
+            ) "the niri config does not spawn ${expected.${name}} when den.desktop.terminal = \"${name}\""
+            ++ lib.optional (lib.hasInfix ''spawn "${expected.${other}}";'' niriConfig) "the niri config still spawns ${expected.${other}} when den.desktop.terminal = \"${name}\"";
 
           # The server is a companion like any other: it must follow the shared
           # session target, not graphical-session.target, or a GNOME login in
@@ -756,6 +853,25 @@
             # reads the config, and reports that instead of the real error.
             export HOME=$TMPDIR
             ${lib.getExe pkgs.ironbar} -c ${file "config.json"} -t ${file "style.css"} --validate-config
+            touch $out
+          '';
+
+        # Same reasoning again, and strongest here: this Home Manager release has
+        # no wayland.windowManager.niri, so the whole session config is one
+        # hand-written KDL string with nothing between a typo and a login that
+        # falls back to niri's built-in defaults. `validate` needs no display.
+        niri-config =
+          let
+            hm =
+              (probe [
+                self.modules.nixos.bundle-host
+                self.modules.nixos.profile-workstation
+                { den.desktop.environments = [ "niri" ]; }
+              ]).home-manager.users.bbtux;
+          in
+          pkgs.runCommand "check-niri-config" { } ''
+            ${lib.getExe pkgs.niri} validate \
+              -c ${hm.xdg.configFile."niri/config.kdl".source}
             touch $out
           '';
 

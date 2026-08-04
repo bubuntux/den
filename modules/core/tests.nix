@@ -72,11 +72,13 @@
           '';
       };
 
-      # Boots the real login path -- greeter autologin -> sway -> the session's
-      # own units -- and asserts the things only a running session can show.
+      # Boots the real login path -- greeter autologin -> compositor -> the
+      # session's own units -- and asserts the things only a running session can
+      # show.
       #
       # Once per greeter: greetd runs a command line, GDM execs the .desktop
-      # entry, and only the former was covered.
+      # entry, and only the former was covered. Once per session too, since
+      # nothing about uwsm is sway-shaped and niri proves it.
       mkSessionTest =
         {
           testName,
@@ -85,6 +87,7 @@
           greeterUnit,
           memorySize ? 2048,
           bar ? "waybar",
+          session ? "sway",
         }:
         let
           # waybar names the session it was built for; ironbar is one bar for
@@ -97,7 +100,7 @@
                 "ironbar-vars"
               ]
             else
-              [ "waybar-sway" ];
+              [ "waybar-${session}" ];
         in
         pkgs.testers.runNixOSTest {
           name = testName;
@@ -105,21 +108,21 @@
           nodes.machine =
             { lib, ... }:
             {
-              imports = with self.modules.nixos; [
-                home-manager
-                desktop-options
-                sway
+              imports = [
+                self.modules.nixos.home-manager
+                self.modules.nixos.desktop-options
+                self.modules.nixos.${session}
                 loginModule
               ];
 
               den.desktop = {
-                environments = [ "sway" ];
+                environments = [ session ];
                 inherit loginManager bar;
               };
 
               # Autologin: the prompt itself is test-greeter's job.
               services.displayManager = {
-                defaultSession = "sway";
+                defaultSession = session;
                 autoLogin = {
                   enable = true;
                   user = "alice";
@@ -152,9 +155,15 @@
                 }
               ];
 
-              # Both lifted from nixpkgs' nixos/tests/sway.nix: no GLES2 in the
-              # VM, and `-vga std` gives no DRM node sway can drive.
-              environment.variables.WLR_RENDERER = "pixman";
+              # `-vga std` gives no DRM node a compositor can drive, so both
+              # sessions need the virtio card (lifted from nixpkgs'
+              # nixos/tests/sway.nix). The renderer is where they part, and it is
+              # why the niri run proves less -- see the note on that package
+              # below. wlroots takes a software backend by name; niri is smithay
+              # and refuses one outright.
+              environment.variables = lib.mkIf (session == "sway") {
+                WLR_RENDERER = "pixman";
+              };
               virtualisation.qemu.options = [ "-vga none -device virtio-gpu-pci" ];
               virtualisation.memorySize = memorySize;
 
@@ -178,7 +187,7 @@
             machine.wait_for_unit("${greeterUnit}")
 
             # Type=notify, so this goes active only once `uwsm finalize` ran.
-            wait_active("wayland-session@sway.target")
+            wait_active("wayland-session@${session}.target")
             wait_active("den-session.target")
 
             # The bar follows its own target (an anchor for waybar, the shared
@@ -192,6 +201,9 @@
                   "kanshi"
                   "swayidle"
                 ]
+                # niri draws no background of its own, so this is the one place
+                # a blank screen and a working session look alike.
+                ++ lib.optional (session == "niri") "niri-wallpaper"
               )
             }]
             for unit in companions:
@@ -214,8 +226,9 @@
 
             # Empty here means `<desktop>-mimeapps.list` is never read.
             env = machine.succeed(user("systemctl --user show-environment"))
-            assert "XDG_CURRENT_DESKTOP=sway" in env, (
-                f"XDG_CURRENT_DESKTOP is not sway in the session environment:\n{env}"
+            assert "XDG_CURRENT_DESKTOP=${session}" in env, (
+                "XDG_CURRENT_DESKTOP is not ${session} in the session "
+                f"environment:\n{env}"
             )
 
             machine.screenshot("session")
@@ -241,6 +254,30 @@
           loginModule = self.modules.nixos.login-gdm;
           greeterUnit = "display-manager.service";
           memorySize = 4096;
+        };
+
+        # The other session, on the cheaper greeter. Worth booting because
+        # everything uwsm does here is generic in principle and had only ever
+        # been exercised by one compositor: niri exports its own socket, spawns
+        # `uwsm finalize` from its own config rather than a wrapper, and needs
+        # the session entry the package ships to have been rewritten. All three
+        # are real here, and `DISPLAY (already set)` in the log is
+        # xwayland-satellite as well.
+        #
+        # It proves strictly less than the sway runs, and the screenshot is the
+        # honest evidence of that: it shows uwsm's console output, not a desktop.
+        # niri rejects software EGL outright -- `ensure!(!egl_device.is_software())`
+        # in src/backend/tty.rs, no config key and no env var -- so in a VM with
+        # no render node it comes up with **zero outputs**. Every unit is active
+        # and nothing is drawn. So read this as a test of the session plumbing
+        # only; that a bar appears has to be checked on real hardware, where the
+        # GPU is not software and the rejection never fires.
+        test-session-niri = mkSessionTest {
+          testName = "niri-session-comes-up";
+          loginManager = "greetd";
+          loginModule = self.modules.nixos.login-greetd;
+          greeterUnit = "greetd.service";
+          session = "niri";
         };
 
         # The other bar, on the cheaper greeter: nothing in an evaluation shows

@@ -48,6 +48,31 @@
         module:
         lib.optional (lib.all (id: lib.elem id supportedBy.${module.type}) installedSessions) module;
 
+      # The clock module is hardcoded to chrono::Local with no timezone option,
+      # so every extra zone is a label fed by the producer below.
+      extraClocks = [
+        {
+          id = "utc";
+          prefix = "UTC";
+          tz = "Etc/UTC";
+        }
+        {
+          id = "tokyo";
+          prefix = "TYO";
+          tz = "Asia/Tokyo";
+        }
+      ];
+
+      clockVar = clock: "clock_${clock.id}";
+
+      clockWidget = clock: {
+        type = "label";
+        name = "clock-${clock.id}";
+        label = "#${clockVar clock}";
+        tooltip = clock.tz;
+        show_if = "#${clockVar clock}";
+      };
+
       # Everything the native modules cannot report, produced once and pushed
       # to every bar as an ironvar. This is the whole reason a second renderer
       # is worth having: `ironbar var set` is one process for N monitors, where
@@ -102,7 +127,8 @@
           weather_c = "";
           weather_f = "";
           weather_tooltip = "";
-        };
+        }
+        // lib.genAttrs (map clockVar extraClocks) (_: "");
 
         start =
           whereSupported { type = "workspaces"; }
@@ -138,7 +164,15 @@
             label = "#alerts";
             show_if = "#alerts";
           }
-          { type = "clock"; }
+          {
+            type = "clock";
+            format = "%I:%M %p";
+            format_popup = "%A, %B %d, %Y (%r)";
+            show_week_numbers = true;
+          }
+        ]
+        ++ map clockWidget extraClocks
+        ++ [
           {
             type = "label";
             name = "weather-f";
@@ -186,6 +220,14 @@
       };
 
       configFile = jsonFormat.generate "ironbar-config.json" settings;
+
+      # Generated, so adding a zone above needs no edit here.
+      extraClockStyle = lib.optionalString (extraClocks != [ ]) ''
+        /* Muted so local time stays the primary reading. */
+        ${lib.concatMapStringsSep ",\n" (clock: "#clock-${clock.id}") extraClocks} {
+          color: @subtext0;
+        }
+      '';
 
       # GTK4, so this is a different CSS subset from waybar's: no
       # -gtk-icon-effect, and the tray menu is a popover rather than a GTK3
@@ -265,6 +307,8 @@
         .clock {
           color: @lavender;
         }
+
+        ${extraClockStyle}
 
         /* Uncoloured until a threshold, like waybar's three load metrics. */
         .sysinfo .item {
@@ -351,10 +395,15 @@
           name = "vars";
           interval = 5;
           packages = with pkgs; [
+            coreutils
             systemd
             power-profiles-daemon
           ];
           body = ''
+            ${lib.concatMapStringsSep "\n" (
+              clock: ''set_var ${clockVar clock} "${clock.prefix} $(TZ=${clock.tz} date '+%a %H:%M')"''
+            ) extraClocks}
+
             snapshot=$(${lib.getExe gpu})
             set_var gpu "$(jq -r .text <<<"$snapshot")"
             set_var gpu_tooltip "$(jq -r .tooltip <<<"$snapshot")"
