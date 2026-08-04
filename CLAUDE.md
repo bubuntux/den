@@ -113,7 +113,7 @@ Two rules carry real weight here:
 | `session-anchors` | a session's user units stay out of the user's other desktops, under either bar |
 | `terminal-choice` | `den.desktop.terminal` installs one terminal, uninstalls the other, and both bare sessions spawn the command that one states |
 | `unit-shape` | no surprise systemd directives on units this repo configures |
-| `ironbar-config` | the generated ironbar config and stylesheet parse, per ironbar itself |
+| `ironbar-config` | the generated ironbar config parses, per ironbar itself |
 | `ghostty-config` | the generated ghostty config parses, per ghostty itself |
 | `niri-config` | the generated niri config parses, per niri itself |
 | `media-plumbing` | `den.media.services` really generates what it claims, for every entry |
@@ -402,7 +402,7 @@ services above, and `set_var` swallows failure because a producer outlives any
 one bar process and, `After=ironbar.service` notwithstanding, can still beat the
 daemon to the socket at login.
 
-Three more things that shaped the ironbar file:
+Five more things that shaped the ironbar file:
 
 - **One bar for every session works because ironbar detects its compositor at
   startup**, from `SWAYSOCK` / `HYPRLAND_INSTANCE_SIGNATURE` / `NIRI_SOCKET`, in
@@ -425,19 +425,31 @@ Three more things that shaped the ironbar file:
   with `max`, so it is the hottest sensor on the board, not waybar's package
   reading — expect a couple of degrees' difference. Nothing replaces `privacy`,
   `gamemode` or `sway/scratchpad`.
-- **The clock module cannot show a second timezone**, so the extra zones are
-  labels rather than more clocks. `ClockModule` (`src/modules/clock.rs`) is
+- **The styling is ironbar's own `minimal` theme, on purpose.** This bar started
+  out with a Catppuccin stylesheet mirroring waybar's, and it was dropped while
+  the renderer is still being judged: a hand-written 130-line CSS is a lot of
+  opinion to carry for a bar that may not stay, and comparing the two is only
+  meaningful once one of them looks like itself. So the module writes no CSS at
+  all and the unit names `-t minimal`. **That is not the same as omitting `-t`**,
+  which is the trap: with no theme ironbar derives `style.css` from the config's
+  *parent directory* — a store path, which has none — then logs `styles at '/nix/store/style.css' not found`, raises its error level, and falls back to
+  the minimal theme anyway. So the look would be identical and
+  `--validate-config` would exit 1, taking `ironbar-config` with it (measured
+  both ways: `-t minimal` exits 0, no `-t` exits 1). Restyling means adding a
+  `styleFile` back and pointing `-t` at it.
+- **The clock module cannot show a second timezone**, which is worth knowing
+  before anyone tries to add one. `ClockModule` (`src/modules/clock.rs`) is
   hardcoded to `chrono::Local` and offers only `format`, `format_popup`,
   `locale`, `show_week_numbers` and the layout keys — `chrono-tz` is not even a
   dependency, so a second `{ type = "clock"; }` prints local time twice. Setting
   `TZ` on the unit is no way out either: it is process-wide, so it would move
-  *every* clock on the bar. `extraClocks` therefore drives one label per zone off
-  the 5s producer, which bounds each remote clock to 5s of staleness and costs
-  one `date` call — the local clock stays a real `clock` module, so it keeps the
-  calendar popup the labels have no equivalent for. Their format carries `%a`
-  because the point of a remote clock is a zone whose *date* differs: local Mon
-  22:40 is already Tue in both UTC and Tokyo, so a bare `%H:%M` reads as an
-  impossible time rather than tomorrow.
+  *every* clock on the bar. The only route is a `label` per zone driven off the
+  5s producer (`TZ=<zone> date`), which costs the calendar popup a real clock
+  module gets and wants `%a` in its format, since the point of a remote clock is
+  a zone whose *date* differs — local Mon 22:40 is already Tue in both UTC and
+  Tokyo, so a bare `%H:%M` reads as an impossible time rather than tomorrow.
+  UTC and Tokyo labels were built that way and then removed by preference; the
+  bar carries the local clock alone.
 
 Both renderers take their GPU and weather numbers from **`self.lib.barScripts`**
 (`features/desktop/bar-scripts.nix`), a function of `pkgs` rather than a module,
@@ -445,7 +457,7 @@ so switching bars cannot change what the bar says. waybar consumes their JSON
 directly; ironbar pipes `.text`/`.tooltip` into ironvars.
 
 `ironbar --validate-config` rejects unknown fields and bad enum variants and
-needs no display, so the generated config and stylesheet go through it in the
+needs no display, so the generated config goes through it in the
 `ironbar-config` check. Give it a `HOME`: without one it dies on its own log
 directory before it reads the config, and reports that instead.
 

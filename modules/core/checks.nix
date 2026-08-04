@@ -846,13 +846,13 @@
                 self.modules.nixos.profile-workstation
                 { den.desktop.bar = "ironbar"; }
               ]).home-manager.users.bbtux;
-            file = n: hm.xdg.configFile."ironbar/${n}".source;
           in
           pkgs.runCommand "check-ironbar-config" { } ''
             # Without a home it fails on its own log directory before it ever
             # reads the config, and reports that instead of the real error.
             export HOME=$TMPDIR
-            ${lib.getExe pkgs.ironbar} -c ${file "config.json"} -t ${file "style.css"} --validate-config
+            ${lib.getExe pkgs.ironbar} \
+              -c ${hm.xdg.configFile."ironbar/config.json".source} -t minimal --validate-config
             touch $out
           '';
 

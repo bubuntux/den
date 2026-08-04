@@ -48,31 +48,6 @@
         module:
         lib.optional (lib.all (id: lib.elem id supportedBy.${module.type}) installedSessions) module;
 
-      # The clock module is hardcoded to chrono::Local with no timezone option,
-      # so every extra zone is a label fed by the producer below.
-      extraClocks = [
-        {
-          id = "utc";
-          prefix = "UTC";
-          tz = "Etc/UTC";
-        }
-        {
-          id = "tokyo";
-          prefix = "TYO";
-          tz = "Asia/Tokyo";
-        }
-      ];
-
-      clockVar = clock: "clock_${clock.id}";
-
-      clockWidget = clock: {
-        type = "label";
-        name = "clock-${clock.id}";
-        label = "#${clockVar clock}";
-        tooltip = clock.tz;
-        show_if = "#${clockVar clock}";
-      };
-
       # Everything the native modules cannot report, produced once and pushed
       # to every bar as an ironvar. This is the whole reason a second renderer
       # is worth having: `ironbar var set` is one process for N monitors, where
@@ -127,8 +102,7 @@
           weather_c = "";
           weather_f = "";
           weather_tooltip = "";
-        }
-        // lib.genAttrs (map clockVar extraClocks) (_: "");
+        };
 
         start =
           whereSupported { type = "workspaces"; }
@@ -170,9 +144,6 @@
             format_popup = "%A, %B %d, %Y (%r)";
             show_week_numbers = true;
           }
-        ]
-        ++ map clockWidget extraClocks
-        ++ [
           {
             type = "label";
             name = "weather-f";
@@ -220,144 +191,6 @@
       };
 
       configFile = jsonFormat.generate "ironbar-config.json" settings;
-
-      # Generated, so adding a zone above needs no edit here.
-      extraClockStyle = lib.optionalString (extraClocks != [ ]) ''
-        /* Muted so local time stays the primary reading. */
-        ${lib.concatMapStringsSep ",\n" (clock: "#clock-${clock.id}") extraClocks} {
-          color: @subtext0;
-        }
-      '';
-
-      # GTK4, so this is a different CSS subset from waybar's: no
-      # -gtk-icon-effect, and the tray menu is a popover rather than a GTK3
-      # menu. Colours and intent are the same -- @red and @yellow mean
-      # attention and nothing else. See CLAUDE.md, "Colour in the bar".
-      styleFile = pkgs.writeText "ironbar-style.css" ''
-        @define-color base #1e1e2e;
-        @define-color mantle #181825;
-        @define-color surface0 #313244;
-        @define-color text #cdd6f4;
-        @define-color subtext0 #a6adc8;
-        @define-color blue #89b4fa;
-        @define-color lavender #b4befe;
-        @define-color green #a6e3a1;
-        @define-color yellow #f9e2af;
-        @define-color red #f38ba8;
-        @define-color peach #fab387;
-        @define-color mauve #cba6f7;
-        @define-color teal #94e2d5;
-        @define-color sky #89dceb;
-
-        * {
-          font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font", monospace;
-          font-size: 13px;
-        }
-
-        .background {
-          background-color: rgba(30, 30, 46, 0.85);
-          color: @text;
-        }
-
-        .widget {
-          padding: 0 8px;
-          margin: 0 2px;
-          color: @text;
-        }
-
-        .popup {
-          background-color: @mantle;
-          border: 1px solid @surface0;
-          border-radius: 8px;
-          color: @text;
-        }
-
-        .workspaces .item {
-          padding: 0 6px;
-          color: @subtext0;
-          background: transparent;
-          border-bottom: 2px solid transparent;
-        }
-
-        .workspaces .item.focused,
-        .workspaces .item.visible {
-          color: @blue;
-          border-bottom: 2px solid @blue;
-        }
-
-        .workspaces .item.urgent {
-          color: @red;
-        }
-
-        /* A mode is a state you are in, not something wrong. */
-        .bindmode {
-          color: @peach;
-          font-weight: bold;
-        }
-
-        .focused .label {
-          color: @subtext0;
-          font-style: italic;
-        }
-
-        .music {
-          color: @mauve;
-        }
-
-        .clock {
-          color: @lavender;
-        }
-
-        ${extraClockStyle}
-
-        /* Uncoloured until a threshold, like waybar's three load metrics. */
-        .sysinfo .item {
-          color: @text;
-        }
-
-        /* Vendor colour arrives as Pango markup from the shared script and
-           beats anything set here, so this rule only covers the fallback. */
-        #gpu {
-          color: @text;
-        }
-
-        .volume {
-          color: @mauve;
-        }
-
-        .battery {
-          color: @green;
-        }
-
-        .battery.warning {
-          color: @yellow;
-        }
-
-        .battery.critical {
-          color: @red;
-        }
-
-        .brightness {
-          color: @sky;
-        }
-
-        .inhibit {
-          color: @lavender;
-        }
-
-        #power-profile {
-          color: @teal;
-        }
-
-        #alerts {
-          color: @red;
-        }
-
-        #weather-c,
-        #weather-f {
-          color: @teal;
-        }
-      '';
     in
     {
       key = "den:homeManager.ironbar";
@@ -365,11 +198,8 @@
 
       home.packages = [ pkgs.ironbar ];
 
-      # For running the bar by hand; the unit names the store paths.
-      xdg.configFile = {
-        "ironbar/config.json".source = configFile;
-        "ironbar/style.css".source = styleFile;
-      };
+      # For running the bar by hand; the unit names the store path.
+      xdg.configFile."ironbar/config.json".source = configFile;
 
       systemd.user.services = {
         ironbar = {
@@ -379,13 +209,15 @@
             PartOf = [ sessionTarget ];
             After = [ sessionTarget ];
             ConditionEnvironment = "WAYLAND_DISPLAY";
-            X-Reload-Triggers = [
-              "${configFile}"
-              "${styleFile}"
-            ];
+            X-Reload-Triggers = [ "${configFile}" ];
           };
           Service = {
-            ExecStart = "${ironbar} -c ${configFile} -t ${styleFile}";
+            # `minimal` is one of ironbar's two built-in stylesheets. Naming it
+            # is not the same as omitting -t: with no theme ironbar looks for a
+            # style.css next to the config, logs an error when the store path
+            # has none, and falls back here anyway -- which would also fail
+            # --validate-config.
+            ExecStart = "${ironbar} -c ${configFile} -t minimal";
             Restart = "on-failure";
           };
           Install.WantedBy = lib.optional active sessionTarget;
@@ -400,10 +232,6 @@
             power-profiles-daemon
           ];
           body = ''
-            ${lib.concatMapStringsSep "\n" (
-              clock: ''set_var ${clockVar clock} "${clock.prefix} $(TZ=${clock.tz} date '+%a %H:%M')"''
-            ) extraClocks}
-
             snapshot=$(${lib.getExe gpu})
             set_var gpu "$(jq -r .text <<<"$snapshot")"
             set_var gpu_tooltip "$(jq -r .tooltip <<<"$snapshot")"
