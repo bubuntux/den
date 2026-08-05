@@ -101,11 +101,9 @@ let
   };
 
   # SELECTED — block audio+video autoplay; a click is required to start media.
-  # Also keep videos playing in Picture-in-Picture when switching tabs.
   media = {
     "media.autoplay.default" = 5;
     "media.autoplay.blocking_policy" = 2;
-    "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled" = true;
   };
 
   # SELECTED — no JavaScript execution inside the built-in PDF viewer.
