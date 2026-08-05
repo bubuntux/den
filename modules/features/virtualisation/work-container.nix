@@ -390,11 +390,6 @@
               xdg.mime.defaultApplications."x-scheme-handler/com.cloudflare.warp" =
                 "com.cloudflare.WarpCli.desktop";
 
-              # machinectl hands the host terminal's TERM to the container shell,
-              # and no ssh wrapper is in that path -- see CLAUDE.md, "Choosing a
-              # terminal".
-              environment.enableAllTerminfo = true;
-
               environment.systemPackages = with pkgs; [
                 cloudflare-warp
                 jetbrains.gateway

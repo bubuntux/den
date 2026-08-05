@@ -532,15 +532,31 @@ Three things that shaped the two modules:
   `tic` are needed locally and come from ncurses, already in every host's
   closure. foot, which has no equivalent, still pins `term = xterm-256color`.
 
+  **Its second limit is `sudo` on the far side, and it is a different bug from
+  the one above.** `tic -x -` writes into the *invoking user's* `~/.terminfo`,
+  so on appa `infocmp xterm-ghostty` succeeded as bbtux and missed under `sudo`,
+  whose `HOME` is `/root` — every ncurses program run privileged reported
+  `terminal not found` while the same program unprivileged was fine. Two things
+  that look like the fix and are not: `security.sudo.keepTerminfo` is already on
+  by default and forwards `TERMINFO_DIRS`, which never names `~/.terminfo`; and
+  ghostty's own `sudo` shell-integration feature is a *local* shell function
+  wrapping the local `sudo`, so it is nowhere near the remote one — which is why
+  `no-sudo` stays in the feature list rather than being flipped in response to
+  this. The fix has to be on the machine being reached.
+
   That limit bites twice on zuko, and each half is answered where the shell
   actually is. **`work` is not ssh at all**: `machinectl shell` hands the host's
   `TERM` to the container, which had terminfo for neither terminal, so every
-  login shell there greeted itself with `can't find terminal definition`. The
-  container sets `environment.enableAllTerminfo` — 78 KiB across thirteen
-  terminfo outputs (only tmux's references anything, and that is ncurses, which
-  every NixOS system path carries anyway), and terminal-agnostic, so flipping
-  `den.desktop.terminal` — or arriving from some other terminal over ssh —
-  cannot break it again.
+  login shell there greeted itself with `can't find terminal definition`.
+  **`bundle-base` sets `environment.enableAllTerminfo`**, which answers that and
+  the sudo gap at once: the entries land in the system path and therefore in
+  `/etc/terminfo`, which ncurses searches for every user, root included. It is
+  terminal-agnostic, so flipping `den.desktop.terminal` — or arriving from some
+  other terminal over ssh — cannot break it again, and it costs 78 KiB across
+  thirteen terminfo outputs (only tmux's references anything, and that is
+  ncurses, which every NixOS system path carries anyway). It sits in the base
+  bundle rather than on the servers because the machine that needs it is
+  whichever one you ssh *into*, which is all of them.
   **`cvm` is `ssh` run from `sh -l -c` inside that container**, three processes
   below the zsh that holds the wrapper, so it goes through a container-side
   `ssh-cvm` that repeats what the ghostty feature does: push `infocmp -0 -x`

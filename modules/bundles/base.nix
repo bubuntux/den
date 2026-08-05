@@ -12,6 +12,10 @@
         nix
       ];
 
+      # Root's HOME is not the one ghostty's ssh-terminfo wrote into -- see
+      # CLAUDE.md, "Choosing a terminal".
+      environment.enableAllTerminfo = true;
+
       home-manager.sharedModules = with self.modules.homeManager; [
         bundle-base
       ];
