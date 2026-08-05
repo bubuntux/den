@@ -10,6 +10,7 @@
           packages = with pkgs; [
             liberation_ttf
             noto-fonts
+            noto-fonts-color-emoji
             nerd-fonts.fira-code
             nerd-fonts.hack
             nerd-fonts.jetbrains-mono
