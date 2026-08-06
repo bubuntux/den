@@ -30,6 +30,10 @@
         # client as a Chrome --app window via the container's zoom-web-open.
         slack-work-open = mkUriOpener "slack-work-open" "slack";
         zoom-work-open = mkUriOpener "zoom-work-open" "zoom-web-open";
+        # The WARP enrollment token comes back as a com.cloudflare.warp:// link,
+        # and warp-cli itself is what consumes it. --accept-tos because there is
+        # no terminal here to answer the prompt.
+        warp-work-open = mkUriOpener "warp-work-open" "warp-cli --accept-tos registration token";
       in
       {
         key = "den:homeManager.work-container";
@@ -65,6 +69,14 @@
                 "x-scheme-handler/zoommtg"
                 "x-scheme-handler/zoomus"
               ];
+              noDisplay = true;
+            })
+            (makeDesktopItem {
+              name = "warp-work";
+              desktopName = "Cloudflare Zero Trust Team Enrollment (Work)";
+              exec = "${warp-work-open}/bin/warp-work-open %u";
+              categories = [ "Network" ];
+              mimeTypes = [ "x-scheme-handler/com.cloudflare.warp" ];
               noDisplay = true;
             })
             (makeDesktopItem {
@@ -107,8 +119,10 @@
           ];
         };
 
-        # Route slack:// and zoom:// links into the work container.
+        # Route slack://, zoom:// and the WARP enrollment callback into the work
+        # container.
         xdg.mimeApps.defaultApplications = {
+          "x-scheme-handler/com.cloudflare.warp" = "warp-work.desktop";
           "x-scheme-handler/slack" = "slack-work.desktop";
           "x-scheme-handler/zoommtg" = "zoom-work.desktop";
           "x-scheme-handler/zoomus" = "zoom-work.desktop";
@@ -383,10 +397,8 @@
                 pulseaudio.enable = lib.mkForce false;
               };
 
-              # WARP login completes by having the browser open a
-              # com.cloudflare.warp:// deep link that hands the auth token to
-              # warp-cli. Register the handler cloudflare-warp ships so the
-              # browser can find it instead of failing with "no application".
+              # Fallback for a container-local xdg-open; the enrollment callback
+              # a browser here clicks is answered on the host by warp-work.desktop.
               xdg.mime.defaultApplications."x-scheme-handler/com.cloudflare.warp" =
                 "com.cloudflare.WarpCli.desktop";
 
