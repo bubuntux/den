@@ -331,10 +331,54 @@ Three more things the generation change invalidated:
   Check `wpctl status` before believing a report that the camera is missing; the
   raw nodes appear under Devices and mean nothing.
 
-The **fingerprint reader is present and cannot be used**: Goodix `27c6:634c`,
-and libfprint 1.94.10's `goodixmoc` driver knows `6014 6092 6094 6304 6384 6496 6512 6582 6584 6592 6594` and not `634c`. `services.fprintd` would enumerate
-nothing. Re-check that table on a libfprint bump rather than trying the option
-again.
+### The fingerprint reader, and why only sudo gets it
+
+Goodix `27c6:634c`, and it **works** — this section used to claim the opposite
+("present and cannot be used", on the grounds that libfprint 1.94.10's
+`goodixmoc` did not know the id). It does: `libfprint/drivers/goodixmoc/goodix.c`
+carries `{ .vid = 0x27c6, .pid = 0x634C }` in its id table and again in the
+`max_enroll_stage = 12` switch, on the stock `v1.94.10` tag, with nixpkgs
+patching only realtek/elan/focal. Whatever that list of ids was read off, it was
+not this driver. It is a press pad, not a swipe, so enrolling is 12 presses of
+`fprintd-enroll`.
+
+`services.fprintd.enable` is the whole daemon, but it is **not** the whole
+change, because `security.pam.services.<name>.fprintAuth` defaults to that value
+for *every* PAM service — thirty of them here. So the hardware module inverts
+that default with a submodule fragment (`#fprint-opt-in`) and opts `sudo` and
+`sudo-i` back in by name. A new PAM service therefore arrives without a
+fingerprint, which is the direction to fail in.
+
+Which surfaces were rejected, and why they are not worth retrying:
+
+- **greetd / login.** `pam_fprintd` is `sufficient` and sits at order 11400,
+  ahead of `pam_unix` at 11700 — and `pam_gnome_keyring` is further down the
+  same *auth* stack. A `sufficient` success short-circuits the rest, so a
+  fingerprint login means the keyring never sees a password, and the user
+  service in `session/wayland.nix` has an unlocked daemon to adopt only because
+  PAM unlocked one. Fingerprint at the greeter re-creates exactly the
+  out-of-nowhere password prompt that section exists to prevent.
+- **swaylock.** Two things in swaylock's own `pam.c`: the auth worker blocks on
+  `read_comm_request()` and only calls `pam_authenticate` *after* a submit, so
+  the sensor is dead until you press Enter; and `PAM_TEXT_INFO`/`PAM_ERROR_MSG`
+  both hit a bare `break`, so the "Place your finger…" prompt is discarded and
+  nothing on screen says it is waiting. Revisit only with a short `timeout=`.
+- **polkit-1.** Untested — zuko's agent is `lxqt-policykit-agent`.
+- **LUKS at boot.** Impossible: initrd, no fprintd, no D-Bus. The TPM enrolment
+  covers that ground.
+
+The stall to know about: with no finger presented, `pam_fprintd` waits
+`timeout=30` and then returns `PAM_AUTHINFO_UNAVAIL` **once** — `if (data->timed_out)`
+returns rather than looping, so it is 30s, not `max-tries` × 30s. `max-tries=3`
+burns down only on a genuine no-match. Both are module arguments
+(`security.pam.services.sudo.rules.auth.fprintd.args`) if 30s ever feels long.
+
+sudo is the surface that suits it because **sudo-rs** prints the prompt and
+keeps the escape hatch: `CLIConverser::handle_info` writes `[sudo] <msg>` to the
+tty, and `SignalGuard::unblock_interrupts` leaves SIGINT live, so Ctrl+C drops
+straight to the password. zuko runs sudo-rs, not sudo — but this needed no
+thought either way, since `security.sudo` and `security.sudo-rs` declare the
+same two PAM service names.
 
 ### The two LUKS containers on zuko
 

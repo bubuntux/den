@@ -18,6 +18,14 @@
         inputs.nixos-hardware.nixosModules.common-gpu-nvidia
         "${inputs.nixos-hardware}/common/cpu/intel/meteor-lake"
         "${inputs.nixos-hardware}/common/gpu/nvidia/ada-lovelace"
+        {
+          # fprintAuth defaults to services.fprintd.enable for *every* PAM
+          # service; this flips that to off so each one has to opt in below.
+          key = "den:nixos.dell-precision-5690#fprint-opt-in";
+          options.security.pam.services = lib.mkOption {
+            type = lib.types.attrsOf (lib.types.submodule { config.fprintAuth = lib.mkDefault false; });
+          };
+        }
       ];
 
       # All displays hang off the Intel iGPU; the dGPU is PRIME-offload only.
@@ -63,10 +71,16 @@
       };
 
       services = {
+        fprintd.enable = lib.mkDefault true;
         fwupd.enable = lib.mkDefault true;
         hardware.bolt.enable = lib.mkDefault true;
         pcscd.enable = lib.mkDefault true;
         thermald.enable = lib.mkDefault true;
+      };
+
+      security.pam.services = {
+        sudo.fprintAuth = true;
+        sudo-i.fprintAuth = true;
       };
 
       # No real GPU inside QEMU, so the nvidia-container-toolkit assertion
