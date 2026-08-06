@@ -128,8 +128,8 @@ The recommended import direction for each layer. When a change doesn't follow th
 
 Two rules carry real weight here:
 
-- **A feature must never import a bundle or profile.** This is the one violation that bites: `nixos.sway` used to import `bundle-desktop`, which imports `bundle-host`, which `profile-laptop` also imports. That diamond made `bundle-host` apply twice and was the source of the duplicate-package bugs the `key` convention now prevents. If a feature seems to need a bundle, the dependency belongs the other way round — the bundle should import the feature and gate it on an option.
-- **A profile may compose other profiles**, one level, when a role genuinely is the union of other roles: `profile-workstation` = laptop + work + developer + desktop. The alternative is repeating that list in every host file. Don't use it to sneak a feature into a host through a profile that doesn't mean anything — and don't let a role absorb a capability just because today's hosts happen to share it. `profile-gaming` used to sit in that list, which quietly made katara a gaming machine; both hosts import it directly instead, so the machine that games says so itself.
+- **A feature must never import a bundle or profile.** This is the one violation that bites: feature → bundle → bundle that a profile also imports is a diamond, and it makes the inner bundle apply twice — the duplicate-package bug the `key` convention now prevents. If a feature seems to need a bundle, the dependency belongs the other way round — the bundle should import the feature and gate it on an option.
+- **A profile may compose other profiles**, one level, when a role genuinely is the union of other roles: `profile-workstation` = laptop + work + developer + desktop. The alternative is repeating that list in every host file. Don't use it to sneak a feature into a host through a profile that doesn't mean anything — and don't let a role absorb a capability just because today's hosts happen to share it.
 
 ### Roles vs capabilities
 
@@ -143,11 +143,11 @@ Two rules carry real weight here:
 | Brings its own users | yes | no |
 | Composes | capabilities, and features | features |
 
-This is a description, not a restriction. **A host may import as many profiles as it needs** — `imports = [ profile-laptop profile-developer ]` is perfectly good, and is what zuko and katara did before they were collapsed. The rule is narrower than "one role per host":
+This is a description, not a restriction. **A host may import as many profiles as it needs** — `imports = [ profile-laptop profile-developer ]` is perfectly good. The rule is narrower than "one role per host":
 
 > When two hosts would list the same set of profiles, name that set as a role.
 
-That is the only reason `profile-workstation` exists: katara and zuko were repeating an identical import list. A one-off combination needs no role — just import the capabilities. Note the rule says *the same* set, not *nearly* the same: gaming sat in the role because zuko wanted it, and carrying katara along was the cost. Both hosts now ask for `profile-gaming`, and it still does not belong in the role — they play different sets of roles (katara is a family machine too), and a workstation is not a gaming rig even when it happens to have Steam on it. Two hosts agreeing on one capability is two host-level imports, not a reason to widen the role.
+That is the only reason `profile-workstation` exists. A one-off combination needs no role — just import the capabilities. Note the rule says *the same* set, not *nearly* the same: two hosts agreeing on one capability is two host-level imports, not a reason to widen the role. katara and zuko both want `profile-gaming` and it still does not belong in the role — a workstation is not a gaming rig even when it happens to have Steam on it.
 
 ```nix
 # hosts/appa/default.nix          # hosts/katara/default.nix
@@ -161,7 +161,7 @@ katara imports two roles at once, which works because everything a role
 contributes to the desktop is additive — see **Desktop Environments and Login
 Managers** for which settings a profile may set and which belong to the host.
 
-What a host should *not* accumulate is config that belongs to a role: bundles, users, or a whole stack of features. (`appa` used to import `bundle-host` and `user-bbtux` directly; both moved into `profile-nas`, where `profile-workstation` already kept them.) A single feature that only makes sense on one machine is fine — zuko imports `droidcam` and `cachix-push` because no other host wants them.
+What a host should *not* accumulate is config that belongs to a role: bundles, users, or a whole stack of features — those go in the role, which is where `profile-nas` and `profile-workstation` both keep them. A single feature that only makes sense on one machine is fine — zuko imports `droidcam` and `cachix-push` because no other host wants them.
 
 ### Naming Conventions
 
@@ -287,7 +287,7 @@ katara is the worked example: two roles, three environments installed, and GDM �
 
 Note the third entry comes from the **host**, not a role, and that is the one place the table above bends: because the option merges, a host can add an environment its roles do not install, and that is right for something being tried on one machine (see **The niri session** in `modules/features/desktop/session/CLAUDE.md`). It stays wrong for anything settled — a role is where an environment belongs once it is not an experiment. `defaultSession` is deliberately absent here; under GDM it wipes every user's remembered session on each boot.
 
-**There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. There used to be a `den.desktop.users` naming one desktop per person, and it never did what it looked like: the greeter offers every installed session to everyone regardless, so all it decided was whose home would be *unprepared* for the session they chose — which is exactly what happened to bbtux, whose entry said sway on a machine whose default session is GNOME.
+**There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. Naming one desktop per person cannot work: the greeter offers every installed session to everyone regardless, so all such an option decides is whose home is *unprepared* for the session they chose.
 
 What makes one home holding several desktops work is that nothing a session owns may be home-wide. Anything that would be gets scoped, in one of two ways.
 
@@ -297,7 +297,7 @@ What makes one home holding several desktops work is that nothing a session owns
 - **`den.desktop.sessionAnchors`** (`features/desktop/options.nix`, per host) — the same fact system-side, for system-level user units (`blueman-applet`) and as the gate for "does any installed session need the companion stack" (`nixos.thunar`, `nixos.session-wayland`). A session that ships its own shell publishes nothing, which is why GNOME has no entry.
 - **`den-session.target`** (`session/wayland.nix`) — one unit for the shared companions to name, started by *any* anchor and stopped with it. `wayland.systemd.target` points at it, and some thirty upstream Home Manager modules (kanshi, swayidle, clipman, dunst…) default their binding to that option, so they need no per-unit wiring.
 
-Nothing a session owns may bind to `graphical-session.target`: **every** desktop starts it, GNOME included. That was a real bug, not a hypothetical — bbtux had Waybar, kanshi, swayidle and gammastep on `graphical-session.target`, and katara's default session is GNOME, so his first login drew a Waybar over mutter with kanshi fighting it for the outputs. The `session-anchors` check exists to keep that fixed.
+Nothing a session owns may bind to `graphical-session.target`: **every** desktop starts it, GNOME included. That is not hypothetical — a companion bound there follows the user into GNOME, which is how a Waybar once ended up drawn over mutter with kanshi fighting it for the outputs. The `session-anchors` check exists to keep that fixed.
 
 **Config files** that a desktop reads by name are already scoped — `~/.config/sway/config` means nothing to GNOME — so they need no special handling. The awkward case is a *shared* file two desktops would fill in differently, and the answer is a per-desktop variant rather than a per-user choice:
 
@@ -309,7 +309,7 @@ Nothing a session owns may bind to `graphical-session.target`: **every** desktop
 
 - **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.
 
-- **Desktop Home Manager modules reach users through `den.desktop.environments`**, which pushes them at `home-manager.sharedModules`, never from the user module — `user-bbtux` is shared with headless `appa`, which must not grow a desktop. Pushing a session's config at every user is only safe because of the scoping above; it was not always. `waybar` and `kanshi` reached users this way while bound to `graphical-session.target`, so katara's GNOME user got a Waybar drawn over her session and a kanshi fighting mutter for the outputs, `power-profile-auto` gave her an idle inhibitor whose only job is stopping swayidle, and `bundle-desktop` gave her a second network applet next to GNOME's own. All of them now sit behind `homeManager.session-wayland` and an anchor — note two live outside `features/desktop/`, so this is not a rule about that directory but about anything a session owns.
+- **Desktop Home Manager modules reach users through `den.desktop.environments`**, which pushes them at `home-manager.sharedModules`, never from the user module — `user-bbtux` is shared with headless `appa`, which must not grow a desktop. Pushing a session's config at every user is only safe because of the scoping above: everything a session owns sits behind `homeManager.session-wayland` and an anchor. Note some of those modules live outside `features/desktop/`, so this is not a rule about that directory but about anything a session owns.
 
 - **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each one keeping all of its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so a module a session imports lands on hosts that never selected the session. Either the imported module attaches per user (the HM case above) or it gates itself: `nixos.thunar` and `nixos.session-wayland` follow `config.den.desktop.sessionAnchors != { }`, so they install nowhere else. Gating on one compositor's own switch (`programs.sway.enable`, as thunar used to) works only until a second compositor arrives.
 

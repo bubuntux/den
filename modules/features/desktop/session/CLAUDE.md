@@ -318,14 +318,11 @@ Eight things about this session that are not visible in the file:
   file is `env-hyprland`. Same trap as the anchor key naming `<desktop>-mimeapps.list`.
   `env-niri` and not `env`: the file is home-wide like everything Home Manager
   writes, and only the per-desktop name keeps it out of a GNOME login in the same
-  home. Verified in the VM log rather than from the README —
-  `Loading environment from "/home/alice/.config/uwsm/env-niri"`, followed by all six
-  names being marked for export.
+  home.
 
 - **X11 goes through `xwayland-satellite`**, pinned by store path in the config
   because niri's default is a bare name on `PATH` and a lookup that misses disables
-  X11 with nothing but a journal line. The VM test log showing `DISPLAY (already set)`
-  at finalize time is that path working.
+  X11 with nothing but a journal line.
 
 - **`prefer-no-csd` is set, and it is what makes ghostty behave.** ghostty asks the
   compositor for decorations (`window-decoration = server`, see **Choosing a
