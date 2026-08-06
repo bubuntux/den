@@ -78,7 +78,7 @@ Note the direction of two edges that are easy to get backwards: **users are impo
 - **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
 - **`modules/users/`**: User account definitions that bridge NixOS and Home Manager; imported by hosts or profiles
-- **`modules/hardware/`**: Device and hardware configurations (audio, bluetooth, printing, dell-precision-5680)
+- **`modules/hardware/`**: Device and hardware configurations (audio, bluetooth, printing, dell-precision-5690)
 - **`modules/core/`**: Core infrastructure (dendritic.nix, home-manager.nix, host-vm.nix, shell.nix, treefmt.nix)
 - **`pkgs/`**: Custom package derivations not available in nixpkgs (e.g., cups-brother-hll3270cdw)
 
@@ -256,10 +256,121 @@ grok-based ones (sshd, jellyfin, immich) *want* the prefix, so they must not.
 Collections that belong to one service live in that service's module, next to
 its acquisition; only genuinely generic ones sit in `crowdsec.nix`.
 
+### Meteor Lake, not Raptor Lake
+
+zuko is a **Precision 5690** — Core Ultra 9 185H, Arc iGPU `8086:7d55`, RTX 2000
+Ada Laptop `10de:28b8`, Wi-Fi 7 BE201. It was configured as a **5680** for a
+while, which is a Raptor Lake machine: a whole generation off, so the module was
+renamed rather than edited in place. Read `hardware/dell-precision-5690.nix`
+against this list before assuming anything in it is still true of the board.
+
+**There is no `dell-precision-5690` in nixos-hardware.** The closest is
+`dell-precision-5490`, same generation and same iGPU PCI id, and it independently
+states the two bus IDs this machine reports (`PCI:0:2:0` / `PCI:1:0:0` — check
+against `lspci` before trusting either). Its `i915.force_probe=7d55` is gated on
+kernels older than 6.7 and so is dead for us.
+
+**Look past `nixosModules` for the per-generation pieces.** Two of the three
+things this module wants from nixos-hardware are not exported by its `flake.nix`
+and have to be imported by path:
+
+| path | what it is |
+|---|---|
+| `common/cpu/intel/meteor-lake` | `cpu-only.nix` plus `gpu/intel/meteor-lake`, whose whole body is `vaapiDriver = "intel-media-driver"` |
+| `common/gpu/nvidia/ada-lovelace` | the base nvidia module plus `hardware.nvidia.open = lib.mkOverride 990 (…)` |
+
+Both replace a line this module used to hand-write, and both are easy to miss:
+`nixosModules` exports `common-cpu-intel` and only three of the twenty
+`common-gpu-intel-*` generations (comet-lake, kaby-lake, sandy-bridge), so the
+attribute list makes it look as though Meteor Lake is unsupported when the
+directory is right there. `ls` the input rather than trusting the attribute set.
+
+**`common-gpu-nvidia` is `prime.nix`, and the plain one is
+`common-gpu-nvidia-nonprime`.** The names are inverted from what they suggest,
+and getting it wrong fails at *build* rather than at runtime: nixpkgs'
+`nvidia.nix` sets `prime.offload.enable = lib.mkDefault reverseSyncCfg.enable`,
+so a `mkDefault true` beside it is a conflict, not an override. prime.nix's
+`mkOverride 990 true` is what settles it — which means the `offload.enable` and
+`enableOffloadCmd` lines that sat in this module for ages were never
+load-bearing, and only the bus IDs are genuinely ours to state. Dropping
+`common-gpu-nvidia` for the directory is what surfaced all of that.
+
+Three more things the generation change invalidated:
+
+- **i965 is dead weight on Xe-LPG, and the generic import is what installs it.**
+  `common-cpu-intel` pulls in `common-gpu-intel`, whose `vaapiDriver = null`
+  default means "install both because we don't know" — so `intel-vaapi-driver`
+  and `intel-ocl` landed on a machine where i965 tops out at Gen9. Naming the
+  generation is what drops them, worth **223 MiB** off the system closure per
+  `nix store diff-closures` (203.6 for intel-ocl, 16.0 for intel-vaapi-driver,
+  3.6 for the `ncurses-abi5-compat` only intel-ocl wanted). Measure that way
+  rather than with `du` on the store paths, which reports 204 and 8 and misses
+  what leaves with them. OpenCL is unaffected: Gen12+ is served by
+  `intel-compute-runtime`, which arrives on the media-driver side of that same
+  conditional.
+
+- **`common-hidpi` was a no-op** and is no longer imported: since kernel 6.8 the
+  console font is set by the kernel, so the module's only two settings are behind
+  a `versionOlder … "6.8"`. `console.font` evaluates to `null` with or without it.
+
+- **The built-in camera works on this generation, and the blacklist is gone.**
+  The 5680 blacklisted `intel_ipu6`, `intel_ipu6_isys`, `ipu_bridge` and
+  `ov02c10` because the IPU6 gave raw Bayer nodes no browser could use and made
+  Firefox's camera enumeration take ~50s. That entry had been naming the wrong
+  sensor anyway — this board is `ov02e10` on a Meteor Lake IPU (`8086:7d19`) —
+  so it was dropped and retested rather than corrected. Neither symptom
+  reproduces: the kernel reports `Found supported sensor OVTI02E1:00` /
+  `Connected 1 cameras`, and libcamera turns it into a **`Built-in Front Camera`** PipeWire source advertising real BGR modes up to 1366x768, which
+  wireplumber makes the default video source.
+
+  The 48 `Intel IPU6 ISYS Capture N` nodes are still there and are still junk,
+  but they cost nothing measurable now: opening all 53 `/dev/video*` takes
+  **0.2s**, and wireplumber creates *no* source for them, so anything reaching
+  the camera through PipeWire or the portal sees exactly three — two BRIO and
+  the built-in. Only a program enumerating `/dev/video*` itself sees the noise.
+  Check `wpctl status` before believing a report that the camera is missing; the
+  raw nodes appear under Devices and mean nothing.
+
+The **fingerprint reader is present and cannot be used**: Goodix `27c6:634c`,
+and libfprint 1.94.10's `goodixmoc` driver knows `6014 6092 6094 6304 6384 6496 6512 6582 6584 6592 6594` and not `634c`. `services.fprintd` would enumerate
+nothing. Re-check that table on a libfprint bump rather than trying the option
+again.
+
+### The two LUKS containers on zuko
+
+The reinstall left **two**, and both have to be named: `nvme0n1p2` holds the root
+filesystem, `nvme0n1p3` (68.5 GiB) holds swap. Miss the second and the failure is
+silent in the way that matters — `swapDevices` names the UUID *inside* the
+container, so with nothing opening it the `dev-disk-by\x2duuid-….swap` unit sits
+`inactive dead` behind a device job that times out. Nothing appears in
+`systemctl --failed` and `free` simply reports zero swap, which is how the
+machine ran swapless for a while. Check `swapon --show`, not the unit list.
+
+**Two containers is still one passphrase.** systemd-cryptsetup caches what you
+type and tries it on the others, so both units start together and both report
+`Set cipher` at the same instant once the password is in — no keyfile needed
+while the two share a passphrase. Note the mapper numbering is *not* stable
+across boots: whichever unlocks first becomes `dm-0`, so check
+`/dev/mapper/luks-<uuid>` rather than a `dmN` you saw last boot.
+
+68.5 GiB against 62 GiB of RAM is the installer sizing that partition for
+hibernation, but nothing here configures it: `boot.resumeDevice` is unset. Set it
+to the opened mapper device if hibernate is ever wanted.
+
+**`allowDiscards` is what makes `common-pc-ssd` mean anything.** That module is
+one line — `services.fstrim.enable` — and LUKS refuses discards by default, so
+the timer ran weekly against a mapper device advertising `discard_max_bytes = 0`
+and trimmed only `/boot`, which is vfat on the bare ESP. `lsblk -D` is the quick
+check: `DISC-GRAN`/`DISC-MAX` read `0B` on the mapper row while the NVMe row
+reads `512B`/`2T`. It is on for root and deliberately **off for swap**: the flag
+leaks which blocks are in use to anyone holding the powered-off disk, and a
+linearly-written swap area gains least from TRIM, so it is the one container
+where the trade is not worth taking.
+
 ### GPU render offload
 
 zuko is the only hybrid host — Intel iGPU plus an NVIDIA dGPU on PRIME offload,
-all of it in `hardware/dell-precision-5680.nix`, where the vendor is a known
+all of it in `hardware/dell-precision-5690.nix`, where the vendor is a known
 fact. katara is a single AMD APU. So "run this on the discrete card" has to be
 real on one machine and simply absent on the other.
 
@@ -924,7 +1035,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
 
 - **MCP validation**: MUST use the `nixos` MCP server to verify that packages and options exist before adding them to configurations
 
-- **Comments stay lean; this file carries the knowledge.** **The default is no comment.** One earns its place only by explaining something surprising about *the line it sits on* — a clause or a sentence, not the story of what happens there. Specifically, do not write a comment that justifies a structural choice (why an import sits at host level, why a profile is a capability), recounts what the code replaced, or restates a rule from this file; that is the whole story, and it goes here. Everything durable — why an approach was chosen over another, a trap that cost an afternoon, how pieces fit together, the history of a bug — belongs in CLAUDE.md, which is read before the code is touched; a comment nobody reads until they are already editing the line is too late to prevent the mistake. When code needs the background, point at it (`# buildCommand, not postBuild -- see CLAUDE.md, "How a bare session starts (uwsm)"`) rather than restating it. The same goes for option `description` strings: say what the option means and what breaks if it is wrong, and leave the reasoning here.
+- **Comments stay lean; this file carries the knowledge.** **The default is no comment.** One earns its place only by explaining something surprising about *the line it sits on* — a clause or a sentence, not the story of what happens there. Specifically, do not write a comment that justifies a structural choice (why an import sits at host level, why a profile is a capability), recounts what the code replaced, or restates a rule from this file; that is the whole story, and it goes here. Everything durable — why an approach was chosen over another, a trap that cost an afternoon, how pieces fit together, the history of a bug — belongs in CLAUDE.md, which is read before the code is touched; a comment nobody reads until they are already editing the line is too late to prevent the mistake. A bare cross-reference (`# see CLAUDE.md, "How a bare session starts (uwsm)"`) is **not** an exception: this file is read before the code is touched, so a pointer back to it costs a line and tells the reader nothing. Leave the code bare and let the section carry it. The same goes for option `description` strings: say what the option means and what breaks if it is wrong, and leave the reasoning here.
 
 - **Module structure**: Modules are flake-parts modules taking `{ self, inputs, ... }` and define outputs via `flake.modules.<class>.<name>`, where class is `nixos` or `homeManager`. Modules can also define `perSystem` outputs for per-architecture tooling (formatters, dev shells, VM apps)
 

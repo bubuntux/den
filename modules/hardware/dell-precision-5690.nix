@@ -5,38 +5,19 @@
 {
   flake-file.inputs.nixos-hardware.url = "github:nixos/nixos-hardware";
 
-  flake.modules.nixos.dell-precision-5680 =
+  flake.modules.nixos.dell-precision-5690 =
     {
       lib,
-      config,
-      pkgs,
       ...
     }:
-    let
-      nvidiaPackage = config.hardware.nvidia.package;
-    in
     {
-      key = "den:nixos.dell-precision-5680";
+      key = "den:nixos.dell-precision-5690";
       imports = [
-        inputs.nixos-hardware.nixosModules.common-hidpi
         inputs.nixos-hardware.nixosModules.common-pc-ssd
         inputs.nixos-hardware.nixosModules.common-pc-laptop
-        inputs.nixos-hardware.nixosModules.common-cpu-intel
         inputs.nixos-hardware.nixosModules.common-gpu-nvidia
-      ];
-
-      # The built-in IPU6/MIPI camera (ov02c10 sensor) only exposes raw Bayer
-      # V4L2 nodes browsers can't use, and its 32 ISYS capture nodes make
-      # Firefox's camera enumeration take ~50s -- so no camera ever appears in
-      # time (Chrome tolerates it). Its libcamera SoftISP path also crashes, so
-      # the built-in cam is unused: DroidCam / the Logitech BRIO are the webcams.
-      # Blacklist the whole IPU6 stack so those dead /dev/video* nodes are never
-      # created. (Takes effect on reboot -- the modules are loaded at boot.)
-      boot.blacklistedKernelModules = [
-        "intel_ipu6"
-        "intel_ipu6_isys"
-        "ipu_bridge"
-        "ov02c10"
+        "${inputs.nixos-hardware}/common/cpu/intel/meteor-lake"
+        "${inputs.nixos-hardware}/common/gpu/nvidia/ada-lovelace"
       ];
 
       # All displays hang off the Intel iGPU; the dGPU is PRIME-offload only.
@@ -55,6 +36,8 @@
 
         graphics.enable = lib.mkDefault true;
 
+        cpu.intel.npu.enable = lib.mkDefault true;
+
         # CDI generation for the NVIDIA discrete GPU. Lives here (not in the
         # podman feature) because the toolkit asserts that nvidia drivers are
         # actually present -- enabling it unconditionally on every podman host
@@ -64,7 +47,6 @@
         nvidia-container-toolkit.enable = lib.mkDefault true;
 
         nvidia = {
-          open = lib.mkOverride 990 (nvidiaPackage ? open && nvidiaPackage ? firmware);
           modesetting.enable = lib.mkDefault true;
           nvidiaSettings = lib.mkDefault true;
 
@@ -74,10 +56,6 @@
           };
 
           prime = {
-            offload = {
-              enable = lib.mkDefault true;
-              enableOffloadCmd = lib.mkDefault true;
-            };
             intelBusId = lib.mkDefault "PCI:0:2:0";
             nvidiaBusId = lib.mkDefault "PCI:1:0:0";
           };

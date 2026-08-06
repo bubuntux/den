@@ -21,8 +21,6 @@
     # both GNOME and Sway and every user gets the environment named for them.
     imports = with self.modules.nixos; [
       profile-family
-      profile-workstation
-      profile-gaming
       inputs.nixos-hardware.nixosModules.common-cpu-amd
       inputs.nixos-hardware.nixosModules.common-gpu-amd
     ];
@@ -38,12 +36,7 @@
 
     den.desktop.barsInstalled = [
       "waybar"
-      "ironbar"
     ];
 
-    # At host level rather than in a profile: this is one machine trying niri
-    # out, and zuko -- which shares profile-workstation -- should not pay for it.
-    # The option merges, so it adds to what the roles above install.
-    den.desktop.environments = [ "niri" ];
   };
 }

@@ -40,7 +40,7 @@
           isNormalUser = true;
           # Pinned so it is known at build time: the work container derives its
           # session-socket paths and aligns its user's uid from this value.
-          uid = 1002;
+          uid = 1000;
           description = "Julio Guti";
           initialPassword = "bbtux";
           openssh.authorizedKeys.keys = [

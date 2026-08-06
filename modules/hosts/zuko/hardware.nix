@@ -20,11 +20,9 @@
 
       boot.initrd.availableKernelModules = [
         "xhci_pci"
-        "ahci"
         "thunderbolt"
         "nvme"
-        "usb_storage"
-        "sd_mod"
+        "usbhid"
         "rtsx_pci_sdmmc"
       ];
       boot.initrd.kernelModules = [ ];
@@ -41,12 +39,21 @@
       boot.extraModulePackages = [ ];
 
       fileSystems."/" = {
-        device = "/dev/disk/by-uuid/cb3960d5-892b-4c85-a601-eb2458a6cd0d";
+        device = "/dev/disk/by-uuid/1981375b-540a-4a5a-8c10-9f044b4ea6c8";
         fsType = "ext4";
       };
 
+      boot.initrd.luks.devices = {
+        "luks-3a9aee91-3370-453d-b32c-c28235011fd8" = {
+          device = "/dev/disk/by-uuid/3a9aee91-3370-453d-b32c-c28235011fd8";
+          allowDiscards = true;
+        };
+        "luks-cd021106-a3fc-44f9-b291-2bf9eb1ed614".device =
+          "/dev/disk/by-uuid/cd021106-a3fc-44f9-b291-2bf9eb1ed614";
+      };
+
       fileSystems."/boot" = {
-        device = "/dev/disk/by-uuid/E362-89D9";
+        device = "/dev/disk/by-uuid/29B5-9AC3";
         fsType = "vfat";
         options = [
           "fmask=0077"
@@ -55,7 +62,7 @@
       };
 
       swapDevices = [
-        { device = "/dev/disk/by-uuid/b917e6de-c591-42f3-8047-79289917afc4"; }
+        { device = "/dev/disk/by-uuid/571a575d-451d-4706-b5fa-c0cf596bff9d"; }
       ];
 
       nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
