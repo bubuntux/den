@@ -135,10 +135,12 @@ let
     "browser.preferences.aiControls" = false;
   };
 
-  # SELECTED — Firefox Home "Shortcuts": usage-based tiles, 2 rows.
-  homeShortcuts = {
+  # SELECTED — Firefox Home layout: usage-based shortcut tiles, 2 rows, no
+  # weather widget (which queries Merino for the configured location).
+  homeLayout = {
     "browser.newtabpage.activity-stream.feeds.topsites" = true;
     "browser.newtabpage.activity-stream.topSitesRows" = 2;
+    "browser.newtabpage.activity-stream.showWeather" = false;
   };
 
   policyPrefs =
@@ -156,7 +158,7 @@ let
     // pdf
     // dns
     // ai
-    // homeShortcuts;
+    // homeLayout;
 
   # -- Prefs NOT on the Preferences-policy allowlist -> autoconfig .cfg --------
   # These would be silently dropped as policy prefs; deliver via autoConfig.
