@@ -33,10 +33,11 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 nix run .#katara-vm
 
 # Validate: formatting plus the desktop, session-anchor, terminal-choice,
-# unit-shape, ironbar-config, ghostty-config, niri-config and media checks. Near
-# enough evaluation-only (~1.5 min: twenty-one NixOS evaluations, one of which
-# also evaluates a user's whole Home Manager config; the three *-config checks
-# additionally run ironbar's, ghostty's and niri's own validators).
+# unit-shape, module-keys, ironbar-config, ghostty-config, niri-config and media
+# checks. Near enough evaluation-only (~1.5 min: twenty-one NixOS evaluations,
+# one of which also evaluates a user's whole Home Manager config; the three
+# *-config checks additionally run ironbar's, ghostty's and niri's own
+# validators).
 # It does not build hosts -- see modules/core/CLAUDE.md for why.
 nix flake check
 
@@ -201,19 +202,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
   };
   ```
 
-- **Module deduplication**: every module definition MUST set `key = "den:<class>.<name>"` as the first attribute of its body. The module system deduplicates by `key` and nothing else — nixpkgs runs `genericClosure` over `module.key` (`lib/modules.nix`, `filterModules`), and `key` falls back to `"${parentKey}:anon-${n}"`, a fresh string at every import site. Verified against `lib.evalModules` with one module reached from three parents:
-
-  | module shape | times applied |
-  |---|---|
-  | function `_: { ... }` | 3 |
-  | bare attrset `{ ... }` | 3 |
-  | either shape **with `key`** | 1 |
-  | imported by path | 1 |
-
-  Function-vs-attrset makes no difference, and neither does `_file`. Two failure modes to avoid:
-
-  - **No `key`** → the module applies once per import path. Idempotent options (`enable = true`) hide it; additive ones (`home.packages`, `programs.zsh.initContent`, `home-manager.sharedModules`) silently double.
-  - **The same `key` on two different definitions** → all but the first are dropped, with no error. When several files contribute to one module name, give each fragment its own suffix: `den:nixos.zuko#hardware`, `den:nixos.zuko#monitors`.
+- **Module deduplication**: every module definition MUST set `key = "den:<class>.<name>"` as the first attribute of its body, suffixed `#<fragment>` when several files build one module (`den:nixos.zuko#hardware`). The module system deduplicates by `key` and nothing else — nixpkgs runs `genericClosure` over `module.key` (`lib/modules.nix`, `filterModules`), and `key` falls back to `"${parentKey}:anon-${n}"`, a fresh string at every import site. Neither the module's shape (function or bare attrset) nor `_file` affects this. Two failure modes, both silent, and both what the **`module-keys`** check exists to catch: with no `key` the module applies once per import path, so additive options (`home.packages`, `programs.zsh.initContent`, `home-manager.sharedModules`) double; with the *same* `key` on two definitions, all but the first are dropped. The check cannot see whether `key` is the *first* attribute — Nix attrsets are unordered — so that half stays a convention.
 
 - **Imports**: reference other modules through `self.modules.<class>`: `imports = with self.modules.nixos; [ bundle-host theme ];`
 

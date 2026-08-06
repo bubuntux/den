@@ -14,6 +14,7 @@ outside it. Repo-wide rules are in the root `CLAUDE.md`.
 | `session-anchors` | a session's user units stay out of the user's other desktops, under either bar |
 | `terminal-choice` | `den.desktop.terminal` installs one terminal, uninstalls the other, and both bare sessions spawn the command that one states |
 | `unit-shape` | no surprise systemd directives on units this repo configures |
+| `module-keys` | every module declares `key = "den:<class>.<name>"`, and no two share one |
 | `ironbar-config` | the generated ironbar config parses, per ironbar itself |
 | `ghostty-config` | the generated ghostty config parses, per ghostty itself |
 | `niri-config` | the generated niri config parses, per niri itself |
@@ -36,6 +37,8 @@ The desktop checks carry the most weight, because `den.desktop`'s assertions are
 `unit-shape` exists because comparing evaluated option *values* is blind to *added* systemd directives — which is how `services.greetd.useTextGreeter` once shipped and left the greeter drawing its clock onto a console systemd had reset underneath it. It pins the set of directive *names* per section, never their values: store paths and package versions live in values, and pinning those would make the check fire on every `nix flake update`.
 
 `media-plumbing` asserts properties over every `den.media.services` entry rather than a golden snapshot, so a service added later is covered for free. Note `requiresMounts` is checked by *containment*, not equality — the upstream service modules add their own state directories to `RequiresMountsFor`.
+
+`module-keys` reads a `key` out of every `flake.modules.{nixos,homeManager}.*`, which needs two tricks. Most module bodies are **functions**, so it applies them — with each argument stubbed as a `throw`, which is safe only because a key is a literal and laziness never forces an argument to read one. And it **stops descending at the first node that declares a key**, because what a module imports below that are *other* named modules, checked under their own names; without that rule a keyless module would report its imports' keys and pass. What it cannot see is whether `key` is the *first* attribute, since Nix attrsets are unordered — that half stays a convention.
 
 **When adding or changing a check, prove it bites.** Break the thing on purpose, confirm the check fails with a message that names the problem, then revert. A check that has never failed is not known to work. Three things that shaped how these are written:
 

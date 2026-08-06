@@ -820,6 +820,76 @@
           ) "${name}: port ${toString s.port} is not forwarded in the VM build"
         ) (lib.attrNames svc);
 
+      # --- module keys -------------------------------------------------------
+
+      # Reading a key means applying the module, since most are functions. Its
+      # arguments are stubbed with throws, which is safe only because a key is a
+      # literal and laziness never forces them to read one.
+      moduleKeys =
+        m:
+        if lib.isFunction m then
+          moduleKeys (
+            m (
+              lib.mapAttrs (n: _: throw "module argument '${n}' forced while reading key") (lib.functionArgs m)
+            )
+          )
+        else if lib.isList m then
+          lib.concatMap moduleKeys m
+        else if lib.isAttrs m then
+          # Stop at a node that declares one: whatever it imports are other
+          # named modules, checked under their own names.
+          if m ? key then
+            [ m.key ]
+          else if m ? imports then
+            lib.concatMap moduleKeys m.imports
+          else
+            [ null ]
+        else
+          [ ];
+
+      moduleKeyFailures =
+        let
+          entries =
+            lib.concatMap
+              (
+                class:
+                lib.concatMap (
+                  name: map (key: { inherit class name key; }) (moduleKeys self.modules.${class}.${name})
+                ) (lib.attrNames self.modules.${class})
+              )
+              [
+                "nixos"
+                "homeManager"
+              ];
+
+          shape =
+            e:
+            let
+              want = "den:${e.class}.${e.name}";
+            in
+            if e.key == null then
+              [ ''${e.class}.${e.name}: no key -- add `key = "${want}";` as the first attribute'' ]
+            else if e.key == want || lib.hasPrefix "${want}#" e.key then
+              [ ]
+            else
+              [ ''${e.class}.${e.name}: key is "${e.key}", want "${want}" or "${want}#<fragment>"'' ];
+
+          collisions =
+            lib.mapAttrsToList
+              (
+                key: es:
+                ''key "${key}" is claimed by ${
+                  lib.concatStringsSep " and " (map (e: "${e.class}.${e.name}") es)
+                } -- all but the first are dropped silently''
+              )
+              (
+                lib.filterAttrs (_: es: lib.length es > 1) (
+                  lib.groupBy (e: e.key) (lib.filter (e: e.key != null) entries)
+                )
+              );
+        in
+        lib.concatMap shape entries ++ collisions;
+
       mkCheck =
         name: found:
         if found == [ ] then
@@ -834,6 +904,7 @@
         session-anchors = mkCheck "session-anchors" (anchorFailures ++ ironbarFailures);
         terminal-choice = mkCheck "terminal-choice" terminalFailures;
         unit-shape = mkCheck "unit-shape" (lib.concatMap checkShape unitShapes);
+        module-keys = mkCheck "module-keys" moduleKeyFailures;
 
         # ironbar's config is hand-built here and read by nothing else until a
         # session starts, so let ironbar itself parse it. --validate-config
