@@ -355,8 +355,11 @@ nvtop's Intel backend reads DRM fdinfo, not perf counters, so the bar needs no
 `hardware.intel-gpu-tools.enable`; that is now only for running `intel_gpu_top`
 by hand.
 
-The widget hides itself when every GPU reads 0%, so an idle machine shows
-nothing rather than a row of zeroes.
+**The label carries only the GPUs reading above 0%**, so zuko's idle iGPU drops
+out while the dGPU works, and a host with nothing on any card shows no widget at
+all. The tooltip still lists every GPU — an idle card has a temperature worth
+reading — so hovering is what distinguishes a card that is present and idle from
+one nvtop never saw.
 
 **Colour means vendor, never load.** Each GPU's icon and percentage sit
 together inside one Pango `<span>` — green NVIDIA, blue Intel, peach AMD,
