@@ -47,9 +47,12 @@
         "luks-3a9aee91-3370-453d-b32c-c28235011fd8" = {
           device = "/dev/disk/by-uuid/3a9aee91-3370-453d-b32c-c28235011fd8";
           allowDiscards = true;
+          crypttabExtraOpts = [ "tpm2-device=auto" ];
         };
-        "luks-cd021106-a3fc-44f9-b291-2bf9eb1ed614".device =
-          "/dev/disk/by-uuid/cd021106-a3fc-44f9-b291-2bf9eb1ed614";
+        "luks-cd021106-a3fc-44f9-b291-2bf9eb1ed614" = {
+          device = "/dev/disk/by-uuid/cd021106-a3fc-44f9-b291-2bf9eb1ed614";
+          crypttabExtraOpts = [ "tpm2-device=auto" ];
+        };
       };
 
       fileSystems."/boot" = {

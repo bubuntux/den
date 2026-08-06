@@ -357,6 +357,27 @@ across boots: whichever unlocks first becomes `dm-0`, so check
 hibernation, but nothing here configures it: `boot.resumeDevice` is unset. Set it
 to the opened mapper device if hibernate is ever wanted.
 
+**Both containers carry `tpm2-device=auto`, and the second one is the subtle
+half.** The reason to enrol at all is that the Moonlander cannot reach the
+passphrase prompt — it hangs off the WD19TB, so it is behind a Thunderbolt PCIe
+tunnel that only exists once `boltd` authorises the dock, and `boltd` is
+userspace. In initrd the dock's USB controller has not been tunnelled yet, so no
+HID driver can help; only the internal i8042 keyboard works. Once root unlocks
+from the TPM there is no typed password left for systemd-cryptsetup to cache, so
+a swap container without its own enrolment would start prompting again — the
+opposite of the point. `crypttabExtraOpts` is systemd-stage-1 only, which is
+what this host uses.
+
+**What that binding is actually worth here: very little.** `bootctl` reports
+Secure Boot disabled and no measured UKI, so PCR 7 is the same whatever is
+booted — someone holding the laptop boots their own kernel and the TPM releases
+the key. It defends a *bare disk* (RMA, resale, disposal) and not much else. The
+PCRs that would defend the machine (4, 9) are remeasured on every rebuild and
+would break unlock at each switch, so they are not usable without signed policy.
+Making this meaningful means Secure Boot via lanzaboote, at which point PCR 7
+starts to mean something. Treat the current setup as convenience with a
+passphrase fallback, not as protection against laptop theft.
+
 **`allowDiscards` is what makes `common-pc-ssd` mean anything.** That module is
 one line — `services.fstrim.enable` — and LUKS refuses discards by default, so
 the timer ran weekly against a mapper device advertising `discard_max_bytes = 0`
