@@ -136,13 +136,13 @@
         ...
       }:
       let
-        # Host user that owns the container's home mount. The home directory and
-        # uid are derived from the user config rather than hardcoded, so the
-        # container's socket paths, home mount and secret ownership line up with
-        # whatever uid this account has on the host running the module.
+        # Host user that owns the container's home mount. The uid is pinned here
+        # rather than on the account because it is this module that needs it at
+        # evaluation time -- for the session-socket path and the container user
+        # below -- and no other host has a reason to fix bbtux to a number.
         workUser = "bbtux";
+        workUid = 1000;
         workHome = config.users.users.${workUser}.home;
-        workUid = config.users.users.${workUser}.uid;
         workDir = "${workHome}/work";
         # Host user's XDG runtime dir, where the graphical session sockets live.
         workRuntimeDir = "/run/user/${toString workUid}";
@@ -156,6 +156,11 @@
       in
       {
         key = "den:nixos.work-container";
+
+        # NixOS never renumbers an existing account -- it warns and keeps the old
+        # uid -- so this only lands on a host where bbtux is new or already 1000.
+        users.users.${workUser}.uid = workUid;
+
         # Polkit rules for container management
         security.polkit.extraConfig = ''
           polkit.addRule(function(action, subject) {
