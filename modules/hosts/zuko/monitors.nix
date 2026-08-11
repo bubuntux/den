@@ -25,8 +25,8 @@
           # kanshi.nix.
           {
             name = "eDP-1";
-            width = 1920;
-            height = 1200;
+            width = 3840;
+            height = 2400;
             workspaces = [
               "1"
               "2"

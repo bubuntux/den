@@ -1,7 +1,7 @@
-{ self, ... }:
+{ self, inputs, ... }:
 {
   flake.modules.nixos.immich =
-    { lib, ... }:
+    { lib, pkgs, ... }:
     let
       port = 2283;
       mediaLocation = "/mnt/data/immich";
@@ -36,6 +36,13 @@
         enable = true;
         host = "0.0.0.0";
         openFirewall = true;
+        # Immich refuses to downgrade, so a stable channel frozen on 2.x strands
+        # the library there; the 26.05 backport is stalled (nixpkgs#539560). The
+        # module is identical across channels, so only the package crosses.
+        package =
+          (import inputs.nixpkgs-unstable {
+            inherit (pkgs.stdenv.hostPlatform) system;
+          }).immich;
         # Models peak ~3 GB, and ML alone could eat the slice budget during a
         # backfill; the per-service caps below keep browsing responsive.
         machine-learning.enable = true;
