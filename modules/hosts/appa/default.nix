@@ -12,6 +12,25 @@
     modules = [ self.modules.nixos.appa ];
   };
 
+  flake.deploy.nodes.appa = {
+    hostname = "appa";
+    sshUser = "bbtux";
+    # sudo-rs prompts, and root SSH is off; deploy-rs pipes the password into
+    # `sudo -u root -S -p ""`.
+    interactiveSudo = true;
+    # Push the closure over LAN instead of making a J5040 pull it from
+    # cache.nixos.org.
+    fastConnection = true;
+    # A contended appa drops sshd, and the default 30 s confirm window reads
+    # that as a failed deploy and rolls back a good one.
+    confirmTimeout = 120;
+    activationTimeout = 600;
+    profiles.system = {
+      user = "root";
+      path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.appa;
+    };
+  };
+
   # Host identity and operating policy. Hardware, storage, networking and the
   # Plex migration are separate fragments of this same module name -- each gets
   # its own `key`, and flake.modules merges them into one imports list.
