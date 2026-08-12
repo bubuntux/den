@@ -118,6 +118,7 @@
         ignores = [
           ".build/"
           "*.class"
+          ".devenv*"
           ".direnv"
           "!.gitattributes"
           "!.gitignore"

@@ -18,6 +18,7 @@
             push.autoSetupRemote = true;
           };
           ignores = [
+            ".devenv*"
             ".direnv"
             ".claude/settings.local.json"
             "result"

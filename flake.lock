@@ -184,6 +184,26 @@
         "type": "github"
       }
     },
+    "home-manager-unstable": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786501082,
+        "narHash": "sha256-ROC70hdloiAY74yodpAgT0sP1dmYk+vchjYsrfmhfiM=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "99e84ee7387ff24cd112ff51f71c3465eb9cb770",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
     "import-tree": {
       "locked": {
         "lastModified": 1784254960,
@@ -282,6 +302,7 @@
         "gws": "gws",
         "helix": "helix",
         "home-manager": "home-manager",
+        "home-manager-unstable": "home-manager-unstable",
         "import-tree": "import-tree",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_3",
