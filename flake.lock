@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1786462974,
-        "narHash": "sha256-D0wumujGssCMMCYQoMPu4NoXkey8JT7Xiuam58x+bcg=",
+        "lastModified": 1786576400,
+        "narHash": "sha256-VeV48VCFDv+oFZBNKkF06C77j6GGCz9p84D43E1Kb1A=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "0022e9f2e60f826f3b8c6cef7e1b1b3432c58065",
+        "rev": "8198d4c8b96067f1acbb20069fbea457dbf53dfb",
         "type": "gitlab"
       },
       "original": {
@@ -281,11 +281,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1786430034,
-        "narHash": "sha256-1MqAfG80fHLnWolvR3ULsMsXwMKFIJaWob8OI9yRcB0=",
-        "rev": "70cc4559b10a6062b05ff1af17e0add065ccaed9",
+        "lastModified": 1786535285,
+        "narHash": "sha256-wu478baUvGLzcIMCGz8eKqSJa2uzjoUGpYSh/LTXtxo=",
+        "rev": "9f78f44a87948854445dae0b6bf82b2e87e4efb5",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.7443.70cc4559b10a/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.7526.9f78f44a8794/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
