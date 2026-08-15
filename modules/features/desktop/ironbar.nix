@@ -98,6 +98,8 @@
           gpu = "";
           gpu_tooltip = "";
           alerts = "";
+          pomodoro = "";
+          pomodoro_tooltip = "";
           power_profile = "";
           weather_c = "";
           weather_f = "";
@@ -137,6 +139,13 @@
             name = "alerts";
             label = "#alerts";
             show_if = "#alerts";
+          }
+          {
+            type = "label";
+            name = "pomodoro";
+            label = "#pomodoro";
+            tooltip = "#pomodoro_tooltip";
+            show_if = "#pomodoro";
           }
           {
             type = "clock";
@@ -259,6 +268,23 @@
             set_var weather_c "$(${lib.getExe weather} c | jq -r .text)"
             set_var weather_f "$(${lib.getExe weather} f | jq -r .text)"
             set_var weather_tooltip "$(${lib.getExe weather} c | jq -r .tooltip)"
+          '';
+        };
+
+        # Its own unit: a countdown on the 5s producer would look stopped.
+        ironbar-pomodoro = varsService {
+          name = "pomodoro";
+          interval = 1;
+          packages = [ pkgs.tomat ];
+          body = ''
+            status=$(tomat status 2>/dev/null || true)
+            text=""
+            tooltip=""
+            if [ -n "$status" ]; then
+              IFS=$'\t' read -r text tooltip < <(jq -r '[.text, .tooltip] | @tsv' <<<"$status")
+            fi
+            set_var pomodoro "$text"
+            set_var pomodoro_tooltip "$tooltip"
           '';
         };
       };

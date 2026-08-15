@@ -195,6 +195,7 @@
           "systemd-failed-units"
           "privacy"
           "gamemode"
+          "custom/pomodoro"
           "clock"
           "custom/weather-f"
         ];
@@ -375,6 +376,15 @@
           interval = 5;
         };
 
+        "custom/pomodoro" = {
+          format = "{}";
+          return-type = "json";
+          exec = "${lib.getExe pkgs.tomat} status";
+          interval = 1;
+          on-click = "${lib.getExe pkgs.tomat} toggle";
+          on-click-right = "${lib.getExe pkgs.tomat} skip";
+        };
+
         "custom/weather-f" = {
           format = "{}";
           return-type = "json";
@@ -474,6 +484,7 @@
         #custom-weather-f,
         #custom-weather-c,
         #custom-gpu,
+        #custom-pomodoro,
         #custom-idle-inhibitor,
         #power-profiles-daemon,
         #cpu,
@@ -634,6 +645,23 @@
 
         #custom-gpu.critical {
           border-bottom: 2px solid @red;
+        }
+
+        /* --- Pomodoro --- */
+        /* A third hue would land on @mauve beside the clock's @lavender. */
+        #custom-pomodoro.work {
+          color: @peach;
+        }
+
+        #custom-pomodoro.break,
+        #custom-pomodoro.long-break {
+          color: @green;
+        }
+
+        #custom-pomodoro.work-paused,
+        #custom-pomodoro.break-paused,
+        #custom-pomodoro.long-break-paused {
+          color: @subtext0;
         }
 
         /* --- Backlight --- */

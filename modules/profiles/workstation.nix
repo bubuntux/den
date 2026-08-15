@@ -18,6 +18,8 @@
       loupe
     ];
 
+    home-manager.users.bbtux.imports = [ self.modules.homeManager.taskwarrior ];
+
     # Only the additive desktop setting; the greeter and the default session are
     # single-valued whole-machine policy and live on the host, so a host can
     # combine this with another role (katara pairs it with profile-family)
