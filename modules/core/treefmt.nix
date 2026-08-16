@@ -6,6 +6,9 @@
   imports = [ inputs.treefmt-nix.flakeModule ];
 
   perSystem.treefmt = {
+    # sops writes encrypted blobs, not parseable source.
+    settings.excludes = [ "secrets/*" ];
+
     programs.biome.enable = true;
     programs.mdformat.enable = true;
     programs.nixfmt.enable = true;

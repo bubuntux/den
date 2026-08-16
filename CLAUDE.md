@@ -81,6 +81,7 @@ needing notes gets its own file and a row in this table, not a section here.
 | `modules/core/CLAUDE.md` | what each `nix flake check` proves, the booted-VM session tests, and why host builds are CI's job |
 | `modules/features/desktop/CLAUDE.md` | choosing a bar (waybar/ironbar) and a terminal (ghostty/foot), the GPU widget, what colour is allowed to mean |
 | `modules/features/desktop/session/CLAUDE.md` | how a bare session starts under uwsm, the checklist for adding an environment, the niri session, session layout |
+| `modules/features/editor/CLAUDE.md` | why Helix tracks master via its flake input, and why its grammar list is filtered to GitHub |
 | `modules/features/network/CLAUDE.md` | adding a service to CrowdSec -- journald, not log files |
 | `modules/features/virtualisation/CLAUDE.md` | deep links out of the work container |
 | `modules/hardware/CLAUDE.md` | the Precision 5690 board (Meteor Lake, not Raptor Lake), its fingerprint reader, GPU render offload |

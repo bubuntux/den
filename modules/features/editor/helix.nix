@@ -9,9 +9,11 @@
       programs.helix = {
         enable = true;
         # Track Helix master (lockfile-pinned; bump with `nix flake update helix`).
-        # Not following nixpkgs so the build matches helix.cachix.org rather than
-        # recompiling from source.
-        package = inputs.helix.packages.${pkgs.stdenv.hostPlatform.system}.default;
+        package = inputs.helix.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
+          # Grammar sources are fetched during evaluation with no narHash, so no
+          # substituter can stand in for a forge that is rate-limiting or gone.
+          includeGrammarIf = grammar: lib.hasPrefix "https://github.com/" grammar.source.git;
+        };
         defaultEditor = lib.mkDefault true;
         settings = {
           theme = "onedark";

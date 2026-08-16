@@ -24,11 +24,18 @@ jobs:
           skipPush: true
       - name: Flake check
         run: |
-          nix flake check 2>&1 | tee check.log
-          echo '### Flake check :white_check_mark:' >> "$GITHUB_STEP_SUMMARY"
+          set -o pipefail
+          if nix flake check 2>&1 | tee check.log; then
+            echo '### Flake check :white_check_mark:' >> "$GITHUB_STEP_SUMMARY"
+            status=0
+          else
+            echo '### Flake check :x:' >> "$GITHUB_STEP_SUMMARY"
+            status=1
+          fi
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           tail -20 check.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit $status
   build:
     needs: check
     uses: ./.github/workflows/_build.yml
