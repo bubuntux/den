@@ -56,7 +56,12 @@ jobs:
     needs: [check, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
+      # Full history: the fast-forward check needs to see green in main's
+      # ancestry, and a depth-1 clone cannot, so every push past the first is
+      # rejected as non-fast-forward.
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Advance green
         run: |
           git push origin ${{ github.sha }}:refs/heads/green
@@ -115,6 +120,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
           token: ${{ github.token }}
+          # Needed to fast-forward green below; see promote.
+          fetch-depth: 0
       - name: Apply refreshed caddy hash
         uses: ./.github/actions/caddy-heal
         with:
