@@ -134,4 +134,14 @@ jobs:
           caddy-src-with-plugins fixed-output drift. New hash:
           ${{ needs.heal.outputs.new-hash }}"
           git push
+          # promote is skipped on this run because build failed, and a
+          # GITHUB_TOKEN push raises no CI run to promote it later -- so a heal
+          # would otherwise fix main and strand appa on the pre-failure commit,
+          # which is the exact stall heal exists to prevent. heal-build
+          # validated this content, so advance green here. Guarded because this
+          # job also runs on PRs, where it pushes to the PR head instead.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            git push origin HEAD:refs/heads/green
+            echo ':evergreen_tree: `green` advanced to the healed commit.' >> "$GITHUB_STEP_SUMMARY"
+          fi
           echo ':wrench: Caddy plugin hash auto-refreshed and pushed.' >> "$GITHUB_STEP_SUMMARY"
