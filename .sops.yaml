@@ -5,6 +5,11 @@ keys:
   - &katara age1qgdq7t3jyqep6mn69kfkfytc6ax9ks5m0j06a027c3uy82z4pv0qjrma65
   - &appa age1h4egv9gq6xx3hn9sccs3mp8y3uhcfahgaerkwendzet6ujlzw4msknkera
 creation_rules:
+  - path_regex: secrets/bugwarrior\.toml$
+    key_groups:
+      - age:
+          - *bbtux
+          - *zuko
   - path_regex: secrets/juliogm\.yaml$
     key_groups:
       - age:

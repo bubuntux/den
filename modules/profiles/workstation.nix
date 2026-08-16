@@ -26,7 +26,8 @@
     # bugwarrior has no include directive, so the whole file is the secret. It
     # lands where bugwarrior already looks, as a symlink sops owns.
     sops.secrets.bugwarrior_config = {
-      sopsFile = "${self}/secrets/zuko.yaml";
+      sopsFile = "${self}/secrets/bugwarrior.toml";
+      format = "binary";
       owner = "bbtux";
       path = "/home/bbtux/.config/bugwarrior/bugwarrior.toml";
     };
