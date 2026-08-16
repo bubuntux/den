@@ -32,9 +32,11 @@ Two consequences to keep in mind:
   carries it from there. This is not specific to `includeGrammarIf` — it is the
   price of deviating from upstream's expression at all, so a narrower filter
   would not buy the cache back.
-- CI caches `~/.cache/nix/gitv3`, Nix's git-fetcher store, for the same reason.
-  Warm, it answers the remaining fetches offline; that is the only thing
-  standing between a forge outage and a red build.
+- CI caches `~/.cache/nix` for the same reason. Warm, it answers the remaining
+  fetches without the network; that is the only thing standing between a GitHub
+  outage and a red build. Cache the whole directory, not one subdirectory of
+  it: GitHub-hosted grammars land in `tarball-cache-v2`, and `gitv3` only ever
+  held the non-GitHub ones the filter above now drops.
 
 Upstream intends to replace per-grammar fetching with a single tree-house clone
 ([#12831](https://github.com/helix-editor/helix/pull/12831)). When that lands,

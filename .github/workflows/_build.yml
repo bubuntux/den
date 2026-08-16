@@ -83,18 +83,18 @@ jobs:
           docker-images: true
           swap-storage: true
       # Helix resolves every tree-sitter grammar with an unhashed eval-time
-      # fetch, so a cold runner re-clones ~300 repos and any one of them being
-      # down fails the build. gitv3 is Nix's git-fetcher cache; warm, it answers
-      # those offline. Saved even on failure so a partial fetch still counts.
-      - name: Restore Nix git-fetcher cache
-        id: nix-gitv3
+      # fetch, so a cold runner re-fetches ~280 repos and any one of them being
+      # down fails the build. Warm, this answers them without the network.
+      # Saved even on failure so a partial fetch still counts.
+      - name: Restore Nix fetcher cache
+        id: nix-fetch-cache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cache/nix/gitv3
-          key: nix-gitv3-${{ matrix.host }}-${{ hashFiles('flake.lock') }}
+          path: ~/.cache/nix
+          key: nix-fetch-${{ matrix.host }}-${{ hashFiles('flake.lock') }}
           restore-keys: |
-            nix-gitv3-${{ matrix.host }}-
-            nix-gitv3-
+            nix-fetch-${{ matrix.host }}-
+            nix-fetch-
       - name: Apply refreshed caddy hash
         if: inputs.caddy-hash != ''
         uses: ./.github/actions/caddy-heal
@@ -121,12 +121,12 @@ jobs:
         with:
           name: error-nixos-${{ matrix.host }}
           path: build.log
-      - name: Save Nix git-fetcher cache
-        if: always() && steps.nix-gitv3.outputs.cache-hit != 'true'
+      - name: Save Nix fetcher cache
+        if: always() && steps.nix-fetch-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: ~/.cache/nix/gitv3
-          key: nix-gitv3-${{ matrix.host }}-${{ hashFiles('flake.lock') }}
+          path: ~/.cache/nix
+          key: nix-fetch-${{ matrix.host }}-${{ hashFiles('flake.lock') }}
   homes:
     runs-on: ubuntu-latest
     needs: discover
@@ -157,15 +157,15 @@ jobs:
           large-packages: false
           docker-images: true
           swap-storage: true
-      - name: Restore Nix git-fetcher cache
-        id: nix-gitv3
+      - name: Restore Nix fetcher cache
+        id: nix-fetch-cache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cache/nix/gitv3
-          key: nix-gitv3-${{ matrix.home }}-${{ hashFiles('flake.lock') }}
+          path: ~/.cache/nix
+          key: nix-fetch-${{ matrix.home }}-${{ hashFiles('flake.lock') }}
           restore-keys: |
-            nix-gitv3-${{ matrix.home }}-
-            nix-gitv3-
+            nix-fetch-${{ matrix.home }}-
+            nix-fetch-
       - name: Build Home Manager configuration
         run: |
           set -o pipefail
@@ -187,9 +187,9 @@ jobs:
         with:
           name: error-hm-${{ matrix.home }}
           path: build.log
-      - name: Save Nix git-fetcher cache
-        if: always() && steps.nix-gitv3.outputs.cache-hit != 'true'
+      - name: Save Nix fetcher cache
+        if: always() && steps.nix-fetch-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: ~/.cache/nix/gitv3
-          key: nix-gitv3-${{ matrix.home }}-${{ hashFiles('flake.lock') }}
+          path: ~/.cache/nix
+          key: nix-fetch-${{ matrix.home }}-${{ hashFiles('flake.lock') }}
