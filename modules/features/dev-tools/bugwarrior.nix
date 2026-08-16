@@ -98,7 +98,7 @@
 
       # The tag every target applies via add_tags. A due date is still worth up
       # to 12, so this is a bias rather than a floor.
-      programs.taskwarrior.config.urgency.user.tag.bugwarrior.coefficient = -5.0;
+      programs.taskwarrior.config.urgency.user.tag.bw.coefficient = -5.0;
 
       # jirastatus is the status name as Jira spells it, refreshed by every
       # pull. A name this workflow does not use scores nothing, silently.
