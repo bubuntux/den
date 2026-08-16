@@ -18,6 +18,8 @@
             "$right"
           ];
 
+          git.colocate = true;
+
           # Only auto-track the main/master bookmarks from "origin"; other
           # branches (feature/*, etc.) are fetched but left untracked.
           remotes.origin.auto-track-bookmarks = "exact:main|exact:master";
@@ -27,11 +29,11 @@
             init = [
               "git"
               "init"
-            ]; # colocated .git+.jj by default in jj 0.41
+            ];
             clone = [
               "git"
               "clone"
-            ]; # colocated by default
+            ];
             push = [
               "git"
               "push"

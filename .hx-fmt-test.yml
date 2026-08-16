@@ -1,0 +1,115 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Allow kicking a run by hand from the Actions tab — e.g. to refresh a stale
+  # badge after a github-actions[bot] commit (GITHUB_TOKEN pushes don't trigger
+  # CI) or to re-verify main without a dummy commit.
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v17
+        with:
+          name: den
+          skipPush: true
+      - name: Flake check
+        run: |
+          nix flake check 2>&1 | tee check.log
+          echo '### Flake check :white_check_mark:' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -20 check.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+  build:
+    needs: check
+    uses: ./.github/workflows/_build.yml
+    with:
+      # Collect all failures so heal can inspect every log, not just the
+      # first one to fail.
+      upload-error-logs: true
+      fail-fast: false
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  heal:
+    # Mirror of update-flake.yml's heal: same caddy.withPlugins hash
+    # drift, just triggered by a regular push/PR instead of the cron
+    # bump. Without this, a hash-broken main would block appa's daily
+    # auto-upgrade until someone notices and pushes a fix by hand.
+    runs-on: ubuntu-latest
+    needs: build
+    if: >-
+      always() && needs.build.result == 'failure'
+    outputs:
+      matched: ${{ steps.heal.outputs.matched }}
+      new-hash: ${{ steps.heal.outputs.new-hash }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: error-*
+          path: errors
+        continue-on-error: true
+      # Detection only: we just need new-hash. The rebuild and commit re-apply
+      # it from that output string, so there is no patched file to shuttle.
+      - id: heal
+        uses: ./.github/actions/caddy-heal
+        with:
+          patch: false
+  heal-build:
+    needs: heal
+    if: >-
+      always() && needs.heal.outputs.matched == 'true'
+    uses: ./.github/workflows/_build.yml
+    with:
+      caddy-hash: ${{ needs.heal.outputs.new-hash }}
+      upload-error-logs: true
+      fail-fast: false
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  commit-fix:
+    # Push the patched hash so the broken state doesn't sit on main (or
+    # in the PR branch) waiting for a human. On PR events we push to
+    # the PR head ref; on push-to-main we push directly to main, same
+    # as update-flake.yml's commit-to-main path.
+    runs-on: ubuntu-latest
+    needs: [heal, heal-build]
+    if: >-
+      always()
+      && needs.heal.outputs.matched == 'true'
+      && needs.heal-build.result == 'success'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          token: ${{ github.token }}
+      - name: Apply refreshed caddy hash
+        uses: ./.github/actions/caddy-heal
+        with:
+          hash: ${{ needs.heal.outputs.new-hash }}
+      - name: Commit and push fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- modules/features/network/reverse-proxy.nix; then
+            echo 'No diff to commit — branch already has the patched hash.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git add modules/features/network/reverse-proxy.nix
+          git commit -m "ci: refresh caddy plugin hash
+
+          Caddy plugin bundle hash auto-refreshed by CI heal after a
+          caddy-src-with-plugins fixed-output drift. New hash:
+          ${{ needs.heal.outputs.new-hash }}"
+          git push
+          echo ':wrench: Caddy plugin hash auto-refreshed and pushed.' >> "$GITHUB_STEP_SUMMARY"
