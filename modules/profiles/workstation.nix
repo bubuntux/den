@@ -18,7 +18,10 @@
       loupe
     ];
 
-    home-manager.users.bbtux.imports = [ self.modules.homeManager.taskwarrior ];
+    home-manager.users.bbtux.imports = with self.modules.homeManager; [
+      taskwarrior
+      bugwarrior
+    ];
 
     # Only the additive desktop setting; the greeter and the default session are
     # single-valued whole-machine policy and live on the host, so a host can
