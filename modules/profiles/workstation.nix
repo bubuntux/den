@@ -23,6 +23,14 @@
       bugwarrior
     ];
 
+    # bugwarrior has no include directive, so the whole file is the secret. It
+    # lands where bugwarrior already looks, as a symlink sops owns.
+    sops.secrets.bugwarrior_config = {
+      sopsFile = "${self}/secrets/zuko.yaml";
+      owner = "bbtux";
+      path = "/home/bbtux/.config/bugwarrior/bugwarrior.toml";
+    };
+
     # Only the additive desktop setting; the greeter and the default session are
     # single-valued whole-machine policy and live on the host, so a host can
     # combine this with another role (katara pairs it with profile-family)
