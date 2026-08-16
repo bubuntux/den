@@ -153,17 +153,8 @@
         };
       };
 
-      # The tag every target applies via add_tags. A due date is still worth up
-      # to 12, so this is a bias rather than a floor.
       programs.taskwarrior.config.urgency.user.tag.bw.coefficient = -5.0;
-
-      # jirastatus is the status name as Jira spells it, refreshed by every
-      # pull. A name this workflow does not use scores nothing, silently.
       programs.taskwarrior.config.urgency.uda.jirastatus."In Progress".coefficient = 3.0;
-
-      # The sprint field lists every sprint a ticket was ever in, so the tag
-      # comes from an add_tags template testing for an active one. It needs
-      # `replace_tags` in the bugwarrior config, or it never stops applying.
       programs.taskwarrior.config.urgency.user.tag.sprint.coefficient = 3.0;
 
       # ConditionPathExists, so this is inert until the hand-written config is

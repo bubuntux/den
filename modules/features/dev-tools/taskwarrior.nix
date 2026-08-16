@@ -88,13 +88,12 @@
           config = {
             hooks.location = "${config.xdg.configHome}/task/hooks";
 
-            # Rank `priority:L` below unprioritized tasks (default coefficient
-            # is +1.8, which counterintuitively boosts Low above none).
             urgency.uda.priority.L.coefficient = -1.8;
 
-            # Personal tasks outrank work tasks in nearly all cases. Only
-            # `+next` (15.0) or imminently overdue work (≤12.0) wins.
-            urgency.user.tag.personal.coefficient = 10.0;
+            urgency.user.tag = {
+              personal.coefficient = 10.0;
+              kids.coefficient = 15.0;
+            };
 
             # Per-task override of tomat's work duration, in minutes.
             uda.pomo.type = "numeric";
