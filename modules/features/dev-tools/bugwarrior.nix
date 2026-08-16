@@ -94,6 +94,63 @@
           type = "string";
           label = "Sprint";
         };
+
+        githubtitle = {
+          type = "string";
+          label = "Github Title";
+        };
+        githubbody = {
+          type = "string";
+          label = "Github Body";
+        };
+        githubcreatedon = {
+          type = "date";
+          label = "Github Created";
+        };
+        githubupdatedat = {
+          type = "date";
+          label = "Github Updated";
+        };
+        githubclosedon = {
+          type = "date";
+          label = "GitHub Closed";
+        };
+        githubmilestone = {
+          type = "string";
+          label = "Github Milestone";
+        };
+        githubrepo = {
+          type = "string";
+          label = "Github Repo Slug";
+        };
+        githuburl = {
+          type = "string";
+          label = "Github URL";
+        };
+        githubtype = {
+          type = "string";
+          label = "Github Type";
+        };
+        githubnumber = {
+          type = "numeric";
+          label = "Github Issue/PR #";
+        };
+        githubuser = {
+          type = "string";
+          label = "Github User";
+        };
+        githubnamespace = {
+          type = "string";
+          label = "Github Namespace";
+        };
+        githubstate = {
+          type = "string";
+          label = "GitHub State";
+        };
+        githubdraft = {
+          type = "numeric";
+          label = "GitHub Draft";
+        };
       };
 
       # The tag every target applies via add_tags. A due date is still worth up
