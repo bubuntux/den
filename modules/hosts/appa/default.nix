@@ -59,6 +59,9 @@
       # that can sit unreachable for weeks must not gamble on firmware coming
       # back. See reboot=pci in hardware.nix.
       system.autoUpgrade = {
+        # Unattended and switching live, so follow the branch CI advances only
+        # on a full pass rather than whatever is on main right now.
+        flake = "github:bubuntux/den/green#appa";
         dates = "Sun *-*-* 03:00:00";
         operation = "switch";
         allowReboot = false;

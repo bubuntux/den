@@ -46,6 +46,21 @@ jobs:
       fail-fast: false
     secrets:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  promote:
+    # Machines auto-upgrade from `green`, never from main, so a red build leaves
+    # them on the last commit that actually built instead of retrying a broken
+    # tree nightly. Plain push, so an out-of-order run is rejected rather than
+    # moving green backwards. The heal path below cannot reach here — a healed
+    # main waits for the next push to be promoted.
+    runs-on: ubuntu-latest
+    needs: [check, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Advance green
+        run: |
+          git push origin ${{ github.sha }}:refs/heads/green
+          echo ':evergreen_tree: `green` advanced to `${{ github.sha }}`' >> "$GITHUB_STEP_SUMMARY"
   heal:
     # Mirror of update-flake.yml's heal: same caddy.withPlugins hash
     # drift, just triggered by a regular push/PR instead of the cron

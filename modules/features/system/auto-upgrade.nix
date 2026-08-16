@@ -10,7 +10,7 @@
         # auto-reboot in a quiet window).
         system.autoUpgrade = {
           enable = true;
-          flake = "github:bubuntux/den#${config.networking.hostName}";
+          flake = lib.mkDefault "github:bubuntux/den#${config.networking.hostName}";
           dates = lib.mkDefault "daily";
           operation = lib.mkDefault "boot";
           allowReboot = lib.mkDefault false;

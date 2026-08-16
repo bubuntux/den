@@ -211,6 +211,9 @@ jobs:
           fi
           git commit -m "$(printf '%s\n\nFlake lock file updates:\n\n%s%s' "$subject" "$(cat update-output.log)" "$footer")"
           git push
+          # Every configuration built before we got here, and a GITHUB_TOKEN
+          # push raises no CI run to promote it, so advance green ourselves.
+          git push origin HEAD:refs/heads/green
       - name: Build PR body
         if: steps.decide.outputs.action == 'pr'
         id: pr-body
