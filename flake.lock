@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1787055747,
-        "narHash": "sha256-C/+sl30fnyg7N/Gt+QY9ZvIU20xBAm6D7BYsC7dIn6g=",
+        "lastModified": 1787079008,
+        "narHash": "sha256-LPUddmiwmK9iOquUfIEZW+nfEgSjNM49OoP3JHn2EyI=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "5ef88c21be6326992c5795036ae9455e0ca29996",
+        "rev": "2072d274d73f5f765db43ff2dc5a18875ea0caf9",
         "type": "github"
       },
       "original": {
@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1787079028,
-        "narHash": "sha256-b9A3vqtG43m/2tkpUsovkS5VJXnsPIliZZC6+Kvs4vE=",
+        "lastModified": 1787085907,
+        "narHash": "sha256-8tPeqfv8PbmqTtp14GGv4wnTg7RivbkZe9qCNz3Bk18=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "13a45d2e06bf508f101ef20f1cfa8356b5a81ce8",
+        "rev": "d1b6dacf132196f3f13a50ce61474748534a25a3",
         "type": "gitlab"
       },
       "original": {
@@ -255,11 +255,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1787022431,
-        "narHash": "sha256-xViEA3EvImIEW5QDx8ZRtdQiQeHheXWEAwajIt/5fvc=",
-        "rev": "f165e44f135784a494bca3d4ab4834c139f0b37d",
+        "lastModified": 1787052956,
+        "narHash": "sha256-I41mLUc3AtKBKvY4E0Gd6RPFtOWOWx/w7g3ft444iBg=",
+        "rev": "b47ad65d73ab65ded9ab408fe558866d71defee8",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1057381.f165e44f1357/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1057499.b47ad65d73ab/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
