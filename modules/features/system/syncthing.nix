@@ -47,7 +47,15 @@
             natEnabled = false;
           };
 
-          devices.batocera.id = "2BPJCX3-PMRJSHV-E4VSGRK-443WTP6-X2N2APY-37JMYKN-54AMJKX-UERMQQR";
+          devices.batocera = {
+            id = "2BPJCX3-PMRJSHV-E4VSGRK-443WTP6-X2N2APY-37JMYKN-54AMJKX-UERMQQR";
+            # Discovery first, then the DHCP hostname the router serves --
+            # bare, since `batocera.local` does not resolve here.
+            addresses = [
+              "dynamic"
+              "tcp://batocera:22000"
+            ];
+          };
 
           folders."${dataDir}/batocera-saves" = {
             id = "4neqj-7bexg";
