@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1787248472,
-        "narHash": "sha256-ZcU3e9VyPEx3e9DZq1LVimsmQobLX9pzcJy3zT2fVts=",
+        "lastModified": 1787571403,
+        "narHash": "sha256-ykyt4Ic0PFmwBUmDbAU2w4Zjtut1edCERwbQ7QJdBHM=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "d6ad2e44d5e3077b85b63f322e007c84f94f3a6c",
+        "rev": "4666f4ee9616e268246e624396233b775a433ef9",
         "type": "github"
       },
       "original": {
@@ -76,11 +76,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785627969,
-        "narHash": "sha256-4dtXQk/NMePegK/nWp5NSeuZKLATItOq61lpEvmXqGw=",
+        "lastModified": 1787559586,
+        "narHash": "sha256-onL0VLf9vPllmT0H/OlURIU5r5t5WIEl7t4tVNKT0Nw=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "427bf4bd9435fdf21321c8cc628c24efc14c0f7a",
+        "rev": "9d0d87172c374f89da73c1cfe6d81ae62feac1f1",
         "type": "github"
       },
       "original": {
@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1787537716,
-        "narHash": "sha256-cJBK+t/I17NWsry6lcJAYLAeoIgk4NqI1bYVkirH5BA=",
+        "lastModified": 1787566319,
+        "narHash": "sha256-EjO7KBz5owr8Blq6eZsF4dHr46MLYrex+AzO/z1C0+4=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "c8d436b1975a5467fb69506985ddbca0094b6586",
+        "rev": "579eaf91df961f1a03c725822a540880b3a09a90",
         "type": "gitlab"
       },
       "original": {
@@ -255,11 +255,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1787364730,
-        "narHash": "sha256-YfYkbkJcUQ1wzXVX4BcIsLJ+xvB2yHdEbkRl7nPUXA4=",
-        "rev": "a831408e6378bc02ebf8cc09b52c96ca86f6bab4",
+        "lastModified": 1787394516,
+        "narHash": "sha256-wS+SNrj0wobAXQONggzrpetnZ9E0FL7l0WVWDRQ77Sc=",
+        "rev": "c8f90650c15282fa8656a041bfbbd2403997a9a7",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1059574.a831408e6378/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1059707.c8f90650c152/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
