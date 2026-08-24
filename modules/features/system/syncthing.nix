@@ -62,6 +62,10 @@
             label = "batocera saves";
             devices = [ "batocera" ];
             type = "receiveonly";
+            ignorePatterns = [
+              "/flatpak"
+              "/steam"
+            ];
 
             versioning = {
               type = "trashcan";
