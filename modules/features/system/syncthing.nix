@@ -45,6 +45,8 @@
             globalAnnounceEnabled = false;
             relaysEnabled = false;
             natEnabled = false;
+            # Usage reporting: -1 is "declined", 0 is undecided and prompts.
+            urAccepted = -1;
           };
 
           devices.batocera = {
