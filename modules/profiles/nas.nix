@@ -28,6 +28,7 @@
         restic
         reverse-proxy
         sonarr
+        syncthing
         tvheadend
       ];
 
