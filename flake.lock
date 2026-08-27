@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1787782208,
-        "narHash": "sha256-6EPonty4a1jtwcv3p2mG8AE7sRdoToa588D7rsZ8/08=",
+        "lastModified": 1787791830,
+        "narHash": "sha256-MfXxNlDYzULjBObFQgXb1x+zGzpRccuT0QLuaRyllDQ=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "65e8e9d6e74a4812154881d90d04796f8541925b",
+        "rev": "9208ce92e79e53d19df720e0a8ae10a58572936a",
         "type": "gitlab"
       },
       "original": {
@@ -191,11 +191,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787778830,
-        "narHash": "sha256-GnLPpDT727E6VpDlALP8JeP1BbSQ17H0HiEEYq6Ql4w=",
+        "lastModified": 1787792689,
+        "narHash": "sha256-mpSjCFly5xK0UhDb6/55dnbNYR+M8ZNoFQlqgztuThY=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "6b449e35980e1b75dd17da2d6d9b66e757194f1c",
+        "rev": "9dc641cd5243420033731784b4cad15b16d8f47c",
         "type": "github"
       },
       "original": {
