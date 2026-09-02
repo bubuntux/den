@@ -11,6 +11,7 @@ let
     filter
     hasPrefix
     attrNames
+    mkIf
     elem
     ;
 in
@@ -98,6 +99,14 @@ in
         # on "failed to parse config file".
         enable = config.monitors != [ ];
         settings = outputDefinitions ++ profiles;
+      };
+
+      # The unit names no config path, so its file is byte-identical whatever
+      # the layout is and sd-switch leaves the running kanshi holding the old
+      # config after a rebuild. Naming the config here is what makes the unit
+      # change with it.
+      systemd.user.services.kanshi = mkIf (config.monitors != [ ]) {
+        Unit."X-Restart-Triggers" = [ config.xdg.configFile."kanshi/config".source ];
       };
     };
 }
