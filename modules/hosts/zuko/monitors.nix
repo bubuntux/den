@@ -18,21 +18,6 @@
         # port-name-based profile only matches some of the time. Identity is
         # stable, so a single docked profile now works regardless of port.
         monitors = [
-          # Built-in laptop display. Auxiliary monitor: workspaces 1-3 live
-          # here whenever it's on (office setup, or undocked where 4-10 fall
-          # back to it since their externals are absent). kanshi disables it
-          # entirely when docked at home; see the internal-panel handling in
-          # kanshi.nix.
-          {
-            name = "eDP-1";
-            width = 3840;
-            height = 2400;
-            workspaces = [
-              "1"
-              "2"
-              "3"
-            ];
-          }
           # Left external — portrait
           {
             name = "Dell Inc. DELL U2722DE J85KV83";
@@ -103,6 +88,48 @@
               "10"
             ];
           }
+          # Office (sea2u-33-6-3) — portrait on the left. Workspaces 1-3.
+          {
+            name = "Dell Inc. DELL U2722DE BBYP1H3";
+            width = 2560;
+            height = 1440;
+            transform = "270";
+            workspaces = [
+              "1"
+              "2"
+              "3"
+            ];
+          }
+          # Office (sea2u-33-6-3) — landscape in the middle, laptop below it.
+          {
+            name = "Dell Inc. DELL U2722DE 6ZTJ193";
+            width = 2560;
+            height = 1440;
+            workspaces = [
+              "4"
+              "5"
+              "6"
+              "7"
+            ];
+          }
+          # Built-in laptop display, listed last: sway accumulates the repeated
+          # `workspace N output ...` lines and takes the first *available*
+          # output, so the panel has to be every workspace's last resort rather
+          # than any workspace's first choice. It takes 1-3 where it sits beside
+          # a single external, and 8-10 where it sits underneath one.
+          {
+            name = "eDP-1";
+            width = 3840;
+            height = 2400;
+            workspaces = [
+              "1"
+              "2"
+              "3"
+              "8"
+              "9"
+              "10"
+            ];
+          }
         ];
 
         monitorProfiles = {
@@ -125,6 +152,14 @@
             "Dell Inc. DELL P2418D 29J0P8AO03XT" = "0,0";
             "eDP-1" = "640,1440";
             "Dell Inc. DELL P2418D 29J0P8AO1E9T" = "2560,0";
+          };
+          # Office (sea2u-33-6-3): portrait on the left, landscape in the middle
+          # with the laptop directly beneath it. The portrait is dropped 80px so
+          # its bottom edge meets the laptop's (80 + 2560 = 1440 + 1200).
+          office-sea2u-33-6-3 = {
+            "Dell Inc. DELL U2722DE BBYP1H3" = "0,80";
+            "Dell Inc. DELL U2722DE 6ZTJ193" = "1440,0";
+            "eDP-1" = "1440,1440";
           };
         };
       }
