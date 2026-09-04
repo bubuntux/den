@@ -19,6 +19,22 @@
         settingsFile = jsonFormat.generate "claude-base-settings.json" (
           claudeBaseSettings // { "$schema" = "https://json.schemastore.org/claude-code-settings.json"; }
         );
+
+        # nixpkgs pins JAVA_HOME to its own openjdk, and the ./gradlew that KLS
+        # runs to build a classpath inherits it -- Indeed's Gradle plugin rejects
+        # that vendor and KLS then serves an empty classpath without saying so.
+        # Unset, both use the machine's java; the nix JDK stays last on PATH.
+        kotlinLanguageServer = pkgs.kotlin-language-server.overrideAttrs {
+          postFixup = ''
+            wrapProgram "$out/bin/kotlin-language-server" \
+              --suffix PATH : ${
+                lib.makeBinPath [
+                  pkgs.openjdk
+                  pkgs.maven
+                ]
+              }
+          '';
+        };
       in
       {
         key = "den:homeManager.user-juliogm";
@@ -69,7 +85,7 @@
         # Language servers Helix auto-detects when their binaries are on PATH.
         # Docker LSPs are already provided by the shared helix module.
         programs.helix.extraPackages = with pkgs; [
-          kotlin-language-server
+          kotlinLanguageServer
           jdt-language-server
           terraform-ls
           python3Packages.python-lsp-server
