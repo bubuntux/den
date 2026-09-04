@@ -4,7 +4,6 @@
       {
         pkgs,
         config,
-        lib,
         ...
       }:
       let
@@ -49,35 +48,6 @@
                     pass
           '';
         };
-
-        # tomat exits 0 with no daemon; a non-zero hook would abort the change.
-        pomodoroHook = pkgs.writeTextFile {
-          name = "on-modify.pomodoro";
-          executable = true;
-          text = ''
-            #!${pkgs.python3}/bin/python3
-            import json
-            import subprocess
-            import sys
-
-            TOMAT = "${lib.getExe pkgs.tomat}"
-
-            original = json.loads(sys.stdin.readline())
-            modified = json.loads(sys.stdin.readline())
-            print(json.dumps(modified))
-
-            was_active = "start" in original
-            is_active = "start" in modified
-            status = modified.get("status", "pending")
-
-            if not was_active and is_active:
-                minutes = int(modified.get("pomo") or 0)
-                args = [TOMAT, "start"] + (["-w", str(minutes)] if minutes else [])
-                subprocess.run(args, capture_output=True)
-            elif was_active and (not is_active or status != "pending"):
-                subprocess.run([TOMAT, "stop"], capture_output=True)
-          '';
-        };
       in
       {
         key = "den:homeManager.taskwarrior";
@@ -94,10 +64,6 @@
               personal.coefficient = 10.0;
               kids.coefficient = 15.0;
             };
-
-            # Per-task override of tomat's work duration, in minutes.
-            uda.pomo.type = "numeric";
-            uda.pomo.label = "Pomodoro";
 
             context.work.read = "+work";
             context.work.write = "+work";
@@ -123,11 +89,6 @@
         # `task start`/`task stop` starts and stops a matching timewarrior interval.
         xdg.configFile."task/hooks/on-modify.timewarrior" = {
           source = timewarriorHook;
-          executable = true;
-        };
-
-        xdg.configFile."task/hooks/on-modify.pomodoro" = {
-          source = pomodoroHook;
           executable = true;
         };
 

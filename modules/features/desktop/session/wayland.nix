@@ -36,7 +36,6 @@
           kanshi
           thunar
           power-profile-auto
-          tomat
         ];
 
         # Rebinds kanshi, swayidle, clipman, dunst and ~30 other Wayland

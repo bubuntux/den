@@ -569,8 +569,6 @@
             ironbar = [ "den-session.target" ];
             ironbar-vars = [ "ironbar.service" ];
             ironbar-weather = [ "ironbar.service" ];
-            ironbar-pomodoro = [ "ironbar.service" ];
-            tomat = [ "den-session.target" ];
           };
         in
         lib.concatMap (
