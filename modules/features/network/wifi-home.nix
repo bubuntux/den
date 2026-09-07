@@ -45,7 +45,7 @@
             mode = "infrastructure";
           };
           wifi-security = {
-            key-mgmt = "wpa-psk";
+            key-mgmt = "sae";
             psk = "$wifi_home_psk";
           };
         };
@@ -61,7 +61,7 @@
             mode = "infrastructure";
           };
           wifi-security = {
-            key-mgmt = "wpa-psk";
+            key-mgmt = "sae";
             psk = "$wifi_home_guest_psk";
           };
         };
