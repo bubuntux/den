@@ -36,6 +36,21 @@
       });
 
       configFile = "${config.xdg.configHome}/bugwarrior/bugwarrior.toml";
+
+      # bugwarrior locks with a PIDLockFile and never breaks a stale one, so a
+      # pull killed mid-run leaves every later pull aborting on the lock.
+      clearStaleLock = pkgs.writeShellApplication {
+        name = "bugwarrior-clear-stale-lock";
+        runtimeInputs = with pkgs; [
+          taskwarrior3
+          gnugrep
+        ];
+        text = ''
+          lock="$(task _get rc.data.location)/bugwarrior.lockfile"
+          pid=$(cat "$lock" 2>/dev/null) || exit 0
+          grep -qsa bugwarrior "/proc/$pid/cmdline" || rm -f "$lock"
+        '';
+      };
     in
     {
       key = "den:homeManager.bugwarrior";
@@ -166,6 +181,7 @@
         };
         Service = {
           Type = "oneshot";
+          ExecStartPre = "-${lib.getExe clearStaleLock}";
           ExecStart = "${lib.getExe' bugwarrior "bugwarrior"} pull --quiet";
         };
       };
