@@ -173,6 +173,15 @@
           # lives here rather than in the shared user-juliogm home module.
           programs.bash.enable = lib.mkForce false;
 
+          # The /etc/profile.d snippets sourced below are bash-oriented and call
+          # bash's `complete` builtin, which zsh lacks. Swallow it; zsh gets its
+          # completions from fpath. .zshenv is read before .zprofile, so the stub
+          # is in place by the time they run, and bashcompinit (were anything to
+          # load it) overrides it with the real thing.
+          programs.zsh.envExtra = ''
+            complete() { : }
+          '';
+
           # zsh login shells never read /etc/profile, so the host distro's
           # /etc/profile.d snippets (proxy, kerberos, corp tooling) are missed.
           programs.zsh.profileExtra = ''
