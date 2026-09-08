@@ -173,6 +173,17 @@
           # lives here rather than in the shared user-juliogm home module.
           programs.bash.enable = lib.mkForce false;
 
+          # zsh login shells never read /etc/profile, so the host distro's
+          # /etc/profile.d snippets (proxy, kerberos, corp tooling) are missed.
+          programs.zsh.profileExtra = ''
+            if [ -d /etc/profile.d ]; then
+              for i in /etc/profile.d/*.sh(N); do
+                [ -r "$i" ] && . "$i"
+              done
+              unset i
+            fi
+          '';
+
           sops.age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
           sops.secrets.git_config.sopsFile = "${self}/secrets/juliogm.yaml";
           sops.secrets.jj_config.sopsFile = "${self}/secrets/juliogm.yaml";
