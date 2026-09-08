@@ -17,6 +17,13 @@
   wayland,
   zlib,
 }:
+let
+  gradleJavaHomeHook = ''
+    if [ -n "''${JAVA_HOME:-}" ]; then
+      export IJ_JAVA_OPTIONS="''${IJ_JAVA_OPTIONS:-} -Dcom.jetbrains.ls.imports.gradle.java.home=$JAVA_HOME"
+    fi
+  '';
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "kotlin-lsp";
   version = "263.4421.0";
@@ -59,7 +66,8 @@ stdenv.mkDerivation (finalAttrs: {
           openjdk.home
           maven
         ]
-      }
+      } \
+      --run ${lib.escapeShellArg gradleJavaHomeHook}
 
     runHook postInstall
   '';

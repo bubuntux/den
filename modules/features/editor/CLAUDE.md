@@ -64,17 +64,29 @@ monthly. Two traps in doing that:
 - Check `eap` and `date` in `idea/IntelliJServerApplicationInfo.xml`
   (`lib/language-server.main.jar`) to see how long a candidate build has left.
 
-## kotlin-lsp needs a JDK *home* on PATH, and no JAVA_HOME
+## kotlin-lsp needs a JDK *home* on PATH, and its Gradle JDK pinned
 
 It runs its own analysis on the bundled JBR, but shells out for the Gradle/Maven
 import — without a JDK it reports `no compatible JDKs found` and then resolves
 nothing at all, with the file's diagnostics silently empty rather than failing.
 
-Both halves of how that JDK is passed matter:
+Three parts to how that JDK is passed, each failing differently:
 
-- **PATH, never JAVA_HOME.** A suffix leaves the machine's own java in front,
-  which is what Indeed's Gradle plugin demands — it rejects the nixpkgs vendor
-  and the import then yields an empty classpath without saying so.
+- **A JDK on PATH, JAVA_HOME left alone.** The wrapper suffixes one on so there
+  is always a JDK to find; JAVA_HOME stays whatever the user set, naming the JDK
+  the project is really built with — which is what the next point pins to.
+- **PATH order decides nothing, so pin the system property.**
+  `GradleToolingApiHelper.findTheMostCompatibleJdk` takes every JDK
+  `JavaHomeFinder` turns up, drops the ones the project's Gradle cannot run,
+  sorts by version descending and keeps the first; JAVA_HOME is consulted only
+  if that list comes out empty. So the JDK you build with loses to any newer one
+  on the box — including the `openjdk` suffixed onto PATH, whose `java.vendor`
+  is `N/A`. Vendor-checking Gradle plugins (Indeed's, for one) reject that, and
+  a failed import is invisible from the editor: the server still answers, only
+  with an empty workspace model, so references and go-to-definition come back
+  empty. `-Dcom.jetbrains.ls.imports.gradle.java.home` is the one input checked
+  ahead of the version sort, so the wrapper sets it from JAVA_HOME through
+  `IJ_JAVA_OPTIONS`, which the native launcher appends to its vmoptions.
 - **`openjdk.home`, not `openjdk`.** `$out/bin` is a symlink into
   `lib/openjdk/bin`, so IntelliJ's probe walks up from `bin/java` to the package
   root, finds no `release` or `conf`, and discards it — `Checked Java paths: []`
