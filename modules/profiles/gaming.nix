@@ -70,6 +70,8 @@
       environment.systemPackages = with pkgs; [
         # Desktop entry for Steam with gamemode
         steam-gamemode-desktop
+
+        shattered-pixel-dungeon
       ];
 
       # Ensure 32-bit support for games
