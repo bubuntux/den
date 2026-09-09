@@ -16,8 +16,12 @@
       # CLAUDE.md, "Choosing a terminal".
       environment.enableAllTerminfo = true;
 
+      # ssh rides the NixOS side so it reaches every user on a real machine but
+      # not the standalone Home Manager configs, where ~/.ssh/config is the
+      # host distro's to manage.
       home-manager.sharedModules = with self.modules.homeManager; [
         bundle-base
+        ssh
       ];
     };
 
@@ -30,7 +34,6 @@
           fonts
           git
           helix
-          ssh
         ];
 
         home.packages = with pkgs; [

@@ -196,17 +196,12 @@
           sops.age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
           sops.secrets.git_config.sopsFile = "${self}/secrets/juliogm.yaml";
           sops.secrets.jj_config.sopsFile = "${self}/secrets/juliogm.yaml";
-          sops.secrets.ssh_config.sopsFile = "${self}/secrets/juliogm.yaml";
           programs.git.includes = lib.mkForce [
             { path = config.sops.secrets.git_config.path; }
           ];
           xdg.configFile."jj/conf.d/identity.toml".source = lib.mkForce (
             config.lib.file.mkOutOfStoreSymlink config.sops.secrets.jj_config.path
           );
-          programs.ssh.includes = lib.mkForce [
-            config.sops.secrets.ssh_config.path
-          ];
-
         }
       )
     ];
