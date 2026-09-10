@@ -63,6 +63,7 @@
           taplo
 
           # Markdown
+          harper
           marksman
           markdown-oxide
 
@@ -94,7 +95,20 @@
           {
             name = "markdown";
             auto-format = true;
-            formatter.command = lib.getExe pkgs.mdformat;
+            roots = [
+              ".obsidian"
+              ".moxide.toml"
+              ".marksman.toml"
+            ];
+            # Bare mdformat turns YAML frontmatter into a heading and escapes
+            # every [[wikilink]].
+            formatter.command = lib.getExe (
+              pkgs.mdformat.withPlugins (ps: [
+                ps.mdformat-frontmatter
+                ps.mdformat-gfm
+                ps.mdformat-wikilink
+              ])
+            );
             formatter.args = [ "-" ];
           }
           {
