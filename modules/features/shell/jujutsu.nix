@@ -42,19 +42,6 @@
               "git"
               "fetch"
             ];
-            # Advance the nearest bookmark to the parent of the working copy.
-            tug = [
-              "bookmark"
-              "move"
-              "--from"
-              "closest_bookmark(@-)"
-              "--to"
-              "@-"
-            ];
-          };
-
-          revset-aliases = {
-            "closest_bookmark(to)" = "heads(::to & bookmarks())";
           };
         };
       };
