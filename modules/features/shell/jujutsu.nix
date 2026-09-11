@@ -51,17 +51,10 @@
               "--to"
               "@-"
             ];
-            # The regular log, plus wherever every tracked bookmark points.
-            log-bookmarks = [
-              "log"
-              "-r"
-              "default_log | bookmarks() | tracked_remote_bookmarks()"
-            ];
           };
 
           revset-aliases = {
             "closest_bookmark(to)" = "heads(::to & bookmarks())";
-            default_log = "present(@) | ancestors(immutable_heads().., 2) | trunk()";
           };
         };
       };
