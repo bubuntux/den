@@ -37,5 +37,10 @@
     # Profiles install the environments; the host picks the greeter. No
     # defaultSession: Sway is the only session here.
     den.desktop.loginManager = "greetd";
+
+    home-manager.users.bbtux = {
+      imports = [ self.modules.homeManager.vault ];
+      den.vaults.personal.path = "Documents/vault";
+    };
   };
 }

@@ -91,3 +91,30 @@ Three parts to how that JDK is passed, each failing differently:
   `lib/openjdk/bin`, so IntelliJ's probe walks up from `bin/java` to the package
   root, finds no `release` or `conf`, and discards it — `Checked Java paths: []`
   even though java is plainly on PATH.
+
+## Vaults override markdown per directory, behind workspace trust
+
+`vault.nix` writes a `.moxide.toml` and a `.helix/` into each
+`den.vaults.<name>` directory. That is what lets one home hold a PKM setup for
+markdown without imposing it on every repo's `.md` files — the global markdown
+entry stays marksman-and-mdformat, the vault swaps in markdown-oxide and harper
+for that directory only. Four things about it are not obvious.
+
+- **Trust gates the local config, not the language servers.** The default
+  implicit level is `servers`, so markdown-oxide starts in any directory; only
+  `.helix/` needs an explicit grant. A grant pins a SHA-256 of every file under
+  `.helix/`, so a rebuild that changes the generated config demotes the
+  workspace to `Stale` and the local config quietly stops loading. `trust = true` sidesteps the mechanism by listing the vault in
+  `editor.workspace-trust.trusted`, where a glob match short-circuits ahead of
+  the hash check.
+- **Mutable state stays out of `.helix/`** for the same reason. The harper
+  dictionary sits beside it, not in it, or every word added from the editor
+  revokes trust.
+- **Local config merges at depth 3, and arrays at that depth concatenate.** So
+  `helixSettings` can lengthen `editor.rulers` but never shorten it; only the
+  global config can. One level deeper — a language's `language-servers` — lists
+  replace instead.
+- **The daily-note filename is stated twice, in two syntaxes.** chrono strftime
+  in `.moxide.toml`, moment.js in Obsidian's `daily-notes.json`. Obsidian
+  rewrites the latter itself, so it cannot be generated; `checkObsidian` only
+  compares the two at activation and warns.

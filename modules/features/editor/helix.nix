@@ -63,7 +63,6 @@
           taplo
 
           # Markdown
-          harper
           marksman
           markdown-oxide
 
