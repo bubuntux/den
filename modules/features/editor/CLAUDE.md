@@ -118,3 +118,12 @@ for that directory only. Four things about it are not obvious.
   in `.moxide.toml`, moment.js in Obsidian's `daily-notes.json`. Obsidian
   rewrites the latter itself, so it cannot be generated; `checkObsidian` only
   compares the two at activation and warns.
+- **`dailynote` is both the file path and the inserted link text.**
+  markdown-oxide writes it verbatim when a `[[today]]` completion is accepted,
+  but resolves links relative to the vault root. A flat format resolves on the
+  filename alone — which matches a file however deeply nested — and keeps the
+  link short. A format naming subdirectories resolves only if the folder is in
+  the link text too, so `dailyNoteSettings` folds the folder into `dailynote`
+  in that case and leaves `daily_notes_folder` empty. There is no third option:
+  nested files and short link text cannot both be had, and
+  `link_filenames_only` does not apply to daily-note completions.

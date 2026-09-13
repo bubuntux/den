@@ -15,21 +15,45 @@
       dictPath = vault: "${absPath vault}/${vault.dictionary}";
       usesHarper = vault: lib.elem "harper-ls" vault.languageServers;
 
+      dailyNotePath =
+        vault:
+        lib.concatStringsSep "/" (
+          lib.optional (vault.dailyNotes.folder != "") vault.dailyNotes.folder ++ [ vault.dailyNotes.format ]
+        );
+
+      # markdown-oxide inserts `dailynote` verbatim as link text but resolves
+      # links vault-root-relative, so a format naming subdirectories only
+      # resolves when the folder is part of the link text too. A flat format
+      # resolves on the filename alone and keeps the link short.
+      dailyNoteSettings =
+        vault:
+        if lib.hasInfix "/" vault.dailyNotes.format then
+          {
+            daily_notes_folder = "";
+            dailynote = dailyNotePath vault;
+          }
+        else
+          {
+            daily_notes_folder = vault.dailyNotes.folder;
+            dailynote = vault.dailyNotes.format;
+          };
+
       moxideToml =
         vault:
-        lib.recursiveUpdate {
-          daily_notes_folder = vault.dailyNotes.folder;
-          dailynote = vault.dailyNotes.format;
-          new_file_folder_path = "";
-          excluded_folders = [
-            ".helix"
-            ".obsidian"
-          ];
-          unresolved_diagnostics = true;
-          heading_completions = true;
-          title_headings = true;
-          include_md_extension_wikilink = false;
-        } vault.moxide;
+        lib.recursiveUpdate (
+          dailyNoteSettings vault
+          // {
+            new_file_folder_path = "";
+            excluded_folders = [
+              ".helix"
+              ".obsidian"
+            ];
+            unresolved_diagnostics = true;
+            heading_completions = true;
+            title_headings = true;
+            include_md_extension_wikilink = false;
+          }
+        ) vault.moxide;
 
       harperConfig =
         vault:
@@ -96,12 +120,14 @@
             };
             format = lib.mkOption {
               type = lib.types.str;
-              default = "%Y/%m/%Y-%m-%d";
-              example = "%Y-%m-%d";
+              default = "%Y-%m-%d";
+              example = "%Y/%m/%Y-%m-%d";
               description = ''
                 Daily note filename, in chrono's strftime syntax. Obsidian
                 states the same thing in moment.js syntax, so the two files
-                disagree unless both are changed; see `checkObsidian`.
+                disagree unless both are changed; see `checkObsidian`. Naming
+                subdirectories here puts them in the link text of every
+                generated daily link.
               '';
             };
           };
@@ -227,14 +253,14 @@
               + lib.optionalString vault.checkObsidian ''
                 vaultDailyNotes=${lib.escapeShellArg "${absPath vault}/.obsidian/daily-notes.json"}
                 if [ -f "$vaultDailyNotes" ]; then
-                  vaultFolder=$(${lib.getExe pkgs.jq} -r '.folder // ""' "$vaultDailyNotes")
-                  vaultFormat=$(${lib.getExe pkgs.jq} -r '.format // "YYYY-MM-DD"' "$vaultDailyNotes" \
+                  vaultPath=$(${lib.getExe pkgs.jq} -r \
+                    '[(.folder // ""), (.format // "YYYY-MM-DD")] | map(select(. != "")) | join("/")' \
+                    "$vaultDailyNotes" \
                     | ${lib.getExe pkgs.gnused} -e 's/YYYY/%Y/g' -e 's/MM/%m/g' -e 's/DD/%d/g')
-                  if [ "$vaultFolder" != ${lib.escapeShellArg vault.dailyNotes.folder} ] \
-                    || [ "$vaultFormat" != ${lib.escapeShellArg vault.dailyNotes.format} ]; then
+                  if [ "$vaultPath" != ${lib.escapeShellArg (dailyNotePath vault)} ]; then
                     echo "warning: vault '${name}' daily notes disagree; [[today]] and Obsidian will write to different paths" >&2
-                    echo "  nix:      ${vault.dailyNotes.folder} ${vault.dailyNotes.format}" >&2
-                    echo "  obsidian: $vaultFolder $vaultFormat" >&2
+                    echo "  nix:      ${dailyNotePath vault}" >&2
+                    echo "  obsidian: $vaultPath" >&2
                   fi
                 fi
               ''
