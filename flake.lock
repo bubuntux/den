@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1789100169,
-        "narHash": "sha256-sN5Mxjr8q0+TTcTLLU128/nsPyzT7BKVQaQ7aQYOJpI=",
+        "lastModified": 1789385100,
+        "narHash": "sha256-pRA8tNuyJuUxGDDlM2l2uJVxRhuaO07Yq4mY3ZwY29c=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "f00ebe03b738871be80c651fc5b9df289a871119",
+        "rev": "42eae065d0082a84a45cd6a0deb20f159f1b5cb3",
         "type": "gitlab"
       },
       "original": {
@@ -191,11 +191,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789339793,
-        "narHash": "sha256-1TGxgma8jQGhw0yfjyndwPhgcoXAYtlSm4ezENVzrPA=",
+        "lastModified": 1789386765,
+        "narHash": "sha256-4hyLFBhzQC7+qPMELWc7J/sbdA6ckXZxXU9CYRsGhsc=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "dd0b74e2b53eb6aa03fe120fcc00a4d37cc288f8",
+        "rev": "87c391f49a34660de6010f35bb50fb1bf811be9f",
         "type": "github"
       },
       "original": {
@@ -281,11 +281,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1789114715,
-        "narHash": "sha256-eeH+/1GxEjw8NCObjaHVIy3YvCQ4Qckrx4LZj5xBaU4=",
-        "rev": "21a67dc470149f337cecafbe965d8d252a390518",
+        "lastModified": 1789344334,
+        "narHash": "sha256-it+7kNGnOOHBCEnl4SfZ7QtfGziH3EryzHqwvJpjAfg=",
+        "rev": "c3eea5b2156db11c7eeeada3dc737711255b253e",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.9592.21a67dc47014/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.9729.c3eea5b2156d/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
