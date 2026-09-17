@@ -220,6 +220,7 @@ let
         "news.ycombinator.com"
         "x.com"
         "youtube.com"
+        "reddit.com"
       ];
       times = "0900-1700";
       days = weekdays;
