@@ -1,4 +1,4 @@
-{ self, ... }:
+{ self, lib, ... }:
 let
   # LibreWolf-style hardening. Which mechanism a pref goes through matters:
   # `preferences` is the enterprise policy, which honours an allowlist of
@@ -193,6 +193,83 @@ let
     "browser.newtabpage.activity-stream.showSponsored" = false;
     "browser.newtabpage.activity-stream.showSponsoredTopSites" = false;
   };
+
+  # -- LeechBlock NG ----------------------------------------------------------
+  # Shipped through the 3rdparty policy, which Firefox surfaces to the add-on as
+  # `storage.managed`. LeechBlock copies that over its local storage on every
+  # background-script start (`checkManagedStorage`), so these values are
+  # enforced rather than seeded: edits made in its own UI are undone on the next
+  # wake.
+
+  # `days<N>` is a seven-element array indexed from Sunday.
+  weekdays = [
+    false
+    true
+    true
+    true
+    true
+    true
+    false
+  ];
+  everyDay = builtins.genList (_: true) 7;
+
+  blockSets = [
+    {
+      setName = "Work hours";
+      sites = [
+        "news.ycombinator.com"
+        "x.com"
+        "youtube.com"
+      ];
+      times = "0900-1700";
+      days = weekdays;
+    }
+    {
+      setName = "Daily budget";
+      sites = [ "reddit.com" ];
+      limitMins = "30";
+      limitPeriod = "86400";
+      days = everyDay;
+    }
+  ];
+
+  # LeechBlock matches URLs against the compiled `blockRE<N>` and recompiles it
+  # from `sites<N>` only when its options page is saved, so a managed site list
+  # shipped without one blocks nothing. Mirrors `getRegExpSites` /
+  # `patternToRegExp` (common.js) for plain domains, with `matchSubdomains` on.
+  blockRegExp =
+    sites:
+    let
+      escaped = site: builtins.replaceStrings [ "." ] [ "\\." ] (lib.removePrefix "www." site);
+    in
+    "^(https?|file):\\/+([\\w:]+@)?("
+    + lib.concatMapStringsSep "|" (site: "([^/]*\\.)?${escaped site}") sites
+    + ")";
+
+  leechblockSettings = {
+    numSets = toString (builtins.length blockSets);
+    matchSubdomains = true;
+    # A set with no time limit counts down to the start of its next blocking
+    # window instead, so without a ceiling its timer is on screen all day.
+    timerMaxHours = "1";
+    # Stops the per-second sweep refreshing `tab.audible` for background tabs,
+    # so a set that ever turns on countAudio would undercount.
+    processActiveTabs = true;
+  }
+  // lib.mergeAttrsList (
+    lib.imap1 (set: opts: {
+      "setName${toString set}" = opts.setName;
+      "sites${toString set}" = lib.concatStringsSep " " opts.sites;
+      "blockRE${toString set}" = blockRegExp opts.sites;
+      "times${toString set}" = opts.times or "";
+      "limitMins${toString set}" = opts.limitMins or "";
+      "limitPeriod${toString set}" = opts.limitPeriod or "";
+      "days${toString set}" = opts.days;
+      # Off by default, and then a page already open when the window opens or
+      # the budget runs out stays usable until the next navigation.
+      "activeBlock${toString set}" = true;
+    }) blockSets
+  );
 in
 {
   flake.modules = {
@@ -310,6 +387,12 @@ in
                 "@contain-google" = forced "google-container" {
                   default_area = "menupanel";
                 };
+                # navbar so the remaining-time badge stays visible; without
+                # private_browsing a private window is a free pass.
+                "leechblockng@proginosko.com" = forced "leechblock-ng" {
+                  default_area = "navbar";
+                  private_browsing = true;
+                };
               };
 
             # Strip first-run / onboarding / promo surfaces.
@@ -347,6 +430,8 @@ in
               "fanboy-cookiemonster"
               "ublock-annoyances"
             ];
+
+            "3rdparty".Extensions."leechblockng@proginosko.com" = leechblockSettings;
           };
         };
         xdg.mime.defaultApplications = {
