@@ -71,6 +71,18 @@
 
           eza.enable = true;
 
+          screen = {
+            enable = true;
+            screenrc = ''
+              startup_message off
+              defscrollback 10000
+              altscreen on
+              truecolor on
+              vbell off
+              hardstatus alwayslastline "%-w%{+b}%n %t%{-}%+w%=%H  %Y-%m-%d %c"
+            '';
+          };
+
           starship.enable = true;
         };
       };
