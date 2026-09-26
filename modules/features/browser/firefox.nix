@@ -256,6 +256,13 @@ let
     # Stops the per-second sweep refreshing `tab.audible` for background tabs,
     # so a set that ever turns on countAudio would undercount.
     processActiveTabs = true;
+    # Temporary override: at most twice a day, each behind a fresh random
+    # 32-character code (`ora` 2). With `orm` blank the override page asks for
+    # the duration, so a holiday can take the whole day.
+    orm = "";
+    orln = "2";
+    orlp = "86400";
+    ora = "2";
   }
   // lib.mergeAttrsList (
     lib.imap1 (set: opts: {
@@ -269,6 +276,7 @@ let
       # Off by default, and then a page already open when the window opens or
       # the budget runs out stays usable until the next navigation.
       "activeBlock${toString set}" = true;
+      "allowOverride${toString set}" = true;
     }) blockSets
   );
 in
