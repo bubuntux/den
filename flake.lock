@@ -25,11 +25,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1789404474,
-        "narHash": "sha256-UXFQ7tFiwn8sPz0EV4CBB2PCf/ZiGIHWn/6MXk81Lxs=",
+        "lastModified": 1790635598,
+        "narHash": "sha256-MHycJ+rm2wMrhiO6emgqJUaUbhJU/AvdH8DyUVrU1dw=",
         "owner": "serokell",
         "repo": "deploy-rs",
-        "rev": "e760371d631165e7d8de5b0dcf148e21ec4c16f0",
+        "rev": "cf64c8cbadd9b13ea79ba7720aa2930500f2ece7",
         "type": "github"
       },
       "original": {
@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1790601838,
-        "narHash": "sha256-aWoq4wQ6Ep7dbPYyO8A6RN6Pul7sHtw2McL8O7dXCU8=",
+        "lastModified": 1790629102,
+        "narHash": "sha256-DjekEo4n7lv7AToOcJuEIMgKDfqoq7WDyb1ZPeyOmyw=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "15caaea3ed038553192093604a7cfe63b0fc155c",
+        "rev": "b08066fb3853d2ed6e37f7b0ba056c71ab6576e1",
         "type": "gitlab"
       },
       "original": {
