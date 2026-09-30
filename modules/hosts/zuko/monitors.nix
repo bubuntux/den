@@ -112,6 +112,30 @@
               "7"
             ];
           }
+          # Office (ausdo-10-34-2) — portrait on the left. Workspaces 1-3.
+          {
+            name = "Dell Inc. DELL U2725QE 2KZMGJ4";
+            width = 3840;
+            height = 2160;
+            transform = "90";
+            workspaces = [
+              "1"
+              "2"
+              "3"
+            ];
+          }
+          # Office (ausdo-10-34-2) — landscape in the middle, laptop below it.
+          {
+            name = "Dell Inc. DELL U2725QE 6KZMGJ4";
+            width = 3840;
+            height = 2160;
+            workspaces = [
+              "4"
+              "5"
+              "6"
+              "7"
+            ];
+          }
           # Built-in laptop display, listed last: sway accumulates the repeated
           # `workspace N output ...` lines and takes the first *available*
           # output, so the panel has to be every workspace's last resort rather
@@ -159,6 +183,11 @@
           office-sea2u-33-6-3 = {
             "Dell Inc. DELL U2722DE BBYP1H3" = "0,80";
             "Dell Inc. DELL U2722DE 6ZTJ193" = "1440,0";
+            "eDP-1" = "1440,1440";
+          };
+          office-ausdo-10-34-2 = {
+            "Dell Inc. DELL U2725QE 2KZMGJ4" = "0,0";
+            "Dell Inc. DELL U2725QE 6KZMGJ4" = "1440,0";
             "eDP-1" = "1440,1440";
           };
         };
