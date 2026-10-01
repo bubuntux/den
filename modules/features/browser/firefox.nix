@@ -104,6 +104,9 @@ let
   media = {
     "media.autoplay.default" = 5;
     "media.autoplay.blocking_policy" = 2;
+    # Off by default in release builds; without it libcamera-only cameras
+    # (zuko's IPU6) never show up.
+    "media.webrtc.camera.allow-pipewire" = true;
   };
 
   # SELECTED — no JavaScript execution inside the built-in PDF viewer.
