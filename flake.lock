@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1790873587,
-        "narHash": "sha256-hMW+ZVpMyuC2XJpAarBgtitglNYgrFCjt8kdToqRAjE=",
+        "lastModified": 1790904824,
+        "narHash": "sha256-rErfjoqJezPRBaMf+bUj1w6lTYRtmE3Wl9ZMVSUNMxo=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "0d6167ad2e6dfb858098c4162fe74d04c975532f",
+        "rev": "9c999d535760b8f009730fe5f4ac5777021a2b6d",
         "type": "github"
       },
       "original": {
@@ -76,11 +76,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788450739,
-        "narHash": "sha256-glZLQlzIn1fXH6PazR2iUmTo7kzzyYSshrWhLS9TqCU=",
+        "lastModified": 1790898470,
+        "narHash": "sha256-zTwuwezD0w3hpga6a6P8emidzAZFyWqlNeRBlpWOOl8=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "31729ca8cbdb4fa927b34e5f4353e6a83f39e993",
+        "rev": "024633cd702b10285db5cb19b40ad48d2399ba60",
         "type": "github"
       },
       "original": {
@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1790849397,
-        "narHash": "sha256-p7wul8/zT3bVDLkAMXY9jdVm5NTB9ofgGZwqQFOQisM=",
+        "lastModified": 1790898585,
+        "narHash": "sha256-GwQDyEASmJVxyxIH0aJ+ab5SGk1W6z1oVYmNlN6XO+w=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "5a38b3968afe46c133029595f4fcad920909a6fe",
+        "rev": "59ae78caddfe91cef7808d7fb7c41d04d5b80c77",
         "type": "gitlab"
       },
       "original": {
