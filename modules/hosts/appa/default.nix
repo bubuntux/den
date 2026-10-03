@@ -80,6 +80,17 @@
       # (2026-05-24). 350% = 4 cores minus that headroom.
       systemd.slices.system.sliceConfig.CPUQuota = "350%";
 
+      # A wedged kernel otherwise sits pingable-but-dead until someone walks
+      # over: panic on oops or lockup, reboot 10 s later, and let wdat_wdt
+      # reset the board if PID 1 stops petting it. efi_pstore keeps the panic.
+      boot.kernel.sysctl = {
+        "kernel.panic" = 10;
+        "kernel.panic_on_oops" = 1;
+        "kernel.hardlockup_panic" = 1;
+        "kernel.softlockup_panic" = 1;
+      };
+      systemd.settings.Manager.RuntimeWatchdogSec = "60s";
+
       # geoclue cannot set the timezone on a headless host: timedated's dbus
       # policy only grants it to interactive callers.
       time.timeZone = "America/Chicago";

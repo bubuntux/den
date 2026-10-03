@@ -38,6 +38,9 @@
       ];
       boot.extraModulePackages = [ ];
 
+      # Slab corruption plus silent freezes across kernels points at the DIMM.
+      boot.loader.systemd-boot.memtest86.enable = true;
+
       # em28xx-based tuners load demodulator firmware blobs from
       # linux-firmware at probe time. Without redistributable firmware the
       # driver attaches but every channel scan returns "no signal".
