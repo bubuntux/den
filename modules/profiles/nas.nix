@@ -29,7 +29,7 @@
         reverse-proxy
         sonarr
         syncthing
-        tvheadend
+        # tvheadend
       ];
 
       services.reverse-proxy.enable = true;
@@ -59,7 +59,7 @@
         in
         {
           wg.accessibleFrom = lanAccess;
-          wg-tvh.accessibleFrom = lanAccess;
+          # wg-tvh.accessibleFrom = lanAccess;
         };
     };
 }

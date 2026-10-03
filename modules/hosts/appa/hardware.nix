@@ -25,14 +25,16 @@
         "sd_mod"
       ];
 
-      # em28xx + em28xx_dvb drive the Hauppauge USB hybrid sticks plugged
-      # into the front USB header; without dvb the analog/v4l half loads
-      # but `/dev/dvb/adapter*` never appears and tvheadend has nothing
-      # to scan.
-      boot.kernelModules = [
-        "kvm-intel"
+      boot.kernelModules = [ "kvm-intel" ];
+
+      # em28xx corrupts kernel memory and hangs the box (oopses 2026-08-09 and
+      # 2026-10-02); the Hauppauge sticks stay plugged in but unbound.
+      boot.blacklistedKernelModules = [
         "em28xx"
         "em28xx_dvb"
+        "em28xx_rc"
+        "em28xx_v4l"
+        "em28xx_alsa"
       ];
       boot.extraModulePackages = [ ];
 
