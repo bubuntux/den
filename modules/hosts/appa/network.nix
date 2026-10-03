@@ -20,5 +20,9 @@
     # renewing and disappear after the lease expires. Forcing IPv6rs=true
     # keeps dhcpcd soliciting RAs so the static ULA and SLAAC coexist.
     networking.dhcpcd.IPv6rs = true;
+
+    # The default "any" lets SLAAC reach network-online.target seconds before
+    # the IPv4 lease, and wg.service gives up on its IPv4-only endpoint first.
+    networking.dhcpcd.wait = "ipv4";
   };
 }
