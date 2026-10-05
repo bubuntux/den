@@ -1,4 +1,4 @@
-{ self, ... }:
+{ self, inputs, ... }:
 {
   flake.modules.nixos.profile-gaming =
     { pkgs, ... }:
@@ -71,7 +71,9 @@
         # Desktop entry for Steam with gamemode
         steam-gamemode-desktop
 
-        shattered-pixel-dungeon
+        (import inputs.nixpkgs-unstable {
+          inherit (pkgs.stdenv.hostPlatform) system;
+        }).shattered-pixel-dungeon
       ];
 
       # Ensure 32-bit support for games
