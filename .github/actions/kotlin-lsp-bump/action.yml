@@ -1,0 +1,118 @@
+name: 'kotlin-lsp bump'
+description: >-
+  Bump the kotlin-lsp pin in _kotlin-lsp.nix to the build the VS Code
+  marketplace extension currently ships. The EAP builds expire about thirty
+  days after they are cut, so this has to run on a schedule: an expired build
+  still builds, it only fails at runtime.
+
+inputs:
+  file:
+    description: '_kotlin-lsp.nix path to patch.'
+    required: false
+    default: 'modules/features/editor/_kotlin-lsp.nix'
+
+outputs:
+  bumped:
+    description: 'Whether the pin was moved (`true`/`false`).'
+    value: ${{ steps.bump.outputs.bumped }}
+  old-version:
+    description: 'The version pinned before this run.'
+    value: ${{ steps.bump.outputs.old-version }}
+  new-version:
+    description: 'The version pinned after this run. Equals old-version when bumped=false.'
+    value: ${{ steps.bump.outputs.new-version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: bump
+      shell: bash
+      env:
+        FILE: ${{ inputs.file }}
+      run: |
+        set -euo pipefail
+        work=$(mktemp -d)
+        trap 'rm -rf "$work"' EXIT
+
+        old=$(sed -n 's/^  version = "\([0-9.]*\)";$/\1/p' "$FILE")
+        if [ -z "$old" ]; then
+          echo "::error::no version line found in $FILE"
+          exit 1
+        fi
+        echo "old-version=$old" >> "$GITHUB_OUTPUT"
+
+        # The GitHub releases lag the marketplace, so the build number comes
+        # from the linux-x64 vsix.
+        # The `latest` vspackage alias rejects targetPlatform, so resolve the
+        # extension version first.
+        extension_version=$(curl -sSf -X POST 'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery' \
+          -H 'Content-Type: application/json' \
+          -H 'Accept: application/json;api-version=7.2-preview.1' \
+          -d '{"filters":[{"criteria":[{"filterType":7,"value":"JetBrains.kotlin-server"}]}],"flags":147}' \
+          | jq -r '[.results[0].extensions[0].versions[] | select(.targetPlatform == "linux-x64")][0].version')
+        curl -sSfL --compressed -o "$work/kotlin-server.vsix" \
+          "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/JetBrains/vsextensions/kotlin-server/$extension_version/vspackage?targetPlatform=linux-x64"
+        new=$(unzip -p "$work/kotlin-server.vsix" extension/server/build.txt | sed 's/^ILS-//' | tr -d '[:space:]')
+        if ! [[ "$new" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+          echo "::error::unexpected build.txt contents: '$new'"
+          exit 1
+        fi
+
+        if [ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -1)" = "$old" ]; then
+          echo "bumped=false" >> "$GITHUB_OUTPUT"
+          echo "new-version=$old" >> "$GITHUB_OUTPUT"
+          echo ":white_check_mark: kotlin-lsp already at the marketplace build (\`$old\`)" >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        # download-cdn.jetbrains.com 404s these; download.jetbrains.com is the
+        # host the release notes link.
+        url="https://download.jetbrains.com/language-server/kotlin-server/$new/kotlin-server-$new.tar.gz"
+        curl -sSfL -o "$work/kotlin-server-$new.tar.gz" "$url"
+        expected=$(curl -sSfL "$url.sha256" | awk '{print $1}')
+        actual=$(sha256sum "$work/kotlin-server-$new.tar.gz" | awk '{print $1}')
+        if [ "$expected" != "$actual" ]; then
+          echo "::error::checksum mismatch for $url (published $expected, got $actual)"
+          exit 1
+        fi
+        hash=$(nix hash convert --hash-algo sha256 --to sri "$actual")
+
+        mkdir "$work/server"
+        tar -xzf "$work/kotlin-server-$new.tar.gz" -C "$work/server"
+        jar=$(find "$work/server" -name language-server.main.jar | head -1)
+        cut=$(unzip -p "$jar" idea/IntelliJServerApplicationInfo.xml | sed -n 's/.*date="\([0-9]\{8\}\).*/\1/p' | head -1)
+        if [ -n "$cut" ]; then
+          age_days=$(( ( $(date +%s) - $(date -d "$cut" +%s) ) / 86400 ))
+          if [ "$age_days" -ge 25 ]; then
+            echo "::warning::kotlin-lsp $new was cut $age_days days ago and expires around day 30"
+          fi
+        else
+          echo "::warning::could not read the cut date of kotlin-lsp $new"
+        fi
+
+        sed -i \
+          -e "s/^  version = \"$old\";$/  version = \"$new\";/" \
+          -e "s|^    hash = \"sha256-[^\"]*\";$|    hash = \"$hash\";|" \
+          "$FILE"
+
+        # Only the fetch is proven so far; make sure the wrapped binary starts.
+        out=$(nix build --no-link --print-out-paths --impure --expr "
+          let
+            flake = builtins.getFlake (toString ./.);
+            pkgs = import flake.inputs.nixpkgs {
+              system = \"x86_64-linux\";
+              config.allowUnfree = true;
+            };
+          in
+          pkgs.callPackage ./$FILE { }
+        ")
+        if ! timeout 60 "$out/bin/kotlin-lsp" --help > "$work/help.log" 2>&1 || grep -qi 'expired' "$work/help.log"; then
+          cat "$work/help.log"
+          git checkout -- "$FILE"
+          echo "::error::kotlin-lsp $new does not start"
+          exit 1
+        fi
+
+        echo "bumped=true" >> "$GITHUB_OUTPUT"
+        echo "new-version=$new" >> "$GITHUB_OUTPUT"
+        echo ":arrow_up: kotlin-lsp bumped \`$old\` → \`$new\` (cut $cut)" >> "$GITHUB_STEP_SUMMARY"

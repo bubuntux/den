@@ -17,6 +17,9 @@ jobs:
       warnings-before: ${{ steps.before.outputs.warnings }}
       warnings-after: ${{ steps.after.outputs.warnings }}
       check-failed: ${{ steps.after.outputs.check-failed }}
+      kotlin-lsp-bumped: ${{ steps.kotlin-lsp.outputs.bumped }}
+      kotlin-lsp-old: ${{ steps.kotlin-lsp.outputs.old-version }}
+      kotlin-lsp-new: ${{ steps.kotlin-lsp.outputs.new-version }}
     steps:
       - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
@@ -38,15 +41,20 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat update-output.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+      # A failed bump leaves the pin untouched; the flake update goes ahead.
+      - name: Bump kotlin-lsp
+        id: kotlin-lsp
+        uses: ./.github/actions/kotlin-lsp-bump
+        continue-on-error: true
       - name: Check for changes
         id: changes
         run: |
-          if git diff --quiet flake.lock; then
+          if git diff --quiet flake.lock modules/features/editor/_kotlin-lsp.nix; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo ':white_check_mark: No changes to flake.lock' >> "$GITHUB_STEP_SUMMARY"
+            echo ':white_check_mark: No changes to flake.lock or the kotlin-lsp pin' >> "$GITHUB_STEP_SUMMARY"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo ':arrow_up: flake.lock has been updated' >> "$GITHUB_STEP_SUMMARY"
+            echo ':arrow_up: flake.lock or the kotlin-lsp pin has been updated' >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Check warnings after update
         if: steps.changes.outputs.changed == 'true'
@@ -69,6 +77,7 @@ jobs:
           name: update-data
           path: |
             flake.lock
+            modules/features/editor/_kotlin-lsp.nix
             update-output.log
             check-before.log
             check-after.log
@@ -203,16 +212,28 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add flake.lock
+          subject=''
+          body=''
+          if ! git diff --quiet flake.lock; then
+            git add flake.lock
+            subject='flake.lock: update flake inputs'
+            body+=$'\n\nFlake lock file updates:\n\n'"$(cat update-output.log)"
+          fi
           if [ "${{ steps.decide.outputs.hash-refreshed }}" = "true" ]; then
             git add modules/features/network/reverse-proxy.nix
-            subject='flake.lock: update flake inputs + refresh caddy plugin hash'
-            footer=$'\n\nCaddy plugin bundle hash auto-refreshed after the nixpkgs\nbump moved the underlying Caddy version. See reverse-proxy.nix.'
-          else
-            subject='flake.lock: update flake inputs'
-            footer=''
+            subject+=' + refresh caddy plugin hash'
+            body+=$'\n\nCaddy plugin bundle hash auto-refreshed after the nixpkgs\nbump moved the underlying Caddy version. See reverse-proxy.nix.'
           fi
-          git commit -m "$(printf '%s\n\nFlake lock file updates:\n\n%s%s' "$subject" "$(cat update-output.log)" "$footer")"
+          if [ "${{ needs.update.outputs.kotlin-lsp-bumped }}" = "true" ]; then
+            git add modules/features/editor/_kotlin-lsp.nix
+            if [ -n "$subject" ]; then
+              subject+=' + bump kotlin-lsp to ${{ needs.update.outputs.kotlin-lsp-new }}'
+            else
+              subject='kotlin-lsp: bump to ${{ needs.update.outputs.kotlin-lsp-new }}'
+            fi
+            body+=$'\n\nkotlin-lsp ${{ needs.update.outputs.kotlin-lsp-old }} -> ${{ needs.update.outputs.kotlin-lsp-new }}, the build the\nVS Code marketplace extension ships. See _kotlin-lsp.nix.'
+          fi
+          git commit -m "$subject$body"
           git push
           # Every configuration built before we got here, and a GITHUB_TOKEN
           # push raises no CI run to promote it, so advance green ourselves.
@@ -224,6 +245,10 @@ jobs:
           {
             echo 'body<<EOF'
             echo 'Automated flake input update.'
+            if [ "${{ needs.update.outputs.kotlin-lsp-bumped }}" = "true" ]; then
+              echo ''
+              echo 'kotlin-lsp bumped `${{ needs.update.outputs.kotlin-lsp-old }}` → `${{ needs.update.outputs.kotlin-lsp-new }}`.'
+            fi
             echo ''
             echo '### Updated inputs'
             echo '```'

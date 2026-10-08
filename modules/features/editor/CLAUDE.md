@@ -53,8 +53,11 @@ defines a `kotlin-lsp` server, but its `kotlin` language still points at the old
 one, so the language entry has to be overridden as well as the binary installed.
 
 These are EAP builds and **stop running about thirty days after they are cut**
-("This build of intellij-server has expired"), so the pin needs bumping roughly
-monthly. Two traps in doing that:
+("This build of intellij-server has expired") — and an expired build still
+*builds*, so nothing goes red. The `kotlin-lsp-bump` action does the bump on
+`update-flake.yml`'s cron; when it fails, that step is marked failed and the
+flake update goes ahead without it, so a pin that stops moving means the step
+below has broken. Two traps it encodes, for when it needs fixing:
 
 - **The GitHub releases lag the CDN by enough to be useless** — the newest tag is
   routinely already expired. Take the build number from the VS Code marketplace
