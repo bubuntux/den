@@ -59,8 +59,9 @@ monthly. Two traps in doing that:
 - **The GitHub releases lag the CDN by enough to be useless** — the newest tag is
   routinely already expired. Take the build number from the VS Code marketplace
   extension instead (`extension/server/build.txt` inside the `linux-x64` vsix of
-  `JetBrains.kotlin-server`), then fetch the standalone archive from the CDN path
-  the release notes use. It is published there before the tag exists.
+  `JetBrains.kotlin-server`), then fetch the standalone archive from the
+  `download.jetbrains.com` path the release notes use (`download-cdn` 404s). It
+  is published there before the tag exists.
 - Check `eap` and `date` in `idea/IntelliJServerApplicationInfo.xml`
   (`lib/language-server.main.jar`) to see how long a candidate build has left.
 
