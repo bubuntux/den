@@ -30,7 +30,7 @@
               "3"
             ];
           }
-          # Right external — landscape
+          # Right external — landscape, laptop beneath it
           {
             name = "Dell Inc. DELL U2722DE 1B5KV83";
             width = 2560;
@@ -40,14 +40,11 @@
               "5"
               "6"
               "7"
-              "8"
-              "9"
-              "10"
             ];
           }
           # Office external — single 1440p monitor, laptop stacked below it.
-          # Claims workspaces 4-10 like the home landscape display; the two are
-          # never connected at the same time, so no assignment conflict.
+          # Claims workspaces 4-10; the home externals are never connected at
+          # the same time, so no assignment conflict.
           {
             name = "Dell Inc. DELL U2724DE 2KT7QF4";
             width = 2560;
@@ -160,7 +157,8 @@
           laptop = [ "eDP-1" ];
           docked = {
             "Dell Inc. DELL U2722DE J85KV83" = "0,0";
-            "Dell Inc. DELL U2722DE 1B5KV83" = "1440,669";
+            "Dell Inc. DELL U2722DE 1B5KV83" = "1440,0";
+            "eDP-1" = "1440,1440";
           };
           # Office: external on top, laptop centered underneath it (the 1920px
           # panel centered under the 2560px external -> x = (2560-1920)/2 = 320).
