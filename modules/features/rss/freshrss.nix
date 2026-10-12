@@ -27,7 +27,7 @@
       services.freshrss = {
         enable = true;
         # Empty, because the domain only exists in the sops env file; FreshRSS
-        # then builds relative URLs, which is all a LAN-only instance needs.
+        # then builds relative URLs.
         baseUrl = "";
         passwordFile = config.sops.secrets.freshrss_password.path;
         api.enable = true;
@@ -53,6 +53,23 @@
       services.reverse-proxy.routes.freshrss = {
         inherit port;
         aliases = [ "rss" ];
+        public = true;
+        rateLimit.paths = [ "/api/greader.php/accounts/ClientLogin" ];
+        # The login form posts to a query string, which `rateLimit.paths` cannot match.
+        extraConfig = ''
+          rate_limit {
+            zone freshrss_form_login {
+              match {
+                method POST
+                path /i/ /i/index.php
+                query c=auth a=login
+              }
+              key {client_ip}
+              events 5
+              window 1m
+            }
+          }
+        '';
       };
 
       systemd.services."phpfpm-${config.services.freshrss.pool}".serviceConfig = resources;
