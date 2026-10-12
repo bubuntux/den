@@ -35,6 +35,63 @@
       * @return bool
       */
      public function isAccessible(string $url, array $headers = []): bool
+--- a/extension.php
++++ b/extension.php
+@@ -40,6 +40,7 @@
+         if (file_exists($filepath)) {
+             Minz_View::appendStyle($this->getFileUrl($filename, 'css'));
+         }
++        Minz_View::appendScript($this->getFileUrl('sync-audio.js', 'js'));
+ 
+         $this->settings = new Settings($this->getUserConfiguration());
+ 
+--- a/static/sync-audio.js
++++ b/static/sync-audio.js
+@@ -0,0 +1,44 @@
++'use strict';
++
++// v.redd.it serves video and audio as separate files. The audio element sits
++// inside the video, where browsers treat it as fallback content and never play it.
++(() => {
++	const audioOf = (target) =>
++		target instanceof HTMLVideoElement && target.classList.contains('reddit-image')
++			? target.querySelector(':scope > audio')
++			: null;
++
++	const start = (video, audio) => {
++		audio.currentTime = video.currentTime;
++		audio.play().catch(() => {});
++	};
++	const stop = (video, audio) => audio.pause();
++
++	const handlers = {
++		play: start,
++		playing: start,
++		pause: stop,
++		waiting: stop,
++		seeked: (video, audio) => {
++			audio.currentTime = video.currentTime;
++		},
++		volumechange: (video, audio) => {
++			audio.volume = video.volume;
++			audio.muted = video.muted;
++		},
++		ratechange: (video, audio) => {
++			audio.playbackRate = video.playbackRate;
++		},
++	};
++
++	// Media events do not bubble, so listen in the capture phase; this also
++	// covers entries FreshRSS loads after the page.
++	for (const [type, handler] of Object.entries(handlers)) {
++		document.addEventListener(type, (event) => {
++			const audio = audioOf(event.target);
++			if (audio !== null) {
++				handler(event.target, audio);
++			}
++		}, true);
++	}
++})();
 --- a/Transformer/Reddit/VideoTransformer.php
 +++ b/Transformer/Reddit/VideoTransformer.php
 @@ -11,6 +11,10 @@
