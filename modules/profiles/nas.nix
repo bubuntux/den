@@ -16,6 +16,7 @@
         crowdsec
         crowdsec-bouncers
         # forgejo
+        freshrss
         home-assistant-proxy
         immich
         jellyfin

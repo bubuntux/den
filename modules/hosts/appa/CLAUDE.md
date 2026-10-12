@@ -18,7 +18,7 @@ weights form one ladder that only makes sense read together:
 | 125 | crowdsec | ban decisions should stay timely under load |
 | 100 | immich | interactive browsing, above background work |
 | 75 | sonarr, radarr, prowlarr | library scans are background |
-| 50 | qbittorrent, bazarr | bulk, yields to everything |
+| 50 | qbittorrent, bazarr, freshrss | bulk, yields to everything |
 | 30 | restic | nightly backup window, yields hardest |
 
 `IOWeight` follows the same number. Two conventions go with it: memory caps are
