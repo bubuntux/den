@@ -1,0 +1,38 @@
+# bbtux's Home Manager environment on top of the official Nix image.
+#   podman build -t bbtux-env scripts/bootstrap/
+#   podman run -it --rm --userns=keep-id:uid=1000,gid=1000 -v "$PWD:/work" bbtux-env
+FROM docker.io/nixos/nix:latest
+
+ARG DEN_FLAKE=github:bubuntux/den
+ARG USERNAME=bbtux
+
+# The image's /etc files are links into the read-only store. Single-user Nix as
+# a non-root account: it owns /nix, so no build users.
+RUN for file in passwd group nix/nix.conf; do \
+      cp --remove-destination "$(readlink -f "/etc/$file")" "/etc/$file"; \
+      chmod u+w "/etc/$file"; \
+    done \
+ && printf '%s\n' \
+      'build-users-group =' \
+      'experimental-features = nix-command flakes' \
+      'extra-substituters = https://den.cachix.org https://helix.cachix.org https://nix-community.cachix.org https://devenv.cachix.org' \
+      'extra-trusted-public-keys = den.cachix.org-1:1/SPrWvkgbW6kD/tfSN/a7WkoVajMEw1znID8ja+Z1M= helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr+cv0M+/mB6Sto4=' \
+      >> /etc/nix/nix.conf \
+ && echo "${USERNAME}:x:1000:1000::/home/${USERNAME}:/bin/sh" >> /etc/passwd \
+ && echo "${USERNAME}:x:1000:" >> /etc/group \
+ && mkdir -p "/home/${USERNAME}" /work \
+ && chown -R 1000:1000 "/home/${USERNAME}" /work /nix
+
+USER ${USERNAME}
+ENV USER=${USERNAME} \
+    HOME=/home/${USERNAME} \
+    PATH=/home/${USERNAME}/.nix-profile/bin:${PATH}
+
+RUN system="$(nix eval --impure --raw --expr builtins.currentSystem)" \
+ && generation="$(nix build --impure --no-link --print-out-paths \
+      "${DEN_FLAKE}#homeConfigurations.bbtux-anywhere-${system}.activationPackage")" \
+ && HOME_MANAGER_BACKUP_EXT=bkp "${generation}/activate" \
+ && nix store gc
+
+WORKDIR /work
+CMD ["zsh", "-l"]

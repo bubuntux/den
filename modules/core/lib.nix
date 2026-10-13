@@ -13,4 +13,9 @@
       option.
     '';
   };
+
+  # Some attributes are null off Linux (libgcc on darwin), not just unsupported.
+  config.flake.lib.supportedPackages =
+    pkgs:
+    lib.filter (package: package != null && lib.meta.availableOn pkgs.stdenv.hostPlatform package);
 }

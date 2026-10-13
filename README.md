@@ -91,6 +91,15 @@ sudo nixos-rebuild switch --flake github:bubuntux/den#<hostname>
 sudo nixos-rebuild switch --flake .
 ```
 
+### bbtux anywhere (borrowed machines, test and cloud environments)
+
+bbtux's shell environment on Linux, macOS, Windows, or in a Docker/Podman
+container, with one command. See [`scripts/bootstrap/README.md`](scripts/bootstrap/README.md).
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bubuntux/den/main/scripts/bootstrap/bootstrap.sh | sh
+```
+
 ### Home Manager (non-NixOS)
 
 Install the developer environment on any Linux distro with Nix installed.

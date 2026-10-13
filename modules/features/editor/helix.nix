@@ -1,4 +1,4 @@
-{ inputs, ... }:
+{ self, inputs, ... }:
 {
   flake-file.inputs.helix.url = "github:helix-editor/helix";
 
@@ -45,36 +45,39 @@
             };
           };
         };
-        extraPackages = with pkgs; [
-          bash-language-server
-          yaml-language-server
+        extraPackages = self.lib.supportedPackages pkgs (
+          with pkgs;
+          [
+            bash-language-server
+            yaml-language-server
 
-          vscode-langservers-extracted
+            vscode-langservers-extracted
 
-          dockerfile-language-server
-          docker-compose-language-service
+            dockerfile-language-server
+            docker-compose-language-service
 
-          # gcc
-          lldb
-          libgcc
-          gcc
+            # gcc
+            lldb
+            libgcc
+            gcc
 
-          # Toml
-          taplo
+            # Toml
+            taplo
 
-          # Markdown
-          marksman
-          markdown-oxide
+            # Markdown
+            marksman
+            markdown-oxide
 
-          # Nix
-          nil
-          nixd
+            # Nix
+            nil
+            nixd
 
-          # Typst
-          tinymist
-          typstyle
+            # Typst
+            tinymist
+            typstyle
 
-        ];
+          ]
+        );
         languages.language = [
           {
             name = "bash";

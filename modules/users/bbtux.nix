@@ -1,5 +1,7 @@
 {
   self,
+  inputs,
+  lib,
   ...
 }:
 {
@@ -67,4 +69,51 @@
         };
       };
   };
+
+  # Standalone Home Manager for any machine (scripts/bootstrap/): built with
+  # --impure, since the account it lands on is whoever runs it.
+  flake.homeConfigurations = lib.listToAttrs (
+    map
+      (
+        system:
+        lib.nameValuePair "bbtux-anywhere-${system}" (
+          inputs.home-manager.lib.homeManagerConfiguration {
+            pkgs = import inputs.nixpkgs {
+              inherit system;
+              config.allowUnfree = true;
+            };
+            modules = with self.modules.homeManager; [
+              user-bbtux
+              bundle-base
+              profile-developer
+              zsh
+              nix
+              (
+                { lib, pkgs, ... }:
+                let
+                  requireEnv =
+                    name:
+                    let
+                      value = builtins.getEnv name;
+                    in
+                    if value == "" then throw "bbtux-anywhere: ${name} is unset; evaluate with --impure" else value;
+                in
+                {
+                  home.username = requireEnv "USER";
+                  home.homeDirectory = requireEnv "HOME";
+                  targets.genericLinux.enable = pkgs.stdenv.hostPlatform.isLinux;
+                  # The signing key lives on zuko, not on a borrowed machine.
+                  programs.jujutsu.settings.signing = lib.mkForce { };
+                }
+              )
+            ];
+          }
+        )
+      )
+      [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ]
+  );
 }

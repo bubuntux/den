@@ -36,29 +36,32 @@
           helix
         ];
 
-        home.packages = with pkgs; [
-          # File manager.
-          ranger
+        home.packages = self.lib.supportedPackages pkgs (
+          with pkgs;
+          [
+            # File manager.
+            ranger
 
-          # Process monitoring
-          bottom
-          htop
-          (self.lib.nvtop pkgs)
-          pv
+            # Process monitoring
+            bottom
+            htop
+            (self.lib.nvtop pkgs)
+            pv
 
-          # Request/parsers
-          httpie
-          jq
-          yq-go
+            # Request/parsers
+            httpie
+            jq
+            yq-go
 
-          # Archives
-          ouch
-          p7zip
-          rar
-          unzip
-          xz
-          zip
-        ];
+            # Archives
+            ouch
+            p7zip
+            rar
+            unzip
+            xz
+            zip
+          ]
+        );
 
         programs = {
           bash.enable = true;
