@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1791839944,
-        "narHash": "sha256-AFSqz3onDQimOKTu0SWYYveH2xawWsbvnvlykAVlVGc=",
+        "lastModified": 1791871803,
+        "narHash": "sha256-cL8cxwK4ZXO4U10gHewvaECIFxJ8MLIq21MzVaZjEF8=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "231eae2add1db7cb06af9b4784a715d2018c660d",
+        "rev": "a8e8edb1f80075238a77f7521554aecdb7c7c29b",
         "type": "github"
       },
       "original": {
@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1791851376,
-        "narHash": "sha256-2Qc3cMebUqlKaAj5kXWZDho74keu2Rr2UtrmZl2Gwqs=",
+        "lastModified": 1791889824,
+        "narHash": "sha256-ZnjRdxXrcQ9JDihNwmJBuskoXeQ0G7VMmBXicwTe5qk=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "d3290d1b8ceeda256ccb1949d0006eeb10d0ae26",
+        "rev": "5686d7484e65cb08b6e3b92f86d2ccffb415bdc0",
         "type": "gitlab"
       },
       "original": {
@@ -281,11 +281,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1791662279,
-        "narHash": "sha256-tM6MAMxVwetta6uD2aMzoWQ9v5EAaLLmYumiE4jVZeg=",
-        "rev": "6fcc160353f63555b560f25588925133c8f61f2a",
+        "lastModified": 1791765022,
+        "narHash": "sha256-TnALPKp8o/dtUYgE243iQMbRP4183ZPhWu33FD05k/4=",
+        "rev": "7993f34ee47e28a3d607a525aadc6c94b73be728",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.11680.6fcc160353f6/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.11767.7993f34ee47e/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
@@ -390,11 +390,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791490544,
-        "narHash": "sha256-qScE7Wz6Zg7eg8ItUpnkmKgst8weWschGe0E8jM4rj4=",
+        "lastModified": 1791885023,
+        "narHash": "sha256-C3alQ2MEt0zVrUSho5NUDo3jmhbff72++bfwoqT9Omo=",
         "owner": "numtide",
         "repo": "treefmt-nix",
-        "rev": "4cfe8d7065cc8ca91c0a50361b6dd74920eeb1f5",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
         "type": "github"
       },
       "original": {
