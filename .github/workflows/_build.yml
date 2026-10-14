@@ -46,10 +46,16 @@ jobs:
           echo "**NixOS hosts:** $(echo "$hosts" | jq -r 'map("`\(.)`") | join(", ")')" >> "$GITHUB_STEP_SUMMARY"
       - id: homes
         run: |
-          homes=$(nix eval .#homeConfigurations --apply 'builtins.attrNames' --json)
+          homes=$(nix eval .#homeConfigurations --json --apply \
+            'hs: map (name: { inherit name; system = hs.${name}.pkgs.stdenv.hostPlatform.system; }) (builtins.attrNames hs)' \
+            | jq -c 'map(. + { runner: ({
+                "x86_64-linux": "ubuntu-latest",
+                "aarch64-linux": "ubuntu-24.04-arm",
+                "aarch64-darwin": "macos-latest"
+              }[.system] // error("no runner for \(.system)")) })')
           echo "homes=$homes" >> "$GITHUB_OUTPUT"
           if [ "$(echo "$homes" | jq 'length')" -gt 0 ]; then
-            echo "**Home Manager:** $(echo "$homes" | jq -r 'map("`\(.)`") | join(", ")')" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Home Manager:** $(echo "$homes" | jq -r 'map("`\(.name)`") | join(", ")')" >> "$GITHUB_STEP_SUMMARY"
           else
             echo '**Home Manager:** none' >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -128,7 +134,8 @@ jobs:
           path: ~/.cache/nix
           key: nix-fetch-${{ matrix.host }}-${{ hashFiles('flake.lock') }}
   homes:
-    runs-on: ubuntu-latest
+    name: homes (${{ matrix.home.name }})
+    runs-on: ${{ matrix.home.runner }}
     needs: discover
     if: ${{ fromJSON(needs.discover.outputs.homes)[0] != null }}
     strategy:
@@ -148,6 +155,7 @@ jobs:
           name: den
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - name: Free disk space
+        if: runner.os == 'Linux'
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
           tool-cache: true
@@ -162,15 +170,15 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/nix
-          key: nix-fetch-${{ matrix.home }}-${{ hashFiles('flake.lock') }}
+          key: nix-fetch-${{ matrix.home.name }}-${{ hashFiles('flake.lock') }}
           restore-keys: |
-            nix-fetch-${{ matrix.home }}-
+            nix-fetch-${{ matrix.home.name }}-
             nix-fetch-
       - name: Build Home Manager configuration
         run: |
           set -o pipefail
-          echo "### Home Manager: \`${{ matrix.home }}\`" >> "$GITHUB_STEP_SUMMARY"
-          if nix build ".#homeConfigurations.${{ matrix.home }}.activationPackage" 2>&1 | tee build.log; then
+          echo "### Home Manager: \`${{ matrix.home.name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if nix build ".#homeConfigurations.${{ matrix.home.name }}.activationPackage" 2>&1 | tee build.log; then
             echo ':white_check_mark: Build succeeded' >> "$GITHUB_STEP_SUMMARY"
             store_path=$(readlink -f result)
             echo "- **Store path:** \`$store_path\`" >> "$GITHUB_STEP_SUMMARY"
@@ -185,11 +193,11 @@ jobs:
         if: failure() && inputs.upload-error-logs
         uses: actions/upload-artifact@v7
         with:
-          name: error-hm-${{ matrix.home }}
+          name: error-hm-${{ matrix.home.name }}
           path: build.log
       - name: Save Nix fetcher cache
         if: always() && steps.nix-fetch-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/nix
-          key: nix-fetch-${{ matrix.home }}-${{ hashFiles('flake.lock') }}
+          key: nix-fetch-${{ matrix.home.name }}-${{ hashFiles('flake.lock') }}
