@@ -19,7 +19,7 @@ weights form one ladder that only makes sense read together:
 | 100 | immich | interactive browsing, above background work |
 | 75 | sonarr, radarr, prowlarr | library scans are background |
 | 50 | qbittorrent, bazarr, freshrss | bulk, yields to everything |
-| 30 | restic | nightly backup window, yields hardest |
+| 30 | restic, gickup | nightly backup window, yields hardest |
 
 `IOWeight` follows the same number. Two conventions go with it: memory caps are
 **percentages**, so they scale with a RAM upgrade rather than needing a revisit
