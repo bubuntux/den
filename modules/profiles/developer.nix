@@ -8,6 +8,7 @@
         key = "den:homeManager.profile-developer";
         imports = with self.modules.homeManager; [
           bundle-base
+          antigravity-cli
           claude-code
           devenv
           difftastic
