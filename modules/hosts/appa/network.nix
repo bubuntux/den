@@ -3,7 +3,7 @@
   flake.modules.nixos.appa = {
     key = "den:nixos.appa#network";
 
-    den.lanOnly = false;
+    den.lanOnly = true;
 
     # Static ULA on eno1, in addition to SLAAC-derived ULA and public
     # global addresses. Gives services a stable, short internal address

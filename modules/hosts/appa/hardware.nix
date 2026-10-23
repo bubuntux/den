@@ -78,16 +78,14 @@
 
       # --- Headless: disable plymouth, show boot messages ---
       boot.plymouth.enable = lib.mkForce false;
-      # reboot=pci forces the CF9h PCI-reset path. The default ACPI/EFI
-      # reboot hangs this ASRock J5040-ITX (BIOS P1.60) on warm reboot --
-      # the firmware fails to re-POST and the box never comes back (the
-      # 2026-06-07 incident documented at system.autoUpgrade in default.nix).
-      # CF9h drives a full reset the firmware handles reliably. Validate with
-      # one attended `sudo reboot` after deploying; if it still hangs, fall
-      # back to reboot=acpi, then reboot=cold.
+      # This ASRock J5040-ITX (BIOS P1.60) can fail to re-POST on a warm
+      # reboot and never come back (2026-06-07, see system.autoUpgrade in
+      # default.nix). reboot=pci (CF9h reset) still hung on 2026-10-23, so
+      # this pins the ACPI reset register instead. Validate with one attended
+      # `sudo reboot` after deploying; if it still hangs, try reboot=cold.
       boot.kernelParams = lib.mkForce [
         "boot.shell_on_fail"
-        "reboot=pci"
+        "reboot=acpi"
       ];
       boot.consoleLogLevel = lib.mkForce 3;
     };
