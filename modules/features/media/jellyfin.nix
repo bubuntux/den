@@ -1,7 +1,7 @@
-{ self, ... }:
+{ self, inputs, ... }:
 {
   flake.modules.nixos.jellyfin =
-    _:
+    { pkgs, ... }:
     # Upstream services.jellyfin module has no port option; these are the
     # hard-coded HTTP/HTTPS ports baked into the Jellyfin binary.
     let
@@ -15,6 +15,13 @@
       services.jellyfin = {
         enable = true;
         openFirewall = true;
+        # 10.11 gets no fix for the 2026-09 advisories (GHSA-hw73-62vp-9gxf);
+        # 12.x is unstable-only, and its database migration is one-way. The
+        # module is compatible across channels, so only the package crosses.
+        package =
+          (import inputs.nixpkgs-unstable {
+            inherit (pkgs.stdenv.hostPlatform) system;
+          }).jellyfin;
       };
 
       # `render` owns /dev/dri/renderD128 (GPU compute / VA-API), `video` owns
