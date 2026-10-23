@@ -16,6 +16,7 @@
       sudo-rs
       ntpd-rs
       dirty-frag-mitigation
+      lan-only
       zsh
     ];
   };
