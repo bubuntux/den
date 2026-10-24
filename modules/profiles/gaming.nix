@@ -71,6 +71,8 @@
         # Desktop entry for Steam with gamemode
         steam-gamemode-desktop
 
+        discord-ptb
+
         (import inputs.nixpkgs-unstable {
           inherit (pkgs.stdenv.hostPlatform) system;
         }).shattered-pixel-dungeon
