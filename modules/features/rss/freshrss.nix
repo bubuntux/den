@@ -31,14 +31,7 @@
         baseUrl = "";
         passwordFile = config.sops.secrets.freshrss_password.path;
         api.enable = true;
-        extensions = [
-          # Reddit answers the post's .json with 403 to anonymous clients, so
-          # v.redd.it videos are resolved from their HLS playlist instead, with
-          # a script playing their separate audio track alongside.
-          (pkgs.freshrss-extensions.reddit-image.overrideAttrs (old: {
-            patches = (old.patches or [ ]) ++ [ ./reddit-image-hls-video.patch ];
-          }))
-        ];
+        extensions = [ pkgs.freshrss-extensions.reddit-image ];
         webserver = "caddy";
         # Caddy proxies to itself: the wildcard site in reverse-proxy.nix keeps
         # the TLS, CrowdSec and LAN filtering, and this one only speaks FastCGI.
