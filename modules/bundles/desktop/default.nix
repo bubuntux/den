@@ -98,6 +98,8 @@ in
           qpwgraph # PipeWire patchbay (route audio to multiple devices)
           gimp-with-plugins # image editor
           simple-scan # scanner
+
+          music-assistant-desktop
         ];
       };
 
