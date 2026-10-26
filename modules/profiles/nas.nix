@@ -21,6 +21,7 @@
         home-assistant-proxy
         immich
         jellyfin
+        music-assistant-proxy
         openssh
         plex
         podman
