@@ -29,7 +29,8 @@ in
           status = if m.enabled then "enable" else "disable";
           mode = "${toString m.width}x${toString m.height}";
         }
-        // (if m.transform != null then { transform = m.transform; } else { });
+        // (if m.transform != null then { transform = m.transform; } else { })
+        // (if m.scale != null then { scale = m.scale; } else { });
       };
 
       # Every profile must account for the internal panel, because kanshi

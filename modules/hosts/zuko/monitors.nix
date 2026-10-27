@@ -114,6 +114,7 @@
             name = "Dell Inc. DELL U2725QE 2KZMGJ4";
             width = 3840;
             height = 2160;
+            scale = 1.5;
             transform = "270";
             workspaces = [
               "1"
@@ -126,6 +127,7 @@
             name = "Dell Inc. DELL U2725QE 6KZMGJ4";
             width = 3840;
             height = 2160;
+            scale = 1.5;
             workspaces = [
               "4"
               "5"

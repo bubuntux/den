@@ -39,9 +39,10 @@ in
               description = "Refresh rate in Hz";
             };
             scale = mkOption {
-              type = types.float;
-              default = 1.0;
-              description = "Scale factor";
+              type = types.nullOr types.float;
+              default = null;
+              example = 1.5;
+              description = "Scale factor; null leaves it to the compositor's own HiDPI guess";
             };
             transform = mkOption {
               type = types.nullOr types.str;
