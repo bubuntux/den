@@ -210,7 +210,7 @@
               "github.com/hslatman/caddy-crowdsec-bouncer@v0.13.1"
               "github.com/mholt/caddy-ratelimit@v0.1.0"
             ];
-            hash = "sha256-vkc/F5zEKgCkmYbhie1FYr2gs4tgzl8ny/fOjuSKsO0=";
+            hash = "sha256-BnNs7jJdaBS01Vi2ycIZydyOfb1s7Mnm6rs1Wj1tZc8=";
           };
 
           environmentFile = config.sops.secrets.caddy_env.path;
