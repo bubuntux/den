@@ -34,9 +34,9 @@
     # reads `gpu-offload %command%` whatever the machine.
     hardware.nvidia.prime.offload.offloadCmdMainProgram = "gpu-offload";
 
-    # Profiles install the environments; the host picks the greeter. No
-    # defaultSession: Sway is the only session here.
     den.desktop.loginManager = "greetd";
+    den.desktop.environments = [ "niri" ];
+    services.displayManager.defaultSession = "sway";
 
     home-manager.users.bbtux = {
       imports = [ self.modules.homeManager.vault ];

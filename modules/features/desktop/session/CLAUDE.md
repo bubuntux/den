@@ -262,10 +262,10 @@ anchors, no `session-wayland`, no session command.
 
 ## The niri session
 
-katara's third session, and the second bare compositor. **It is on trial**, which
-is why `den.desktop.environments = [ "niri" ]` sits in `hosts/katara/default.nix`
+zuko's second session, and the second bare compositor. **It is on trial**, which
+is why `den.desktop.environments = [ "niri" ]` sits in `hosts/zuko/default.nix`
 rather than in a profile: the option merges, so a host can add one on top of what
-its roles install, and zuko shares `profile-workstation` and should not pay for
+its roles install, and katara shares `profile-workstation` and should not pay for
 this. Move it into a profile if and when it stops being an experiment.
 
 **The keybindings are deliberately upstream's**, transcribed from niri's own
@@ -343,7 +343,7 @@ One loose end worth knowing rather than fixing:
   sway/hyprland only, and `supportedBy` in `features/desktop/ironbar.nix` drops a
   module the moment one installed session cannot back it. That was predicted in
   **Choosing a bar** (`../CLAUDE.md`) before niri existed, and it is now what actually happens on
-  katara. waybar is unaffected — it builds one bar per session.
+  any host that also installs ironbar. waybar is unaffected — it builds one bar per session.
 
 The package's own `niri.service` and `niri-shutdown.target` are installed by
 nixpkgs' `systemd.packages` and are inert: `niri.service` has no `[Install]`
