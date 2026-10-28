@@ -72,16 +72,6 @@
           Install.WantedBy = [ anchor ];
         };
 
-        # The one idle timeout that cannot be shared; the list merges with
-        # session/wayland.nix. No resumeCommand: niri powers the outputs back on
-        # by itself at the next input event.
-        services.swayidle.timeouts = [
-          {
-            timeout = 360;
-            command = "${lib.getExe pkgs.niri} msg action power-off-monitors";
-          }
-        ];
-
         # Screen capture goes through xdg-desktop-portal-gnome, which is the
         # backend niri implements (its `xdp-gnome-screencast` build feature); the
         # shared layer sets enable, the fallback and gtk.

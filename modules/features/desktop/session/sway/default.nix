@@ -134,16 +134,6 @@ in
           };
         };
 
-        # The one idle timeout that cannot be shared; the list merges with
-        # session/wayland.nix.
-        services.swayidle.timeouts = [
-          {
-            timeout = 360;
-            command = "${pkgs.sway}/bin/swaymsg 'output * power off'";
-            resumeCommand = "${pkgs.sway}/bin/swaymsg 'output * power on'";
-          }
-        ];
-
         # Adds only what is specific to wlroots screen capture; the shared
         # layer sets enable, the fallback and gtk.
         xdg.portal = {

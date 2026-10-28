@@ -38,11 +38,13 @@
     # without two profiles fighting over one value.
     den.desktop.environments = [ "sway" ];
 
-    # Both workstations dock in clamshell (lid closed): never suspend on the lid.
-    # (The lid switch is also disabled in the BIOS so the internal panel stays
-    # available; this is the OS-side belt-and-suspenders.) swayidle still
-    # suspends on idle (battery only) as the real sleep trigger. Host policy, so
-    # it lives here rather than in the sway session module.
-    services.logind.settings.Login.HandleLidSwitch = "ignore";
+    # Both workstations dock in clamshell (lid closed), so the lid must not
+    # suspend them on AC. (The lid switch is also disabled in the BIOS so the
+    # internal panel stays available; this is the OS-side belt-and-suspenders.)
+    # On battery the plain HandleLidSwitch default of "suspend" stands, and it
+    # is the only thing that sleeps these machines now that swayidle carries no
+    # timeouts. Host policy, so it lives here rather than in the sway session
+    # module.
+    services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
   };
 }

@@ -179,7 +179,6 @@
           { type = "volume"; }
           { type = "battery"; }
           { type = "brightness"; }
-          { type = "inhibit"; }
           {
             type = "label";
             name = "power-profile";

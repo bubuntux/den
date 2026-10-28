@@ -80,9 +80,9 @@ Five more things that shaped the ironbar file:
   the moment a host installs a session that cannot serve it. katara installs
   niri, so its ironbar has no mode indicator, and no file was edited to make
   that so.
-- **Native modules replace three of waybar's four exec widgets**: `brightness`
-  for `custom/backlight`, `inhibit` for `custom/idle-inhibitor`, and `sys_info`
-  for cpu, memory *and* `custom/temp`. Note `{temp_c}` with no sensor reduces
+- **Native modules replace two of waybar's three exec widgets**: `brightness`
+  for `custom/backlight`, and `sys_info` for cpu, memory *and* `custom/temp`.
+  Note `{temp_c}` with no sensor reduces
   with `max`, so it is the hottest sensor on the board, not waybar's package
   reading — expect a couple of degrees' difference. Nothing replaces `privacy`,
   `gamemode` or `sway/scratchpad`.
@@ -261,8 +261,8 @@ den.session.bar.sway = {
 ```
 
 `modules` leads `modules-left`; `settings` merges over the shared bar. Everything
-else — GPU, temperature, weather, clock, tray, the swayidle toggle — is written
-once and read by every session.
+else — GPU, temperature, weather, clock, tray — is written once and read by every
+session.
 
 **Each entry gets a config and a systemd user unit of its own**, started by that
 session's anchor and nothing else. That is forced by Home Manager, not chosen:
@@ -401,9 +401,9 @@ idle.
 
 Neighbours must not share a hue family, which is the whole reason `#wireplumber`
 is `@mauve` (it sits immediately right of the GPU) and `#power-profiles-daemon`
-is `@teal`. Colours still repeat *across* regions — `@lavender` on scratchpad,
-clock and the idle inhibitor; `@mauve` on mpris and wireplumber; `@teal` on
-weather and ppd — which is fine, as they are never adjacent.
+is `@teal`. Colours still repeat *across* regions — `@lavender` on scratchpad and
+clock; `@mauve` on mpris and wireplumber; `@teal` on weather and ppd — which is
+fine, as they are never adjacent.
 
 Icons get checked by rendering rather than by reading codepoints:
 

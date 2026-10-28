@@ -88,7 +88,7 @@ changed two things and is worth knowing before wiring anything by hand:
 - **Anything with an autostart entry needs no wiring from us.** `blueman-applet`
   used to be bound to the anchors here because a bare Sway had no autostart; once
   uwsm arrived that became a *second* copy of the applet. Only things with no
-  entry at all — the geoclue agent, the idle inhibitor — are bound explicitly.
+  entry at all — the geoclue agent, niri's wallpaper — are bound explicitly.
 - **Entries meant for "any desktop but GNOME" now apply.** `ibus-daemon.desktop`
   is `NotShowIn=GNOME;KDE`, so installing GNOME on a host puts IBus in the Sway
   session, notification and all. `session/wayland.nix` hides it with a user-level
@@ -337,14 +337,8 @@ Eight things about this session that are not visible in the file:
   gtk, which is what `session/wayland.nix` already asks for and what a session using
   thunar wants.
 
-Two loose ends worth knowing rather than fixing:
+One loose end worth knowing rather than fixing:
 
-- **`swayidle` now carries both compositors' blanking commands.** It is one unit on
-  `den-session.target`, and each session appends its own timeout — `swaymsg 'output * power off'`
-  and `niri msg action power-off-monitors` — so on katara both fire at 360s and the
-  one whose socket is absent exits non-zero and does nothing. Harmless, and noisy in
-  the journal. The clean fix is a per-session idle-command registry keyed like
-  `den.session.anchors`; not worth it for one line until a third bare session shows up.
 - **ironbar loses its mode indicator on any host that installs niri.** `bindmode` is
   sway/hyprland only, and `supportedBy` in `features/desktop/ironbar.nix` drops a
   module the moment one installed session cannot back it. That was predicted in

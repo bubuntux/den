@@ -207,29 +207,9 @@
           "wireplumber"
           "battery"
           "custom/backlight"
-          "custom/idle-inhibitor"
           "power-profiles-daemon"
           "tray"
         ];
-
-        "custom/idle-inhibitor" = {
-          exec = pkgs.writeShellScript "waybar-idle-inhibitor" ''
-            if ${pkgs.systemd}/bin/systemctl --user is-active swayidle.service &>/dev/null; then
-              echo '{"text":"󰾫","tooltip":"Idle inhibitor: inactive","class":"deactivated"}'
-            else
-              echo '{"text":"󰛊","tooltip":"Idle inhibitor: active","class":"activated"}'
-            fi
-          '';
-          on-click = pkgs.writeShellScript "waybar-idle-inhibitor-toggle" ''
-            if ${pkgs.systemd}/bin/systemctl --user is-active swayidle.service &>/dev/null; then
-              ${pkgs.systemd}/bin/systemctl --user stop swayidle.service
-            else
-              ${pkgs.systemd}/bin/systemctl --user start swayidle.service
-            fi
-          '';
-          return-type = "json";
-          interval = 5;
-        };
 
         tray = {
           spacing = 5;
@@ -474,7 +454,6 @@
         #custom-weather-f,
         #custom-weather-c,
         #custom-gpu,
-        #custom-idle-inhibitor,
         #power-profiles-daemon,
         #cpu,
         #memory,
@@ -499,7 +478,6 @@
         #clock:hover,
         #battery:hover,
         #power-profiles-daemon:hover,
-        #custom-idle-inhibitor:hover,
         #custom-weather-f:hover,
         #custom-weather-c:hover,
         #custom-gpu:hover,
@@ -560,15 +538,6 @@
         /* --- Clock --- */
         #clock {
           color: @lavender;
-        }
-
-        /* --- Idle inhibitor --- */
-        #custom-idle-inhibitor.activated {
-          color: @lavender;
-        }
-
-        #custom-idle-inhibitor.deactivated {
-          color: @subtext0;
         }
 
         /* --- Battery --- */

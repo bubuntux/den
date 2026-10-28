@@ -452,7 +452,6 @@
           companions = [
             "gammastep"
             "geoclue-agent"
-            "idle-inhibit-init"
             "kanshi"
             "network-manager-applet"
             "swayidle"

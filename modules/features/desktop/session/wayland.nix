@@ -35,7 +35,6 @@
           session-options
           kanshi
           thunar
-          power-profile-auto
         ];
 
         # Rebinds kanshi, swayidle, clipman, dunst and ~30 other Wayland
@@ -62,24 +61,15 @@
           };
         };
 
+        # No timeouts: this answers logind and nothing else, so nothing locks,
+        # blanks or suspends on a timer, while `loginctl lock-session` and a
+        # resume from suspend still land on a locked screen.
         services.swayidle = {
           enable = true;
           events = {
             before-sleep = "${swaylock} -f";
             lock = "${swaylock} -f";
           };
-          # Blanking outputs is the compositor's own call, so each session
-          # appends that timeout; these two work anywhere.
-          timeouts = [
-            {
-              timeout = 300;
-              command = "${swaylock} -f";
-            }
-            {
-              timeout = 900;
-              command = "${pkgs.systemd}/bin/systemctl suspend";
-            }
-          ];
         };
 
         services.mako = {
