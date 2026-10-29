@@ -32,6 +32,14 @@ in
   // ghostty's `window-decoration = server` draw no titlebar here.
   prefer-no-csd
 
+  layout {
+      gaps 6
+
+      focus-ring {
+          width 3
+      }
+  }
+
   // Pinned rather than left to niri's default of a bare "xwayland-satellite" on
   // PATH: a lookup that misses disables X11 with only a line in the journal.
   xwayland-satellite {
