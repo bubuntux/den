@@ -269,13 +269,13 @@ its roles install, and katara shares `profile-workstation` and should not pay fo
 this. Move it into a profile if and when it stops being an experiment.
 
 **The keybindings are deliberately upstream's**, transcribed from niri's own
-`resources/default-config.kdl` (in the package's `doc` output) with four changes
-and no more: the terminal and launcher spawn what this repo installs, the lock key
-goes through logind, and the orca screen-reader bind is dropped because orca is not
-installed and a bind to a missing binary is the silent-failure shape this repo
-rejects. So **`Mod+T` opens a terminal and `Mod+Q` closes a window** — niri's
-bindings, not sway's `Mod+Return`/`Mod+Shift+Q`. Do not "fix" that to match sway
-without being asked; it is the point of the first pass.
+`resources/default-config.kdl` (in the package's `doc` output) with five changes
+and no more: the terminal and launcher spawn what this repo installs, the terminal
+is on `Mod+Return` rather than `Mod+T`, the lock key goes through logind, and the
+orca screen-reader bind is dropped because orca is not installed and a bind to a
+missing binary is the silent-failure shape this repo rejects. So **`Mod+Q` closes
+a window** — niri's binding, not sway's `Mod+Shift+Q`. Do not "fix" the rest to
+match sway without being asked; it is the point of the first pass.
 
 Eight things about this session that are not visible in the file:
 

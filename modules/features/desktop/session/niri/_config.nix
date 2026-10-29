@@ -24,6 +24,8 @@ in
           tap
           natural-scroll
       }
+
+      focus-follows-mouse max-scroll-amount="0%"
   }
 
   // niri serves org_kde_kwin_server_decoration, so this is what makes
@@ -58,7 +60,7 @@ in
   binds {
       Mod+Shift+Slash { show-hotkey-overlay; }
 
-      Mod+T hotkey-overlay-title="Open a Terminal" { spawn "${terminal}"; }
+      Mod+Return hotkey-overlay-title="Open a Terminal" { spawn "${terminal}"; }
       Mod+D hotkey-overlay-title="Run an Application" { spawn-sh "${menu}"; }
       // logind's Lock signal, so the locker stays session/wayland.nix's business.
       Super+Alt+L hotkey-overlay-title="Lock the Screen" { spawn "${loginctl}" "lock-session"; }
