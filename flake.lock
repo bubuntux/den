@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1793291474,
-        "narHash": "sha256-CPZ5pQfm+woXcCcijCegeKLS/GNgkxJdrk+ZD+ACyx8=",
+        "lastModified": 1793311066,
+        "narHash": "sha256-1pUtCFtpdvidqMSvtTZj4w5XWYwA5g61Vjxgwv5+k+0=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "96a27f273291299666bcc004c7b19f27e7d9986a",
+        "rev": "680822ff2ff7c6e486970f285c90f35b0d0dcc0a",
         "type": "github"
       },
       "original": {
@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1793312507,
-        "narHash": "sha256-3ly49H0iojhikm3sB0P5GpczOzJ8mpExU9RDv6AyI44=",
+        "lastModified": 1793351901,
+        "narHash": "sha256-OyYgnuOWi113STgOxc5RLAEaI3JzRMOb42nGvDdb4S0=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "69749c22ad01565341d19355aca006d66e10aa0b",
+        "rev": "037d3642ae42426f430a6534a1475c391f220bce",
         "type": "gitlab"
       },
       "original": {
@@ -224,11 +224,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1793236063,
-        "narHash": "sha256-jGFe4xdrCw6xpgH2zgKwslACyt/NGuPwGILPEMFxmcQ=",
+        "lastModified": 1793355509,
+        "narHash": "sha256-/Zs18x+IW4LuVH0rKxra0WPRgsk0DQsi0Bwkf8sOC5c=",
         "owner": "nixos",
         "repo": "nixos-hardware",
-        "rev": "b6754c901c21478fd8450d62101e712b2a4f0d75",
+        "rev": "04c6b94fa104bc23650983a4513aea196794d321",
         "type": "github"
       },
       "original": {
@@ -281,11 +281,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1793183032,
-        "narHash": "sha256-/nYLRqlw7vEj2bua2U3aAjF4Jqkd6RxpO+xACfKkldE=",
-        "rev": "08d3a97586f6b6343b3b5e799980773629432610",
+        "lastModified": 1793294725,
+        "narHash": "sha256-X+Mp4wtwS+b17lw2puLuzn9e63ZrMKFucvlIUG7xf8I=",
+        "rev": "6f06d204d8f2d8761d9da78778745974a3216381",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.13050.08d3a97586f6/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixos/26.05/nixos-26.05.13164.6f06d204d8f2/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
