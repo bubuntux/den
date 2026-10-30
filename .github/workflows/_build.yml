@@ -137,6 +137,7 @@ jobs:
     name: homes (${{ matrix.home.name }})
     runs-on: ${{ matrix.home.runner }}
     needs: discover
+    timeout-minutes: 60
     if: ${{ fromJSON(needs.discover.outputs.homes)[0] != null }}
     strategy:
       fail-fast: ${{ inputs.fail-fast }}

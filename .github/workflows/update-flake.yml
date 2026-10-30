@@ -137,8 +137,11 @@ jobs:
       always() && needs.update.outputs.changed == 'true'
     steps:
       # Full history: fast-forwarding green needs to see it in main's ancestry.
+      # Pinned to the commit `update` built against: with fetch-depth 0 checkout
+      # otherwise takes main's tip, which may have moved since.
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
@@ -234,7 +237,9 @@ jobs:
             body+=$'\n\nkotlin-lsp ${{ needs.update.outputs.kotlin-lsp-old }} -> ${{ needs.update.outputs.kotlin-lsp-new }}, the build the\nVS Code marketplace extension ships. See _kotlin-lsp.nix.'
           fi
           git commit -m "$subject$body"
-          git push
+          # HEAD is detached at the built commit, so a main that moved since
+          # rejects this as non-fast-forward and green below is never reached.
+          git push origin HEAD:refs/heads/main
           # Every configuration built before we got here, and a GITHUB_TOKEN
           # push raises no CI run to promote it, so advance green ourselves.
           git push origin HEAD:refs/heads/green
@@ -312,6 +317,7 @@ jobs:
         if: steps.decide.outputs.action == 'pr'
         uses: peter-evans/create-pull-request@v8
         with:
+          base: main
           commit-message: "chore: update flake inputs"
           title: >-
             chore: update flake inputs (${{ steps.decide.outputs.reason == 'check-failure' && 'check failure' || steps.decide.outputs.reason == 'build-failure' && 'build failure' || 'new warnings' }})
