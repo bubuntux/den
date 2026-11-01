@@ -9,80 +9,13 @@
     }:
     let
       settingsFile = (pkgs.formats.json { }).generate "antigravity-cli-settings.json" {
+        mode = "auto";
         notifications = true;
         showTips = true;
         showFeedbackSurvey = false;
         enableTelemetry = false;
 
         permissions = {
-          allow = [
-            "read_file(*)"
-            "read_url(*)"
-
-            "mcp(nixos/nix)"
-            "mcp(nixos/nix_versions)"
-
-            "command(grep)"
-            "command(rg)"
-            "command(sed -n)"
-
-            "command(jj st)"
-            "command(jj status)"
-            "command(jj diff)"
-            "command(jj log)"
-            "command(jj show)"
-            "command(jj evolog)"
-            "command(jj op log)"
-            "command(jj file list)"
-            "command(jj bookmark list)"
-
-            "command(git log)"
-            "command(git show)"
-            "command(git status)"
-            "command(git diff)"
-            "command(git branch)"
-            "command(git tag)"
-            "command(git remote)"
-            "command(git rev-parse)"
-            "command(git ls-files)"
-            "command(git blame)"
-            "command(git pull)"
-            "command(git fetch)"
-
-            "command(ls)"
-            "command(tree)"
-            "command(wc)"
-            "command(file)"
-            "command(stat)"
-
-            "command(nix flake show)"
-            "command(nix flake metadata)"
-            "command(nix eval)"
-            "command(nix search)"
-            "command(nix path-info)"
-            "command(nix --version)"
-            "command(nix build)"
-            "command(nix flake check)"
-            "command(nix fmt)"
-
-            "command(journalctl)"
-            "command(systemctl status)"
-            "command(systemctl list-units)"
-            "command(systemctl --user status)"
-            "command(systemctl --user list-units)"
-          ];
-
-          ask = [
-            "command(git push)"
-            "command(jj git push)"
-            "command(gh pr create)"
-            "command(gh pr merge)"
-
-            "command(sudo nixos-rebuild)"
-            "command(nix-collect-garbage)"
-            "command(sudo nix-collect-garbage)"
-          ];
-
           # Denying read_file also denies write_file on the same path.
           deny = [
             "read_file(**/.env)"
