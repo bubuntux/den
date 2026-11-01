@@ -20,6 +20,8 @@
 
         confirm-close-surface = false;
         resize-overlay = "never";
+        app-notifications = "no-clipboard-copy";
+        copy-on-select = false;
 
         # Only the window: tabs and splits have keys of their own, and keep
         # inheriting. See CLAUDE.md, "Choosing a terminal".
