@@ -17,19 +17,35 @@
 
         permissions = {
           # Denying read_file also denies write_file on the same path.
-          # Literal paths only: the terminal sandbox rejects globs here
-          # ("globs not supported") and then refuses to run any command.
-          deny = [
-            "read_file(~/.ssh/)"
-            "read_file(~/.gnupg/)"
+          # Absolute literal paths only: the terminal sandbox rejects globs
+          # ("globs not supported") and `~` ("non-absolute file path"), and
+          # then refuses to run any command.
+          deny =
+            map (path: "read_file(${config.home.homeDirectory}/${path})") [
+              ".ssh/"
+              ".gnupg/"
 
-            "read_file(~/.netrc)"
-            "read_file(~/.npmrc)"
-            "read_file(~/.docker/config.json)"
-            "read_file(~/.aws/)"
-            "read_file(~/.kube/config)"
-            "read_file(~/.config/gh/hosts.yml)"
-          ];
+              ".netrc"
+              ".npmrc"
+              ".docker/config.json"
+              ".aws/"
+              ".kube/config"
+              ".config/gh/hosts.yml"
+              ".claude/.credentials.json"
+
+              # Keyrings and certificate stores
+              ".local/share/keyrings/"
+              ".pki/"
+
+              # Browser profiles (cookies, saved logins)
+              ".mozilla/"
+              ".config/google-chrome/"
+              ".config/chromium/"
+            ]
+            ++ [
+              # sops-nix decrypted secrets
+              "read_file(/run/secrets/)"
+            ];
         };
       };
     in
