@@ -30,7 +30,6 @@
               ".docker/config.json"
               ".aws/"
               ".kube/config"
-              ".config/gh/hosts.yml"
               ".claude/.credentials.json"
 
               # Keyrings and certificate stores
