@@ -9,7 +9,7 @@
     }:
     let
       settingsFile = (pkgs.formats.json { }).generate "antigravity-cli-settings.json" {
-        mode = "auto";
+        agentMode = "auto";
         notifications = true;
         showTips = true;
         showFeedbackSurvey = false;
@@ -17,24 +17,11 @@
 
         permissions = {
           # Denying read_file also denies write_file on the same path.
+          # Literal paths only: the terminal sandbox rejects globs here
+          # ("globs not supported") and then refuses to run any command.
           deny = [
-            "read_file(**/.env)"
-            "read_file(**/.env.*)"
-            "read_file(**/secrets/**)"
-
             "read_file(~/.ssh/)"
             "read_file(~/.gnupg/)"
-            "read_file(**/id_rsa*)"
-            "read_file(**/id_ed25519*)"
-            "read_file(**/id_ecdsa*)"
-
-            "read_file(**/*.pem)"
-            "read_file(**/*.key)"
-            "read_file(**/*.p12)"
-            "read_file(**/*.pfx)"
-            "read_file(**/*.age)"
-            "read_file(**/*.gpg)"
-            "read_file(**/*.asc)"
 
             "read_file(~/.netrc)"
             "read_file(~/.npmrc)"
