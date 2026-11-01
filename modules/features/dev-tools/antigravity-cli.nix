@@ -16,6 +16,33 @@
         enableTelemetry = false;
 
         permissions = {
+          allow = [
+            # Let `gh` read its config and reach GitHub inside the sandbox, and
+            # auto-approve direct `gh` commands if run outside the sandbox.
+            "read_file(${config.home.homeDirectory}/.config/gh/)"
+            "read_url(https://api.github.com)"
+            "read_url(https://github.com)"
+            "command(gh)"
+
+            # Match `mcpServers.nixos` configured below.
+            "mcp(nixos/nix)"
+            "mcp(nixos/nix_versions)"
+          ];
+
+          # Hard checkpoints (`deny > ask > allow`): force a prompt even in
+          # `auto` mode, and override `command(gh)` above for PR/repo mutations.
+          ask = [
+            "command(git push)"
+            "command(jj git push)"
+            "command(gh pr create)"
+            "command(gh pr merge)"
+            "command(gh repo delete)"
+
+            "command(sudo nixos-rebuild)"
+            "command(nix-collect-garbage)"
+            "command(sudo nix-collect-garbage)"
+          ];
+
           # Denying read_file also denies write_file on the same path.
           # Absolute literal paths only: the terminal sandbox rejects globs
           # ("globs not supported") and `~` ("non-absolute file path"), and
@@ -75,14 +102,15 @@
       };
 
       # The CLI writes to its own settings.json (trustedWorkspaces), so it stays
-      # a mutable file rather than a store symlink. jq's `*` favours its right
-      # operand, so the Nix base goes last and wins on every key it sets; `*`
-      # replaces arrays, so Nix owns the permission lists outright.
+      # a mutable file rather than a store symlink. Overlay Nix keys onto the
+      # existing file while replacing `.permissions` wholesale so removed lists
+      # or rules never linger from previous activations.
       home.activation.antigravityCliSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         target="$HOME/.gemini/antigravity-cli/settings.json"
         mkdir -p "$(dirname "$target")"
         if [ -f "$target" ] && [ ! -L "$target" ]; then
-          ${pkgs.jq}/bin/jq -s '.[1] * .[0]' \
+          ${pkgs.jq}/bin/jq -s \
+            '.[0] as $nix | (.[1] | del(.mode)) * $nix | .permissions = $nix.permissions' \
             "${settingsFile}" "$target" \
             > "$target.tmp"
           mv "$target.tmp" "$target"
