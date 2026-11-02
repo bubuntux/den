@@ -17,6 +17,8 @@
 
         permissions = {
           allow = [
+            "read_file(${config.home.homeDirectory}/.cargo/)"
+
             # Let `gh` read its config and reach GitHub inside the sandbox, and
             # auto-approve direct `gh` commands if run outside the sandbox.
             "read_file(${config.home.homeDirectory}/.config/gh/)"
