@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1793628818,
-        "narHash": "sha256-0hWZvCPHkdjMt0dF0sBHO1DM2m4822xF+YKbZ55J0R0=",
+        "lastModified": 1793642383,
+        "narHash": "sha256-tpCHRD9k/DjKHyL+sJ2zsrmgheiaH7YasoqmwJtD8R4=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "f560b7901de0e0176e9eccf8f84bd0d4753aa457",
+        "rev": "1761e96813ebcbd43ed81d19e837219033f0afe5",
         "type": "github"
       },
       "original": {
@@ -110,11 +110,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1793630427,
-        "narHash": "sha256-qj53+lRHbu2qiIMUTkLvTHzmrTIHHMlU+H/ZvZs6eJY=",
+        "lastModified": 1793654693,
+        "narHash": "sha256-fhz0irgDLQf6C10wnSt5mMv3BwV07xo3EBxRORwmRwQ=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "9377b78998060f3d59b74b95cf7f624c55eccd1d",
+        "rev": "918c47891eaaf0ba4c62c09b9fbd8ba29bd7631a",
         "type": "gitlab"
       },
       "original": {
@@ -255,11 +255,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1793582901,
-        "narHash": "sha256-TmjnoezEMTuSmEjtCa9gTaK6hLOFJv+ZvIDCu5s9vec=",
-        "rev": "5c9de89ec55bff981cb8da1a4ee92b10f1438ffc",
+        "lastModified": 1793616200,
+        "narHash": "sha256-7TMqKeUu84330pC72iXwvoeuXqdOVxUh/RwPkQPQia8=",
+        "rev": "df1e6651c16c38563a164037647a5f00704b3e41",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1106677.5c9de89ec55b/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1106813.df1e6651c16c/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
@@ -340,11 +340,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793052255,
-        "narHash": "sha256-Y/JIHTnMlOabDfyaSBubWGLDIVGihLEUuoMhFvQKaDo=",
+        "lastModified": 1793657065,
+        "narHash": "sha256-H7Sgc5Gl5qW0mzV5yH1pvTsNZB3yD138/6R2kvcuWqU=",
         "owner": "Mic92",
         "repo": "sops-nix",
-        "rev": "60182817ee048ac94b4c68ea76d5ef2e8aac730d",
+        "rev": "5783a4176fc4d274c0ff39a63a77169113d9d452",
         "type": "github"
       },
       "original": {
