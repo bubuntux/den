@@ -203,7 +203,7 @@
     in
     {
       key = "den:homeManager.vault";
-      imports = [ self.modules.homeManager.helix ];
+      # imports = [ self.modules.homeManager.helix ];
 
       options.den.vaults = lib.mkOption {
         type = lib.types.attrsOf (lib.types.submodule vaultOptions);

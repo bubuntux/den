@@ -35,7 +35,7 @@
     hardware.nvidia.prime.offload.offloadCmdMainProgram = "gpu-offload";
 
     den.desktop.loginManager = "greetd";
-    den.desktop.environments = [ "niri" ];
+    # den.desktop.environments = [ "niri" ];
     services.displayManager.defaultSession = "sway";
 
     home-manager.users.bbtux = {
