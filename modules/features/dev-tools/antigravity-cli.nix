@@ -1,5 +1,7 @@
 { inputs, ... }:
 {
+  flake-file.inputs.llm-agents.url = "github:numtide/llm-agents.nix";
+
   flake.modules.homeManager.antigravity-cli =
     {
       config,
@@ -82,12 +84,7 @@
       programs.antigravity-cli = {
         enable = true;
 
-        # Unstable-only; the stable channel has no antigravity-cli package.
-        package =
-          (import inputs.nixpkgs-unstable {
-            inherit (pkgs.stdenv.hostPlatform) system;
-            config.allowUnfree = true;
-          }).antigravity-cli;
+        package = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.antigravity-cli;
 
         context.GEMINI = ./_global-instructions.md;
 
