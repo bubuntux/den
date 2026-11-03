@@ -56,22 +56,34 @@
           lsp = {
             enable = true;
             inlayHints.enable = true;
+            formatOnSave = true;
           };
 
           diagnostics.enable = true;
 
           autocomplete.nvim-cmp.enable = true;
           telescope.enable = true;
+          filetree.neo-tree.enable = true;
 
           languages = {
             enableTreesitter = true;
             enableFormat = true;
             rust.enable = true;
             nix.enable = true;
-            markdown.enable = true;
+            markdown = {
+              enable = true;
+              format.type = [ "mdformat" ];
+              extensions.render-markdown-nvim.enable = true;
+            };
           };
 
           keymaps = [
+            {
+              mode = [ "n" ];
+              key = "<leader>e";
+              action = "<cmd>Neotree toggle<CR>";
+              desc = "Toggle file tree";
+            }
             {
               mode = [ "n" ];
               key = "<leader>f";
@@ -149,24 +161,6 @@
               key = "<leader>p";
               action = ''"+p'';
               desc = "Paste from system clipboard";
-            }
-            {
-              mode = [ "n" ];
-              key = "gy";
-              action = "<cmd>lua vim.lsp.buf.type_definition()<CR>";
-              desc = "Goto type definition";
-            }
-            {
-              mode = [ "n" ];
-              key = "gi";
-              action = "<cmd>lua vim.lsp.buf.implementation()<CR>";
-              desc = "Goto implementation";
-            }
-            {
-              mode = [ "n" ];
-              key = "gr";
-              action = "<cmd>lua vim.lsp.buf.references()<CR>";
-              desc = "Goto references";
             }
           ];
         };
