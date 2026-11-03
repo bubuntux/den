@@ -31,7 +31,7 @@ jobs:
         id: before
         run: |
           nix flake check 2> check-before.log || true
-          count=$(grep -ci 'warning:' check-before.log || echo 0)
+          count=$(grep -ci 'warning:' check-before.log || true)
           echo "warnings=$count" >> "$GITHUB_OUTPUT"
           echo "Warnings before update: $count"
       - name: Update flake inputs
@@ -67,7 +67,7 @@ jobs:
             echo "::warning::nix flake check failed after update"
           fi
           grep -iv -e 'has uncommitted changes' -e 'Git tree.*is dirty' check-after-raw.log > check-after.log || true
-          count=$(grep -ci 'warning:' check-after.log || echo 0)
+          count=$(grep -ci 'warning:' check-after.log || true)
           echo "warnings=$count" >> "$GITHUB_OUTPUT"
           echo "Warnings after update: $count (before: ${{ steps.before.outputs.warnings }})"
       - name: Upload update artifacts

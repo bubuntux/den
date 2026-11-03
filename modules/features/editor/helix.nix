@@ -12,7 +12,8 @@
         package = inputs.helix.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
           # Grammar sources are fetched during evaluation with no narHash, so no
           # substituter can stand in for a forge that is rate-limiting or gone.
-          includeGrammarIf = grammar: lib.hasPrefix "https://github.com/" grammar.source.git;
+          includeGrammarIf =
+            grammar: lib.hasPrefix "https://github.com/" grammar.source.git && grammar.name != "cylc";
         };
         defaultEditor = lib.mkDefault true;
         settings = {
