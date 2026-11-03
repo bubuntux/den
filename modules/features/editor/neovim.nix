@@ -1,7 +1,7 @@
 { self, inputs, ... }:
 {
   flake-file.inputs.nvf.url = "github:NotAShelf/nvf";
-  flake-file.inputs.nvf.inputs.nixpkgs.follows = "nixpkgs";
+  flake-file.inputs.nvf.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
   flake.modules.homeManager.neovim =
     { pkgs, lib, ... }:
@@ -13,6 +13,9 @@
         enable = true;
         defaultEditor = true;
         settings.vim = {
+          package =
+            inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system}.neovim-unwrapped;
+
           theme = {
             enable = true;
             name = "onedark";
@@ -38,10 +41,7 @@
             splitright = true;
           };
 
-          visuals.indent-blankline = {
-            enable = true;
-            setupOpts.indent.char = "│";
-          };
+          visuals.indent-blankline.enable = true;
 
           statusline.lualine.enable = true;
 
@@ -176,6 +176,7 @@
         v = "nvim";
         vi = "nvim";
         vim = "nvim";
+        nv = "nvim";
       };
     };
 }

@@ -421,7 +421,7 @@
         "flake-compat": "flake-compat_2",
         "mnw": "mnw",
         "nixpkgs": [
-          "nixpkgs"
+          "nixpkgs-unstable"
         ]
       },
       "locked": {
