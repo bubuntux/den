@@ -85,6 +85,18 @@
           }
         ];
 
+        programs.nvf.settings.vim = {
+          lsp.servers.kotlin-language-server.cmd = lib.mkForce [ (lib.getExe kotlinLsp) ];
+          languages = {
+            java = {
+              enable = true;
+              extensions.gradle-nvim.enable = true;
+              extensions.maven-nvim.enable = true;
+            };
+            kotlin.enable = true;
+          };
+        };
+
         # Git user configuration (decrypted from sops secret via bind mount)
         programs.git.includes = [ { path = "/run/secrets-host/git_config"; } ];
 
