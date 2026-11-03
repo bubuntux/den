@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1793740279,
-        "narHash": "sha256-y3e3kacubVNHqVLUlb8akH5Xc9WxdRS7jiV5RlRFjnE=",
+        "lastModified": 1793746352,
+        "narHash": "sha256-CIZI0hP5u4wFGeWW7RN3OUJH6zsTlT8OgFhCUXm6Mps=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "61efffaa1b8bc35a5500d37a5af250f86d69186c",
+        "rev": "27df7775cb8d46bc02f1dd071e0a6480349cc21f",
         "type": "github"
       },
       "original": {
@@ -299,11 +299,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1793747298,
-        "narHash": "sha256-sHyK4B/sloxv/82OyHUy9VV8qmfXs4pK7knTZZ/q1Qc=",
+        "lastModified": 1793748587,
+        "narHash": "sha256-tHTii92IuDruHt0TUkOo1WtScDb70eN1Ibi8tfvL8HM=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "3efd76b90264c47bffe8dce9cc2de709d529a8e6",
+        "rev": "fd9233fd1867dbd55504c65c1bd542ab6c830996",
         "type": "github"
       },
       "original": {
