@@ -34,6 +34,7 @@
           fonts
           git
           helix
+          neovim
         ];
 
         home.packages = self.lib.supportedPackages pkgs (

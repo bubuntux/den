@@ -15,7 +15,7 @@
           includeGrammarIf =
             grammar: lib.hasPrefix "https://github.com/" grammar.source.git && grammar.name != "cylc";
         };
-        defaultEditor = lib.mkDefault true;
+        defaultEditor = false;
         settings = {
           theme = "onedark";
           editor = {
@@ -144,13 +144,6 @@
           ".gradle"
           "target/"
         ];
-      };
-
-      # vi/vim/nvim launch Helix
-      home.shellAliases = {
-        vi = "hx";
-        vim = "hx";
-        nvim = "hx";
       };
     };
 }
