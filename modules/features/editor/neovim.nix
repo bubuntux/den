@@ -98,7 +98,7 @@
             markdown = {
               enable = true;
               format.type = [ "mdformat" ];
-              extensions.render-markdown-nvim.enable = true;
+              extensions.markview-nvim.enable = true;
             };
           };
 
