@@ -71,7 +71,21 @@
 
           autocomplete.nvim-cmp.enable = true;
           telescope.enable = true;
-          filetree.neo-tree.enable = true;
+          filetree.neo-tree = {
+            enable = true;
+            setupOpts = {
+              event_handlers = [
+                {
+                  event = "file_opened";
+                  handler = lib.generators.mkLuaInline ''
+                    function()
+                      require("neo-tree.command").execute({ action = "close" })
+                    end
+                  '';
+                }
+              ];
+            };
+          };
 
           languages = {
             enableTreesitter = true;
@@ -94,6 +108,24 @@
               key = "<leader>e";
               action = "<cmd>Neotree toggle<CR>";
               desc = "Toggle file tree";
+            }
+            {
+              mode = [ "n" ];
+              key = "<leader>o";
+              action = "<cmd>Neotree focus<CR>";
+              desc = "Focus file tree";
+            }
+            {
+              mode = [ "n" ];
+              key = "<C-h>";
+              action = "<C-w>h";
+              desc = "Focus left window";
+            }
+            {
+              mode = [ "n" ];
+              key = "<C-l>";
+              action = "<C-w>l";
+              desc = "Focus right window";
             }
             {
               mode = [ "n" ];
