@@ -77,7 +77,10 @@
             enableTreesitter = true;
             enableFormat = true;
             rust.enable = true;
-            nix.enable = true;
+            nix = {
+              enable = true;
+              format.type = [ "nixfmt" ];
+            };
             markdown = {
               enable = true;
               format.type = [ "mdformat" ];
