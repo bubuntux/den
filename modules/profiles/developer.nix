@@ -8,6 +8,7 @@
         key = "den:homeManager.profile-developer";
         imports = with self.modules.homeManager; [
           bundle-base
+          android
           antigravity-cli
           claude-code
           devenv
