@@ -44,16 +44,21 @@
             splitright = true;
           };
 
-          visuals.indent-blankline = {
-            enable = true;
-            setupOpts.scope.enabled = false;
-          };
-
           mini = {
             indentscope.enable = true;
             statusline.enable = true;
             pairs.enable = true;
-            files.enable = true;
+            files = {
+              enable = true;
+              setupOpts = {
+                mappings = {
+                  go_in = "<CR>";
+                  go_in_plus = "<CR>";
+                  go_out = "<BS>";
+                  go_out_plus = "-";
+                };
+              };
+            };
           };
 
           git = {
@@ -96,12 +101,6 @@
               key = "<leader>e";
               action = "<cmd>lua if not (package.loaded['mini.files'] and MiniFiles.close()) then MiniFiles.open(vim.api.nvim_buf_get_name(0), true) end<CR>";
               desc = "Toggle file tree";
-            }
-            {
-              mode = [ "n" ];
-              key = "<leader>o";
-              action = "<cmd>lua if not (package.loaded['mini.files'] and MiniFiles.close()) then MiniFiles.open() end<CR>";
-              desc = "Focus file tree";
             }
             {
               mode = [ "n" ];
