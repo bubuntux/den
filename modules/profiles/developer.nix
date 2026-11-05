@@ -15,7 +15,9 @@
           difftastic
           gh
           go
+          gradle
           jujutsu
+          npm
           rust
         ];
 
