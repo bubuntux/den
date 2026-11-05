@@ -48,16 +48,19 @@
             enable = true;
             setupOpts.scope.enabled = false;
           };
-          mini.indentscope.enable = true;
 
-          statusline.lualine.enable = true;
+          mini = {
+            indentscope.enable = true;
+            statusline.enable = true;
+            pairs.enable = true;
+            files.enable = true;
+          };
 
           git = {
             enable = true;
             gitsigns.enable = true;
           };
 
-          autopairs.nvim-autopairs.enable = true;
           binds.whichKey.enable = true;
 
           lsp = {
@@ -70,22 +73,7 @@
           diagnostics.enable = true;
 
           autocomplete.blink-cmp.enable = true;
-          telescope.enable = true;
-          filetree.neo-tree = {
-            enable = true;
-            setupOpts = {
-              event_handlers = [
-                {
-                  event = "file_opened";
-                  handler = lib.generators.mkLuaInline ''
-                    function()
-                      require("neo-tree.command").execute({ action = "close" })
-                    end
-                  '';
-                }
-              ];
-            };
-          };
+          fzf-lua.enable = true;
 
           languages = {
             enableTreesitter = true;
@@ -106,13 +94,13 @@
             {
               mode = [ "n" ];
               key = "<leader>e";
-              action = "<cmd>Neotree toggle<CR>";
+              action = "<cmd>lua if not (package.loaded['mini.files'] and MiniFiles.close()) then MiniFiles.open(vim.api.nvim_buf_get_name(0), true) end<CR>";
               desc = "Toggle file tree";
             }
             {
               mode = [ "n" ];
               key = "<leader>o";
-              action = "<cmd>Neotree focus<CR>";
+              action = "<cmd>lua if not (package.loaded['mini.files'] and MiniFiles.close()) then MiniFiles.open() end<CR>";
               desc = "Focus file tree";
             }
             {
@@ -130,43 +118,43 @@
             {
               mode = [ "n" ];
               key = "<leader>f";
-              action = "<cmd>Telescope find_files<CR>";
+              action = "<cmd>FzfLua files<CR>";
               desc = "Find files";
             }
             {
               mode = [ "n" ];
               key = "<leader>b";
-              action = "<cmd>Telescope buffers<CR>";
+              action = "<cmd>FzfLua buffers<CR>";
               desc = "Open buffers";
             }
             {
               mode = [ "n" ];
               key = "<leader>/";
-              action = "<cmd>Telescope live_grep<CR>";
+              action = "<cmd>FzfLua live_grep<CR>";
               desc = "Global search in project";
             }
             {
               mode = [ "n" ];
               key = "<leader>s";
-              action = "<cmd>Telescope lsp_document_symbols<CR>";
+              action = "<cmd>FzfLua lsp_document_symbols<CR>";
               desc = "Document symbols";
             }
             {
               mode = [ "n" ];
               key = "<leader>S";
-              action = "<cmd>Telescope lsp_workspace_symbols<CR>";
+              action = "<cmd>FzfLua lsp_workspace_symbols<CR>";
               desc = "Workspace symbols";
             }
             {
               mode = [ "n" ];
               key = "<leader>d";
-              action = "<cmd>Telescope diagnostics bufnr=0<CR>";
+              action = "<cmd>FzfLua diagnostics_document<CR>";
               desc = "Document diagnostics";
             }
             {
               mode = [ "n" ];
               key = "<leader>D";
-              action = "<cmd>Telescope diagnostics<CR>";
+              action = "<cmd>FzfLua diagnostics_workspace<CR>";
               desc = "Workspace diagnostics";
             }
             {
