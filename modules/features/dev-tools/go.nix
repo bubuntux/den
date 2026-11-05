@@ -1,7 +1,9 @@
 {
-  flake.modules.homeManager.go = {
-    key = "den:homeManager.go";
-    home.sessionVariables.GOPATH = "$HOME/.local/share/go";
-    home.sessionPath = [ "$GOPATH/bin" ];
-  };
+  flake.modules.homeManager.go =
+    { config, ... }:
+    {
+      key = "den:homeManager.go";
+      home.sessionVariables.GOPATH = "${config.xdg.dataHome}/go";
+      home.sessionPath = [ "$GOPATH/bin" ];
+    };
 }

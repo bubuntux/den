@@ -20,7 +20,7 @@
           allow = [
             "read_file(/nix/store/)"
             "read_file(${config.home.homeDirectory}/.cargo/)"
-            "read_file(${config.home.homeDirectory}/.local/share/cargo/)"
+            "read_file(${config.xdg.dataHome}/cargo/)"
 
             # Let `gh` read its config and reach GitHub inside the sandbox, and
             # auto-approve direct `gh` commands if run outside the sandbox.
