@@ -96,6 +96,29 @@
             kotlin.enable = true;
           };
 
+          autocmds = [
+            {
+              event = [ "FileType" ];
+              pattern = [
+                "java"
+                "kotlin"
+              ];
+              desc = "Pre-warm Gradle daemon in background";
+              callback = lib.generators.mkLuaInline ''
+                function(args)
+                  local file = args.file ~= "" and args.file or vim.api.nvim_buf_get_name(args.buf)
+                  local root = vim.fs.root(file, "gradlew")
+                  if not root then return end
+                  _G._gradle_warmed_roots = _G._gradle_warmed_roots or {}
+                  if _G._gradle_warmed_roots[root] then return end
+                  _G._gradle_warmed_roots[root] = true
+
+                  vim.system({ "./gradlew", "--daemon", "-q", "help" }, { cwd = root }, function() end)
+                end
+              '';
+            }
+          ];
+
           formatter.conform-nvim.setupOpts = {
             formatters_by_ft = {
               java = [ "spotless" ];
