@@ -19,12 +19,14 @@
         permissions = {
           allow = [
             "read_file(/nix/store/)"
-            "read_file(${config.home.homeDirectory}/.cargo/)"
+            "read_file(${config.xdg.dataHome}/android/)"
             "read_file(${config.xdg.dataHome}/cargo/)"
+            "read_file(${config.xdg.dataHome}/go/)"
+            "read_file(${config.xdg.dataHome}/gradle/)"
 
             # Let `gh` read its config and reach GitHub inside the sandbox, and
             # auto-approve direct `gh` commands if run outside the sandbox.
-            "read_file(${config.home.homeDirectory}/.config/gh/)"
+            "read_file(${config.xdg.configHome}/gh/)"
             "read_url(https://api.github.com)"
             "read_url(https://github.com)"
             "command(gh)"
