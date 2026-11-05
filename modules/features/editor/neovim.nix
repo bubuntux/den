@@ -69,7 +69,7 @@
 
           diagnostics.enable = true;
 
-          autocomplete.nvim-cmp.enable = true;
+          autocomplete.blink-cmp.enable = true;
           telescope.enable = true;
           filetree.neo-tree = {
             enable = true;
