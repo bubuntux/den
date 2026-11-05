@@ -148,7 +148,7 @@
             format_after_save = lib.generators.mkLuaInline ''
               function(bufnr)
                 local ft = vim.bo[bufnr].filetype
-                if ft == "java" or ft == "kotlin" then
+                if ft ~= "java" and ft ~= "kotlin" then
                   return
                 end
                 local b = bufnr and vim.b[bufnr] or vim.b
@@ -157,7 +157,7 @@
                 elseif b.nvf_format_save then
                   return
                 else
-                  return { lsp_format = "fallback" }
+                  return { lsp_format = "fallback", timeout_ms = 20000 }
                 end
               end
             '';
