@@ -16,6 +16,7 @@
           gh
           go
           jujutsu
+          rust
         ];
 
         # Common development tools
