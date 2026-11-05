@@ -45,9 +45,59 @@
           };
 
           mini = {
-            indentscope.enable = true;
-            statusline.enable = true;
+            # Editing & textobjects
+            ai.enable = true;
+            surround.enable = true;
             pairs.enable = true;
+            splitjoin.enable = true;
+
+            # UI & aesthetics
+            icons.enable = true;
+            statusline.enable = true;
+            indentscope.enable = true;
+
+            # Code highlighting
+            trailspace.enable = true;
+            hipatterns = {
+              enable = true;
+              setupOpts = {
+                highlighters = {
+                  fixme = {
+                    pattern = [
+                      "%f[%w_]()FIXME%f[^%w_].-()%s*$"
+                      "%f[%w_]()ISSUE%f[^%w_].-()%s*$"
+                      "%f[%w_]()BUG%f[^%w_].-()%s*$"
+                    ];
+                    group = "MiniHipatternsFixme";
+                  };
+                  hack = {
+                    pattern = [
+                      "%f[%w_]()HACK%f[^%w_].-()%s*$"
+                      "%f[%w_]()WARN%f[^%w_].-()%s*$"
+                      "%f[%w_]()WARNING%f[^%w_].-()%s*$"
+                    ];
+                    group = "MiniHipatternsHack";
+                  };
+                  todo = {
+                    pattern = [
+                      "%f[%w_]()TODO%f[^%w_].-()%s*$"
+                      "%f[%w_]()PERF%f[^%w_].-()%s*$"
+                    ];
+                    group = "MiniHipatternsTodo";
+                  };
+                  note = {
+                    pattern = [
+                      "%f[%w_]()NOTE%f[^%w_].-()%s*$"
+                      "%f[%w_]()INFO%f[^%w_].-()%s*$"
+                    ];
+                    group = "MiniHipatternsNote";
+                  };
+                  hex_color = lib.generators.mkLuaInline "require('mini.hipatterns').gen_highlighter.hex_color()";
+                };
+              };
+            };
+
+            # File navigation
             files = {
               enable = true;
               setupOpts = {
