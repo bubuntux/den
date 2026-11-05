@@ -115,9 +115,10 @@
                   local project_path = relative_dir == "." and ":" or (":" .. relative_dir:gsub("/", ":") .. ":")
                   local language = vim.bo[ctx.buf].filetype == "kotlin" and "Kotlin" or "Java"
                   return {
-                    "--daemon", "-q",
+                    "--daemon", "-q", "-a",
                     project_path .. "spotless" .. language, "--rerun",
-                    "-x", "compile" .. language,
+                    "-x", "compileJava",
+                    "-x", "compileKotlin",
                     "-PspotlessIdeHook=" .. ctx.filename,
                     "-PspotlessIdeHookUseStdIn",
                     "-PspotlessIdeHookUseStdOut",
