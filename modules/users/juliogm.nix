@@ -65,7 +65,6 @@
         home.packages = with pkgs; [
           acli
           src-cli
-          toolhive
         ];
 
         # Language servers Helix auto-detects when their binaries are on PATH.
