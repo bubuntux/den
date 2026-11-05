@@ -117,8 +117,7 @@
                   return {
                     "--daemon", "-q", "-a",
                     project_path .. "spotless" .. language, "--rerun",
-                    "-x", "compileJava",
-                    "-x", "compileKotlin",
+                    "-x", "compile" .. language,
                     "-PspotlessIdeHook=" .. ctx.filename,
                     "-PspotlessIdeHookUseStdIn",
                     "-PspotlessIdeHookUseStdOut",
