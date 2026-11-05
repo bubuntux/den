@@ -104,45 +104,60 @@
             };
             formatters.spotless = {
               command = "./gradlew";
-              args = [
-                "--daemon"
-                "spotlessApply"
-                "-PspotlessIdeHook=$FILENAME"
-                "-q"
-              ];
-              cwd = lib.generators.mkLuaInline ''
+              stdin = true;
+              cwd = lib.generators.mkLuaInline ''require("conform.util").root_file({ "gradlew" })'';
+              require_cwd = true;
+              args = lib.generators.mkLuaInline ''
                 function(self, ctx)
-                  local root = vim.fs.find({ "gradlew" }, { path = ctx.filename, upward = true })[1]
-                  if root then
-                    return vim.fs.dirname(root)
-                  end
-                  return vim.fn.getcwd()
+                  local root = vim.fs.root(ctx.filename, "gradlew")
+                  local project_dir = vim.fs.root(ctx.filename, { "build.gradle", "build.gradle.kts" }) or root
+                  local relative_dir = vim.fs.relpath(root, project_dir) or "."
+                  local project_path = relative_dir == "." and ":" or (":" .. relative_dir:gsub("/", ":") .. ":")
+                  local language = vim.bo[ctx.buf].filetype == "kotlin" and "Kotlin" or "Java"
+                  return {
+                    "--daemon", "-q",
+                    project_path .. "spotless" .. language, "--rerun",
+                    "-x", "compile" .. language,
+                    "-PspotlessIdeHook=" .. ctx.filename,
+                    "-PspotlessIdeHookUseStdIn",
+                    "-PspotlessIdeHookUseStdOut",
+                  }
                 end
               '';
-              condition = lib.generators.mkLuaInline ''
-                function(self, ctx)
-                  return vim.fs.find({ "gradlew" }, { path = ctx.filename, upward = true })[1] ~= nil
-                end
-              '';
-              stdin = false;
             };
             default_format_opts = {
               lsp_format = "fallback";
               timeout_ms = 20000;
             };
             format_on_save = lib.generators.mkLuaInline ''
-              function()
-                return nil
+              function(bufnr)
+                local ft = vim.bo[bufnr].filetype
+                if ft == "java" or ft == "kotlin" then
+                  return
+                end
+                local b = bufnr and vim.b[bufnr] or vim.b
+                if b.nvf_format_save == nil and not vim.g.nvf_format_save then
+                  return
+                elseif b.nvf_format_save then
+                  return
+                else
+                  return { lsp_format = "fallback", timeout_ms = 500 }
+                end
               end
             '';
             format_after_save = lib.generators.mkLuaInline ''
-              function()
-                if vim.b.nvf_format_save == nil and not vim.g.nvf_format_save then
+              function(bufnr)
+                local ft = vim.bo[bufnr].filetype
+                if ft == "java" or ft == "kotlin" then
                   return
-                elseif vim.b.nvf_format_save then
+                end
+                local b = bufnr and vim.b[bufnr] or vim.b
+                if b.nvf_format_save == nil and not vim.g.nvf_format_save then
+                  return
+                elseif b.nvf_format_save then
                   return
                 else
-                  return { lsp_format = "fallback", timeout_ms = 20000 }
+                  return { lsp_format = "fallback" }
                 end
               end
             '';
