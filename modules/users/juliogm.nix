@@ -90,10 +90,56 @@
           languages = {
             java = {
               enable = true;
+              format.enable = false;
               extensions.gradle-nvim.enable = true;
               extensions.maven-nvim.enable = true;
             };
             kotlin.enable = true;
+          };
+
+          formatter.conform-nvim.setupOpts = {
+            formatters_by_ft = {
+              java = [ "spotless" ];
+              kotlin = [ "spotless" ];
+            };
+            formatters.spotless = {
+              command = "./gradlew";
+              args = [
+                "spotlessApply"
+                "-PspotlessIdeHook=$FILENAME"
+                "-q"
+              ];
+              cwd = lib.generators.mkLuaInline ''
+                function(self, ctx)
+                  local root = vim.fs.find({ "gradlew" }, { path = ctx.filename, upward = true })[1]
+                  if root then
+                    return vim.fs.dirname(root)
+                  end
+                  return vim.fn.getcwd()
+                end
+              '';
+              condition = lib.generators.mkLuaInline ''
+                function(self, ctx)
+                  return vim.fs.find({ "gradlew" }, { path = ctx.filename, upward = true })[1] ~= nil
+                end
+              '';
+              stdin = false;
+            };
+            default_format_opts = {
+              lsp_format = "fallback";
+              timeout_ms = 5000;
+            };
+            format_on_save = lib.generators.mkLuaInline ''
+              function()
+                if vim.b.nvf_format_save == nil and not vim.g.nvf_format_save then
+                  return
+                elseif vim.b.nvf_format_save then
+                  return
+                else
+                  return { lsp_format = "fallback", timeout_ms = 5000 }
+                end
+              end
+            '';
           };
         };
 
