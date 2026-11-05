@@ -105,6 +105,7 @@
             formatters.spotless = {
               command = "./gradlew";
               args = [
+                "--daemon"
                 "spotlessApply"
                 "-PspotlessIdeHook=$FILENAME"
                 "-q"
@@ -127,16 +128,21 @@
             };
             default_format_opts = {
               lsp_format = "fallback";
-              timeout_ms = 5000;
+              timeout_ms = 20000;
             };
             format_on_save = lib.generators.mkLuaInline ''
+              function()
+                return nil
+              end
+            '';
+            format_after_save = lib.generators.mkLuaInline ''
               function()
                 if vim.b.nvf_format_save == nil and not vim.g.nvf_format_save then
                   return
                 elseif vim.b.nvf_format_save then
                   return
                 else
-                  return { lsp_format = "fallback", timeout_ms = 5000 }
+                  return { lsp_format = "fallback", timeout_ms = 20000 }
                 end
               end
             '';
