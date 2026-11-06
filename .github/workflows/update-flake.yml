@@ -219,7 +219,7 @@ jobs:
           body=''
           if ! git diff --quiet flake.lock; then
             git add flake.lock
-            subject='flake.lock: update flake inputs'
+            subject='build(flake): update inputs'
             body+=$'\n\nFlake lock file updates:\n\n'"$(cat update-output.log)"
           fi
           if [ "${{ steps.decide.outputs.hash-refreshed }}" = "true" ]; then
@@ -232,7 +232,7 @@ jobs:
             if [ -n "$subject" ]; then
               subject+=' + bump kotlin-lsp to ${{ needs.update.outputs.kotlin-lsp-new }}'
             else
-              subject='kotlin-lsp: bump to ${{ needs.update.outputs.kotlin-lsp-new }}'
+              subject='build(editor): bump kotlin-lsp to ${{ needs.update.outputs.kotlin-lsp-new }}'
             fi
             body+=$'\n\nkotlin-lsp ${{ needs.update.outputs.kotlin-lsp-old }} -> ${{ needs.update.outputs.kotlin-lsp-new }}, the build the\nVS Code marketplace extension ships. See _kotlin-lsp.nix.'
           fi
@@ -318,9 +318,9 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           base: main
-          commit-message: "chore: update flake inputs"
+          commit-message: "build(flake): update inputs"
           title: >-
-            chore: update flake inputs (${{ steps.decide.outputs.reason == 'check-failure' && 'check failure' || steps.decide.outputs.reason == 'build-failure' && 'build failure' || 'new warnings' }})
+            build(flake): update inputs (${{ steps.decide.outputs.reason == 'check-failure' && 'check failure' || steps.decide.outputs.reason == 'build-failure' && 'build failure' || 'new warnings' }})
           branch: auto/flake-update
           delete-branch: true
           body: ${{ steps.pr-body.outputs.body }}
