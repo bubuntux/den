@@ -30,16 +30,24 @@
           };
 
           options = {
-            scrolloff = 5;
-            sidescrolloff = 5;
+            # Line numbers & visual guides
             number = true;
             relativenumber = true;
             cursorline = true;
+            colorcolumn = "80,120";
+            scrolloff = 5;
+            sidescrolloff = 5;
+
+            # Indentation
             tabstop = 2;
             shiftwidth = 2;
             expandtab = true;
+
+            # Search
             ignorecase = true;
             smartcase = true;
+
+            # Window splits
             splitbelow = true;
             splitright = true;
           };
