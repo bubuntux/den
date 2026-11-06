@@ -28,5 +28,12 @@
 
 - Always prefer jj over git; use jj for every version-control operation (`jj st`, `jj diff`, `jj commit`)
 - Show the diff and proposed change description before you commit
+- All commit messages must follow [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/#specification):
+  - Format: `<type>[optional scope][!]: <description>` followed by optional body and footer(s) separated by blank lines
+  - Types: `feat` (new feature), `fix` (bug fix), `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+  - Scope: optional noun describing the affected component in parentheses (e.g. `feat(desktop): ...`)
+  - Description: imperative, present tense, lowercase start, no trailing period (e.g. "add foo", not "Added foo.")
+  - Breaking changes: append `!` immediately before the colon (e.g. `feat!: ...` or `feat(api)!: ...`) and/or provide a `BREAKING CHANGE: <description>` footer
+  - Body & footers: optional; separated from description by a blank line for extended context or issue references
 - When I say "commit", run `jj commit` (the commit command that finalizes the change) — NOT `jj describe`, which only sets the message
 - Commit only — NEVER push. "Commit" never implies push: after `jj commit`, stop. Do not run `jj git push` (or `git push`), move bookmarks to remotes, or open/merge PRs unless I explicitly say "push"
