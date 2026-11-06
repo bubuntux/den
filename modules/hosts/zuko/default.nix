@@ -36,5 +36,7 @@
 
     den.desktop.loginManager = "greetd";
     services.displayManager.defaultSession = "sway";
+
+    programs.nh.flake = "/etc/nixos";
   };
 }

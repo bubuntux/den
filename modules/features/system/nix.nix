@@ -30,7 +30,7 @@ let
   };
 
   commonGc = {
-    automatic = true;
+    automatic = false; # GC is handled by nh clean
     dates = "weekly";
     options = "--delete-older-than 28d";
   };

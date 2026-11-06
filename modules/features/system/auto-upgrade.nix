@@ -1,3 +1,4 @@
+{ self, ... }:
 {
   flake.modules = {
     nixos.auto-upgrade =
@@ -10,7 +11,7 @@
         # auto-reboot in a quiet window).
         system.autoUpgrade = {
           enable = true;
-          flake = lib.mkDefault "github:bubuntux/den#${config.networking.hostName}";
+          flake = lib.mkDefault "${self.lib.remoteFlake}#${config.networking.hostName}";
           dates = lib.mkDefault "daily";
           operation = lib.mkDefault "boot";
           allowReboot = lib.mkDefault false;
@@ -36,7 +37,7 @@
           text = ''
             home-manager switch \
               -b bkp \
-              --flake github:bubuntux/den#${config.home.username} \
+              --flake ${self.lib.remoteFlake}#''${config.home.username} \
               --refresh
           '';
         };

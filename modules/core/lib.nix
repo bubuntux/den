@@ -14,8 +14,12 @@
     '';
   };
 
-  # Some attributes are null off Linux (libgcc on darwin), not just unsupported.
-  config.flake.lib.supportedPackages =
-    pkgs:
-    lib.filter (package: package != null && lib.meta.availableOn pkgs.stdenv.hostPlatform package);
+  config.flake.lib = {
+    remoteFlake = "github:bubuntux/den";
+
+    # Some attributes are null off Linux (libgcc on darwin), not just unsupported.
+    supportedPackages =
+      pkgs:
+      lib.filter (package: package != null && lib.meta.availableOn pkgs.stdenv.hostPlatform package);
+  };
 }

@@ -9,6 +9,7 @@
         fonts
         home-manager
         locale
+        nh
         nix
       ];
 
@@ -34,6 +35,7 @@
           fonts
           git
           neovim
+          nh
         ];
 
         home.packages = self.lib.supportedPackages pkgs (
