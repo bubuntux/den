@@ -13,7 +13,7 @@
       ];
 
       # Root's HOME is not the one ghostty's ssh-terminfo wrote into -- see
-      # CLAUDE.md, "Choosing a terminal".
+      # AGENTS.md, "Choosing a terminal".
       environment.enableAllTerminfo = true;
 
       # ssh rides the NixOS side so it reaches every user on a real machine but

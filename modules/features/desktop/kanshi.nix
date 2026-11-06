@@ -34,12 +34,12 @@ in
       };
 
       # Every profile must account for the internal panel, because kanshi
-      # matches on the exact output set. See CLAUDE.md, "Monitors and kanshi".
+      # matches on the exact output set. See AGENTS.md, "Monitors and kanshi".
       internalNames = map (m: m.name) (filter (m: hasPrefix "eDP" m.name) config.monitors);
 
       # A profile value is a list of names or an attrset of name = position.
       # External-only profiles expand to two variants, with and without the
-      # panel. See CLAUDE.md, "Monitors and kanshi".
+      # panel. See AGENTS.md, "Monitors and kanshi".
       profileToKanshi =
         name: value:
         let

@@ -21,7 +21,7 @@ let
 in
 {
   # Two knobs only -- what to install, and which greeter presents it. Session
-  # preselection and autologin already have upstream options. See CLAUDE.md.
+  # preselection and autologin already have upstream options. See AGENTS.md.
   flake.modules.nixos.desktop-options =
     { config, lib, ... }:
     let
@@ -74,7 +74,7 @@ in
 
             The two differ in more than looks: waybar builds one bar per
             session out of den.session.bar, ironbar builds one bar for all of
-            them. See CLAUDE.md, "Choosing a bar".
+            them. See AGENTS.md, "Choosing a bar".
           '';
         };
 
@@ -101,7 +101,7 @@ in
 
             The command is not the module name -- foot is reached through
             footclient -- so the module states its own in den.session.terminal.
-            See CLAUDE.md, "Choosing a terminal".
+            See AGENTS.md, "Choosing a terminal".
           '';
         };
 
@@ -138,7 +138,7 @@ in
 
       config = {
         # Every user gets every installed desktop; the anchors keep them apart
-        # at runtime. No per-user selection -- see CLAUDE.md.
+        # at runtime. No per-user selection -- see AGENTS.md.
         home-manager.sharedModules = map (de: self.modules.homeManager.${de}) cfg.environments;
 
         assertions = [

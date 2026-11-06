@@ -305,7 +305,7 @@
             let
               # Reaching cvm from the host terminal, with that terminal's own
               # terminfo -- ghostty's ssh-terminfo feature cannot see this ssh.
-              # See CLAUDE.md, "Choosing a terminal".
+              # See AGENTS.md, "Choosing a terminal".
               ssh-cvm = pkgs.writeShellScriptBin "ssh-cvm" ''
                 term=''${TERM:-dumb}
                 marker="$HOME/.cache/ssh-cvm/$term"

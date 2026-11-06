@@ -1,6 +1,6 @@
 # Network features
 
-Repo-wide rules are in the root `CLAUDE.md`.
+Repo-wide rules are in the root `AGENTS.md`.
 
 ## Adding a service to CrowdSec
 

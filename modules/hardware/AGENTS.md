@@ -1,8 +1,8 @@
 # Hardware
 
 zuko is the only machine with a module here, and the only hybrid-GPU host.
-Repo-wide rules are in the root `CLAUDE.md`; the disks live in
-`modules/hosts/zuko/CLAUDE.md`.
+Repo-wide rules are in the root `AGENTS.md`; the disks live in
+`modules/hosts/zuko/AGENTS.md`.
 
 ## Meteor Lake, not Raptor Lake
 

@@ -1,7 +1,7 @@
 { self, ... }:
 {
   # The other terminal behind den.desktop.terminal, and the default. GPU
-  # rendering is not why -- see CLAUDE.md, "Choosing a terminal".
+  # rendering is not why -- see AGENTS.md, "Choosing a terminal".
   flake.modules.homeManager.ghostty = {
     key = "den:homeManager.ghostty";
     imports = [ self.modules.homeManager.session-options ];
@@ -24,7 +24,7 @@
         copy-on-select = false;
 
         # Only the window: tabs and splits have keys of their own, and keep
-        # inheriting. See CLAUDE.md, "Choosing a terminal".
+        # inheriting. See AGENTS.md, "Choosing a terminal".
         window-inherit-working-directory = false;
 
         font-family = "Hack Nerd Font Mono";
@@ -33,7 +33,7 @@
         mouse-hide-while-typing = true;
 
         # Not "none": this file is home-wide and GNOME would lose its titlebar
-        # with it. See CLAUDE.md, "Choosing a terminal".
+        # with it. See AGENTS.md, "Choosing a terminal".
         window-decoration = "server";
       };
     };

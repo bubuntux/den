@@ -1,6 +1,6 @@
 # appa
 
-The 4-core J5040 NAS. Repo-wide rules are in the root `CLAUDE.md`.
+The 4-core J5040 NAS. Repo-wide rules are in the root `AGENTS.md`.
 
 ## Resource caps on appa
 

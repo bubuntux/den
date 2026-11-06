@@ -32,7 +32,7 @@
           enable = true;
 
           # No useTextGreeter: it hands systemd TTY directives for a VT greetd
-          # already owns. See CLAUDE.md, "Checks" (unit-shape).
+          # already owns. See AGENTS.md, "Checks" (unit-shape).
 
           # --remember pre-fills the last username; --remember-user-session
           # records the session per user, which is how two users on one host end

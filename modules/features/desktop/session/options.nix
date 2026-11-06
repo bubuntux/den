@@ -22,7 +22,7 @@ _: {
             the unit. A module belonging to one session must not read this --
             it would start under the user's other desktops too.
 
-            See CLAUDE.md, "Desktop Environments and Login Managers".
+            See AGENTS.md, "Desktop Environments and Login Managers".
           '';
         };
 
@@ -72,7 +72,7 @@ _: {
             systemd user unit of its own, started by that session's anchor.
 
             One bar cannot serve two compositors: Waybar drops a module it
-            cannot create and carries on with a gap. See CLAUDE.md, "One bar
+            cannot create and carries on with a gap. See AGENTS.md, "One bar
             per session".
           '';
         };

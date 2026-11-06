@@ -4,7 +4,7 @@
   flake-file.inputs.deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
 
   # deployChecks is deliberately absent: both of its checks carry profile.path
-  # with string context, so they build every node's closure. See CLAUDE.md.
+  # with string context, so they build every node's closure. See AGENTS.md.
   perSystem =
     {
       system,

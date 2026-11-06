@@ -4,7 +4,7 @@
   # session/wayland.nix, since GNOME has nautilus.
   flake.modules = {
     # Gated on sessionAnchors rather than one compositor, because `imports`
-    # escapes a session's mkIf. See CLAUDE.md.
+    # escapes a session's mkIf. See AGENTS.md.
     nixos.thunar =
       {
         config,
@@ -31,7 +31,7 @@
 
     # One `<desktop>-mimeapps.list` per bare session, which XDG reads ahead of
     # the shared list -- so folders open in thunar under Sway and nautilus under
-    # GNOME out of one home. See CLAUDE.md.
+    # GNOME out of one home. See AGENTS.md.
     homeManager.thunar =
       { config, lib, ... }:
       {

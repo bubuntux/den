@@ -1,8 +1,8 @@
 # Desktop features
 
 The bar, the terminal and the widgets on them -- everything here is
-DE-agnostic. The compositors are in `session/CLAUDE.md`; repo-wide rules and the
-`den.desktop` option table are in the root `CLAUDE.md`.
+DE-agnostic. The compositors are in `session/AGENTS.md`; repo-wide rules and the
+`den.desktop` option table are in the root `AGENTS.md`.
 
 ## Choosing a bar
 

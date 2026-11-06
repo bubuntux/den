@@ -1,7 +1,7 @@
 { self, ... }:
 {
   # One of the terminals behind den.desktop.terminal; the other is ghostty.
-  # See CLAUDE.md, "Choosing a terminal".
+  # See AGENTS.md, "Choosing a terminal".
   flake.modules.homeManager.foot = {
     key = "den:homeManager.foot";
     imports = [ self.modules.homeManager.session-options ];

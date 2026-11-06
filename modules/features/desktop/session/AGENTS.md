@@ -1,8 +1,8 @@
 # Desktop sessions
 
 How a bare compositor is started and what it has to declare. The bars and
-terminals it drives are in `../CLAUDE.md`; the `den.desktop` option table and the
-session-scoping rules are in the root `CLAUDE.md`.
+terminals it drives are in `../AGENTS.md`; the `den.desktop` option table and the
+session-scoping rules are in the root `AGENTS.md`.
 
 ## How a bare session starts (uwsm)
 
@@ -216,7 +216,7 @@ one tends to fail at login rather than at evaluation.
 1. **Prove it boots.** `mkSessionTest` in `modules/core/tests.nix` takes a
    `session` argument, so this is one more entry in `packages` — `nix flake check`
    will not tell you a session comes up.
-   See **Booted-VM tests** in `modules/core/CLAUDE.md`.
+   See **Booted-VM tests** in `modules/core/AGENTS.md`.
 
 Five things that are easy to get wrong, in the order they bite:
 
@@ -269,7 +269,7 @@ modules/features/desktop/session/
     _startup.nix
 ```
 
-The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `ghostty` and `foot` are terminals the host picks between with `den.desktop.terminal` (see **Choosing a terminal** in `../CLAUDE.md`), `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks), `waybar` and `ironbar` are bars that learn the compositor from `den.session.bar` and from the environment respectively (see **Choosing a bar**, same file), `bar-scripts` holds the two readings they share, and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
+The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `ghostty` and `foot` are terminals the host picks between with `den.desktop.terminal` (see **Choosing a terminal** in `../AGENTS.md`), `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks), `waybar` and `ironbar` are bars that learn the compositor from `den.session.bar` and from the environment respectively (see **Choosing a bar**, same file), `bar-scripts` holds the two readings they share, and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
 
 `session/wayland.nix` is where that rule leads for a *group* of them. Notifications, launcher, locker, idle handling, colour temperature, keyring and tray applets are each DE-agnostic, but they only make sense together — no host wants a subset — so they are one module ("the parts a compositor omits") rather than nine files. Sway's own copies of these were what made the first attempt at a second session look expensive.
 

@@ -2,7 +2,7 @@
 {
   # What a bare Wayland compositor does not ship: notifications, launcher,
   # locker, idle handling, output management, colour temperature, keyring, file
-  # manager, tray applets. One feature, not nine -- see CLAUDE.md, "Session
+  # manager, tray applets. One feature, not nine -- see AGENTS.md, "Session
   # Layout".
   flake.modules = {
     homeManager.session-wayland =
@@ -126,7 +126,7 @@
         };
 
         # Overrides the system entry, which is NotShowIn=GNOME;KDE and so would
-        # autostart here. See CLAUDE.md, "XDG autostart".
+        # autostart here. See AGENTS.md, "XDG autostart".
         xdg.configFile."autostart/ibus-daemon.desktop".text = ''
           [Desktop Entry]
           Type=Application
@@ -141,7 +141,7 @@
         };
 
         # Claims org.freedesktop.secrets from inside the session by adopting the
-        # daemon PAM already unlocked. See CLAUDE.md, "Keyring".
+        # daemon PAM already unlocked. See AGENTS.md, "Keyring".
         services.gnome-keyring = {
           enable = true;
           components = [
@@ -170,7 +170,7 @@
       };
 
     # System half. Gated on sessionAnchors rather than on any one compositor,
-    # because `imports` escapes a session's mkIf -- see CLAUDE.md.
+    # because `imports` escapes a session's mkIf -- see AGENTS.md.
     nixos.session-wayland =
       { config, lib, ... }:
       {
@@ -219,7 +219,7 @@
           security.pam.services.login.enableGnomeKeyring = true;
 
           # Nothing here for blueman-applet or other tray applets: uwsm's XDG
-          # autostart target starts them. See CLAUDE.md, "XDG autostart".
+          # autostart target starts them. See AGENTS.md, "XDG autostart".
         };
       };
   };

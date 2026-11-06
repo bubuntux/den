@@ -1,7 +1,7 @@
 { self, inputs, ... }:
 {
   # Evaluation-only checks; host builds deliberately live in CI instead, so a
-  # build failure still triggers the caddy self-heal. See CLAUDE.md, "Checks".
+  # build failure still triggers the caddy self-heal. See AGENTS.md, "Checks".
   perSystem =
     {
       system,
@@ -368,7 +368,7 @@
       #
       # Every evaluated option value can be correct while a unit is bound to
       # graphical-session.target, which every desktop starts. Costs a full Home
-      # Manager evaluation. See CLAUDE.md, "Checks".
+      # Manager evaluation. See AGENTS.md, "Checks".
       anchorFailures =
         let
           c = probe [
@@ -603,7 +603,7 @@
       # --- unit shape --------------------------------------------------------
       #
       # Directive *names* per section, never their values: values carry store
-      # paths and would churn on every flake update. See CLAUDE.md, "Checks".
+      # paths and would churn on every flake update. See AGENTS.md, "Checks".
       directivesOf =
         text:
         let

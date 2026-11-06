@@ -1,7 +1,7 @@
 # Checks and tests
 
 What `nix flake check` verifies, and the booted-VM tests that deliberately sit
-outside it. Repo-wide rules are in the root `CLAUDE.md`.
+outside it. Repo-wide rules are in the root `AGENTS.md`.
 
 ## Checks
 

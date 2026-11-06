@@ -232,7 +232,7 @@ in
             # One session entry, and it starts uwsm: rewrite the one the package
             # ships rather than adding a second with
             # programs.uwsm.waylandCompositors. buildCommand, not postBuild --
-            # see CLAUDE.md, "How a bare session starts (uwsm)".
+            # see AGENTS.md, "How a bare session starts (uwsm)".
             package = pkgs.sway.overrideAttrs (old: {
               buildCommand = old.buildCommand + ''
                 rm -f $out/share/wayland-sessions/sway.desktop

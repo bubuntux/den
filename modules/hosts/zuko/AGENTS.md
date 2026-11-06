@@ -1,7 +1,7 @@
 # zuko
 
 The Precision 5690 workstation. The board, its GPUs and its fingerprint reader
-are in `modules/hardware/CLAUDE.md`.
+are in `modules/hardware/AGENTS.md`.
 
 ## The two LUKS containers on zuko
 

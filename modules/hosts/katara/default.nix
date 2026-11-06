@@ -31,7 +31,7 @@
     # GDM because this machine is shared: a graphical user list and session
     # picker, and it remembers each user's last session in accountsservice, so
     # shari stays in GNOME and bbtux in Sway. No defaultSession on purpose --
-    # under GDM it wipes that memory every boot (see CLAUDE.md).
+    # under GDM it wipes that memory every boot (see AGENTS.md).
     den.desktop.loginManager = "gdm";
 
     den.desktop.barsInstalled = [

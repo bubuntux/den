@@ -4,7 +4,7 @@
   # for every session the host installs: ironbar picks its compositor backend
   # at startup from SWAYSOCK / HYPRLAND_INSTANCE_SIGNATURE, so
   # `workspaces` needs no per-session variant. What that costs, and why the
-  # readings still come from the shared scripts, is in CLAUDE.md,
+  # readings still come from the shared scripts, is in AGENTS.md,
   # "Choosing a bar".
   flake.modules.homeManager.ironbar =
     {

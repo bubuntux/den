@@ -1,6 +1,6 @@
 # Virtualisation
 
-Repo-wide rules are in the root `CLAUDE.md`.
+Repo-wide rules are in the root `AGENTS.md`.
 
 ## Deep links out of the work container
 

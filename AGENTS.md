@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents (such as Antigravity and Claude Code) when working with code in this repository.
 
 ## Project Overview
 
@@ -38,14 +38,14 @@ nix run .#katara-vm
 # one of which also evaluates a user's whole Home Manager config; the two
 # *-config checks additionally run ironbar's and ghostty's own
 # validators).
-# It does not build hosts -- see modules/core/CLAUDE.md for why.
+# It does not build hosts -- see modules/core/AGENTS.md for why.
 nix flake check
 
 # Run one check on its own
 nix build .#checks.x86_64-linux.desktop-matrix
 
 # Booted-VM tests, deliberately outside `nix flake check` (they boot a machine).
-# Run before touching the greeter or the session plumbing -- see modules/core/CLAUDE.md.
+# Run before touching the greeter or the session plumbing -- see modules/core/AGENTS.md.
 nix build .#test-greeter         # the greeter draws a usable prompt
 nix build .#test-session         # a session comes up via greetd (zuko)
 nix build .#test-session-gdm     # ... and via GDM's .desktop entry (katara)
@@ -60,7 +60,7 @@ nix flake update
 
 ## Where the detailed notes live
 
-**What earns a place in a `CLAUDE.md`:** general rules and architecture — how the
+**What earns a place in an `AGENTS.md`:** general rules and architecture — how the
 layers compose, what a convention is for, a trap that would otherwise be walked
 into twice. **Not** a changelog, not a justification for one line, not a
 measurement one command re-runs. The default is to write nothing: length costs
@@ -69,7 +69,7 @@ prevent breakage.
 
 **Where it goes: the most specific level that still covers it.** A rule that
 applies everywhere belongs in this file. Anything specific to one subsystem
-belongs in the `CLAUDE.md` beside that code, loaded on demand when a file in that
+belongs in the `AGENTS.md` beside that code, loaded on demand when a file in that
 directory is read — so **read the relevant one before touching that area**. Never
 promote a subsystem's detail up here for visibility, and never push a repo-wide
 rule down into one directory where the other areas will miss it. A new subsystem
@@ -77,16 +77,16 @@ needing notes gets its own file and a row in this table, not a section here.
 
 | file | what it covers |
 |---|---|
-| `modules/core/CLAUDE.md` | what each `nix flake check` proves, the booted-VM session tests, and why host builds are CI's job |
-| `modules/features/desktop/CLAUDE.md` | choosing a bar (waybar/ironbar) and a terminal (ghostty/foot), the GPU widget, what colour is allowed to mean |
-| `modules/features/desktop/session/CLAUDE.md` | how a bare session starts under uwsm, the checklist for adding an environment, session layout |
-| `modules/features/editor/CLAUDE.md` | why kotlin-lsp uses JetBrains' build and how Gradle/JDK paths are wired |
-| `modules/features/network/CLAUDE.md` | adding a service to CrowdSec -- journald, not log files |
-| `modules/features/virtualisation/CLAUDE.md` | deep links out of the work container |
-| `modules/hardware/CLAUDE.md` | the Precision 5690 board (Meteor Lake, not Raptor Lake), its fingerprint reader, GPU render offload |
-| `modules/hosts/appa/CLAUDE.md` | the cgroup weight ladder every service on the NAS picks its tier from |
-| `modules/hosts/katara/CLAUDE.md` | the WD19TB dock, its two-DP-lane limit, and the habit that works around it |
-| `modules/hosts/zuko/CLAUDE.md` | the two LUKS containers, and what their TPM enrolment is really worth |
+| `modules/core/AGENTS.md` | what each `nix flake check` proves, the booted-VM session tests, and why host builds are CI's job |
+| `modules/features/desktop/AGENTS.md` | choosing a bar (waybar/ironbar) and a terminal (ghostty/foot), the GPU widget, what colour is allowed to mean |
+| `modules/features/desktop/session/AGENTS.md` | how a bare session starts under uwsm, the checklist for adding an environment, session layout |
+| `modules/features/editor/AGENTS.md` | why kotlin-lsp uses JetBrains' build and how Gradle/JDK paths are wired |
+| `modules/features/network/AGENTS.md` | adding a service to CrowdSec -- journald, not log files |
+| `modules/features/virtualisation/AGENTS.md` | deep links out of the work container |
+| `modules/hardware/AGENTS.md` | the Precision 5690 board (Meteor Lake, not Raptor Lake), its fingerprint reader, GPU render offload |
+| `modules/hosts/appa/AGENTS.md` | the cgroup weight ladder every service on the NAS picks its tier from |
+| `modules/hosts/katara/AGENTS.md` | the WD19TB dock, its two-DP-lane limit, and the habit that works around it |
+| `modules/hosts/zuko/AGENTS.md` | the two LUKS containers, and what their TPM enrolment is really worth |
 
 ## Architecture
 
@@ -189,7 +189,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
 
 - **MCP validation**: MUST use the `nixos` MCP server to verify that packages and options exist before adding them to configurations
 
-- **Comments in Nix stay lean.** **The default is no comment.** One earns its place only by explaining something surprising about *the line it sits on* — a clause or a sentence, not the story of what happens there. Do not write a comment that justifies a structural choice (why an import sits at host level, why a profile is a capability), recounts what the code replaced, or restates a rule from a `CLAUDE.md`. A bare cross-reference (`# see CLAUDE.md, "How a bare session starts (uwsm)"`) is **not** an exception: the notes are read before the code is edited, so a pointer back to them costs a line and tells the reader nothing. Leave the code bare. The same goes for option `description` strings: say what the option means and what breaks if it is wrong, and leave the reasoning out. Whether that reasoning belongs in a `CLAUDE.md` *at all* is a separate question — see **Where the detailed notes live**.
+- **Comments in Nix stay lean.** **The default is no comment.** One earns its place only by explaining something surprising about *the line it sits on* — a clause or a sentence, not the story of what happens there. Do not write a comment that justifies a structural choice (why an import sits at host level, why a profile is a capability), recounts what the code replaced, or restates a rule from an `AGENTS.md`. A bare cross-reference (`# see AGENTS.md, "How a bare session starts (uwsm)"`) is **not** an exception: the notes are read before the code is edited, so a pointer back to them costs a line and tells the reader nothing. Leave the code bare. The same goes for option `description` strings: say what the option means and what breaks if it is wrong, and leave the reasoning out. Whether that reasoning belongs in an `AGENTS.md` *at all* is a separate question — see **Where the detailed notes live**.
 
 - **Module structure**: Modules are flake-parts modules taking `{ self, inputs, ... }` and define outputs via `flake.modules.<class>.<name>`, where class is `nixos` or `homeManager`. Modules can also define `perSystem` outputs for per-architecture tooling (formatters, dev shells, VM apps)
 
@@ -219,7 +219,7 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
   1. Run `nix fmt` to ensure consistent code style
   1. Stage files with `git add` (the flake only sees tracked files)
 
-- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is near enough evaluation-only, but still takes ~1.5 min because the desktop probes are sixteen NixOS evaluations; run a single check by name while iterating. Host builds are CI's job (see `modules/core/CLAUDE.md`)
+- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is near enough evaluation-only, but still takes ~1.5 min because the desktop probes are sixteen NixOS evaluations; run a single check by name while iterating. Host builds are CI's job (see `modules/core/AGENTS.md`)
 
 - **Committing**: Always present changes and proposed commit message to the user for explicit approval before committing
 
@@ -245,7 +245,7 @@ Import-tree already gives file-granular opt-in, so a module's *existence* is the
 
 `den.desktop` (declared in `features/desktop/options.nix`) keeps the two choices independent. Session modules only register sessions with `services.displayManager.sessionPackages`; each login manager only reads that list. So a session never implies a greeter, and swapping greeters never touches the sessions.
 
-A bare compositor contributes exactly **one** entry to that list, and it starts uwsm rather than the compositor directly. See **How a bare session starts (uwsm)** in `modules/features/desktop/session/CLAUDE.md`.
+A bare compositor contributes exactly **one** entry to that list, and it starts uwsm rather than the compositor directly. See **How a bare session starts (uwsm)** in `modules/features/desktop/session/AGENTS.md`.
 
 Which of the settings a **profile** may set and which belong to the **host** follows from whether the option merges:
 
@@ -279,7 +279,7 @@ What makes one home holding several desktops work is that nothing a session owns
 
 **User units** name the session they belong to:
 
-- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "wayland-session@sway.target"`. It is keyed by id rather than a bare list because the key is the lowercased name the session announces in `XDG_CURRENT_DESKTOP`, which is what the per-desktop *files* below are named after. Key and value can disagree on more than shape — Hyprland's are `hyprland` and `wayland-session@Hyprland.target` — so see **Adding a desktop environment** in `modules/features/desktop/session/CLAUDE.md`.
+- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "wayland-session@sway.target"`. It is keyed by id rather than a bare list because the key is the lowercased name the session announces in `XDG_CURRENT_DESKTOP`, which is what the per-desktop *files* below are named after. Key and value can disagree on more than shape — Hyprland's are `hyprland` and `wayland-session@Hyprland.target` — so see **Adding a desktop environment** in `modules/features/desktop/session/AGENTS.md`.
 - **`den.desktop.sessionAnchors`** (`features/desktop/options.nix`, per host) — the same fact system-side, for system-level user units (`blueman-applet`) and as the gate for "does any installed session need the companion stack" (`nixos.thunar`, `nixos.session-wayland`). A session that ships its own shell publishes nothing, which is why GNOME has no entry.
 - **`den-session.target`** (`session/wayland.nix`) — one unit for the shared companions to name, started by *any* anchor and stopped with it. `wayland.systemd.target` points at it, and some thirty upstream Home Manager modules (kanshi, swayidle, clipman, dunst…) default their binding to that option, so they need no per-unit wiring.
 
@@ -291,7 +291,7 @@ Nothing a session owns may bind to `graphical-session.target`: **every** desktop
 
 - **Anything with no per-desktop form** has to be settled once for the home, and the tie-break is "what is least wrong in the desktop that did not ask for it". `xdg.userDirs.desktop` is the example: Sway used to drop the Desktop folder, which is right for a tiling session and wrong for the GNOME session in the same home, so the folder stays.
 
-- **To add an environment**: see **Adding a desktop environment** in `modules/features/desktop/session/CLAUDE.md` — it is a checklist, because the pieces are small but there are seven of them.
+- **To add an environment**: see **Adding a desktop environment** in `modules/features/desktop/session/AGENTS.md` — it is a checklist, because the pieces are small but there are seven of them.
 
 - **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.
 

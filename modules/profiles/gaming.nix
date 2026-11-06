@@ -34,7 +34,7 @@
         extest.enable = true;
         # No render-offload command here: a host with two GPUs installs its own
         # `gpu-offload`, and Steam's FHS reaches it through the host PATH.
-        # See CLAUDE.md, "GPU render offload".
+        # See AGENTS.md, "GPU render offload".
         extraPackages = with pkgs; [ gamescope ];
       };
 

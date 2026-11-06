@@ -1,7 +1,7 @@
 { self, ... }:
 {
   # Booted-VM tests for the login path: test-greeter, test-session (greetd) and
-  # test-session-gdm. Deliberately packages, not flake checks. See CLAUDE.md,
+  # test-session-gdm. Deliberately packages, not flake checks. See AGENTS.md,
   # "Booted-VM tests".
   perSystem =
     { pkgs, lib, ... }:

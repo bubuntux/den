@@ -7,7 +7,7 @@ _: {
     pkgs.nvtopPackages.full.override {
       # `full` already enables every backend; this argument has no default, and
       # answering it is what makes the NVIDIA one free and closure-free -- see
-      # CLAUDE.md, "GPU metrics in the bar".
+      # AGENTS.md, "GPU metrics in the bar".
       cudatoolkit = null;
     };
 }

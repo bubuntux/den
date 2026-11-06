@@ -2,12 +2,12 @@
 {
   # One of the two renderers behind den.desktop.bar. Every module here is
   # instantiated once per output, so an `exec` runs N times on N monitors --
-  # see CLAUDE.md, "Choosing a bar", for the measurements and what to do
+  # see AGENTS.md, "Choosing a bar", for the measurements and what to do
   # about it.
   #
   # The bar for a bare Wayland session, and only what means the same thing under
   # any compositor. A session contributes its own modules through
-  # den.session.bar and gets a config and a unit of its own -- see CLAUDE.md,
+  # den.session.bar and gets a config and a unit of its own -- see AGENTS.md,
   # "One bar per session".
   flake.modules.homeManager.waybar =
     {
