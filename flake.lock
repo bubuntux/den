@@ -181,11 +181,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1793916445,
-        "narHash": "sha256-+X+NwDew4tCY5hY2gtBRyAuC8piWucUR9kUktKA5ACw=",
+        "lastModified": 1793943041,
+        "narHash": "sha256-kCU8leMp5MnZ1udzNM81RNZ0hRJPZ7fE8c6gCKMyebc=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "7fe4c8bb8e55623340b2ee35ecd43595cb129af8",
+        "rev": "c298159b72a6d1d888a635a8c1e5fc4952d12983",
         "type": "gitlab"
       },
       "original": {
@@ -299,11 +299,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1793921375,
-        "narHash": "sha256-803K4HFObIrsUOHeNt75ak8wiJHUcyeHdn1aSH8Mk9I=",
+        "lastModified": 1793944997,
+        "narHash": "sha256-Dys7LOS5nfpSCME8wnieuZvyVK2mF772L84o20Pol1I=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "dc09fe1d8c2ad18fe6aac4d04bbd726902b7296a",
+        "rev": "f0ef41d969e1b49971d2fc994cc34807a437d6c2",
         "type": "github"
       },
       "original": {
@@ -376,11 +376,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1793795574,
-        "narHash": "sha256-pgG/CO+txdf2sA2z6DsM+2G3F9ajfIp/3BMC4wfKMDY=",
+        "lastModified": 1793826729,
+        "narHash": "sha256-D5H7H+qMoTGI/jJtxKP4u7BdjkFnUyhOovTrf3pTOr0=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "13e53762c5afaf384d4614e94527a9ccfafe41d0",
+        "rev": "6dadaf4375be35033e1c84395adbd53ff5fded96",
         "type": "github"
       },
       "original": {
