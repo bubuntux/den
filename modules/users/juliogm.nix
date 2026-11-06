@@ -21,6 +21,18 @@
         );
 
         kotlinLsp = pkgs.callPackage "${self}/modules/features/editor/_kotlin-lsp.nix" { };
+
+        jdtlsCmd = lib.generators.mkLuaInline ''
+          {
+            '${lib.getExe pkgs.jdt-language-server}',
+            '-configuration',
+            get_jdtls_config_dir(),
+            '-data',
+            get_jdtls_workspace_dir(),
+            '--jvm-arg=-javaagent:${pkgs.lombok}/share/java/lombok.jar',
+            get_jdtls_jvm_args(),
+          }
+        '';
       in
       {
         key = "den:homeManager.user-juliogm";
@@ -68,7 +80,17 @@
         ];
 
         programs.nvf.settings.vim = {
-          lsp.servers.kotlin-language-server.cmd = lib.mkForce [ (lib.getExe kotlinLsp) ];
+          lsp.servers = {
+            kotlin-language-server.cmd = lib.mkForce [ (lib.getExe kotlinLsp) ];
+
+            # Same trap as kotlin-lsp (551ff71): jdtls runs on nixpkgs openjdk (java.vendor "N/A") and
+            # imports Gradle on it, so vendor-checking plugins reject the import and jdtls serves an empty model.
+            jdt-language-server = {
+              cmd = lib.mkForce jdtlsCmd;
+              settings.java.import.gradle.java.home = lib.generators.mkLuaInline "vim.env.JAVA_HOME";
+            };
+          };
+
           languages = {
             java = {
               enable = true;
