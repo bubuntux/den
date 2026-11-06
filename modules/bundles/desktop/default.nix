@@ -117,7 +117,6 @@ in
         desktop-options
         # environments
         sway
-        niri
         gnome
         # login managers
         login-greetd

@@ -15,7 +15,6 @@ result-*
 .idea/
 *.swp
 *~
-.helix/
 
 # OS specific
 .DS_Store

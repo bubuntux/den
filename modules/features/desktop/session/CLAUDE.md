@@ -9,8 +9,7 @@ session-scoping rules are in the root `CLAUDE.md`.
 A compositor on its own gives you windows and nothing else: no session target to
 bind helpers to, no XDG autostart, and no environment in the systemd user
 manager. Every compositor solves that differently or not at all — Sway only had
-it through Home Manager, niri ships `niri.service`, and **mangowc ships
-nothing** — so all of them run through
+it through Home Manager, and **mangowc ships nothing** — so all of them run through
 [uwsm](https://github.com/Vladimir-csp/uwsm) instead, which makes it one answer:
 `wayland-session@<id>.target`, where the id is the basename of the compositor
 binary.
@@ -88,7 +87,7 @@ changed two things and is worth knowing before wiring anything by hand:
 - **Anything with an autostart entry needs no wiring from us.** `blueman-applet`
   used to be bound to the anchors here because a bare Sway had no autostart; once
   uwsm arrived that became a *second* copy of the applet. Only things with no
-  entry at all — the geoclue agent, niri's wallpaper — are bound explicitly.
+  entry at all — the geoclue agent — are bound explicitly.
 - **Entries meant for "any desktop but GNOME" now apply.** `ibus-daemon.desktop`
   is `NotShowIn=GNOME;KDE`, so installing GNOME on a host puts IBus in the Sway
   session, notification and all. `session/wayland.nix` hides it with a user-level
@@ -129,11 +128,7 @@ it is harmless in a session that already has one.
 
 ## Adding a desktop environment
 
-There are two worked examples now, and they differ in the two places that matter
-most, so read whichever is closer: **sway** has a Home Manager module for its
-config and a nixpkgs *wrapper* for its package, while **niri** has neither — see
-**The niri session** below for what that costs. Read `session/sway/default.nix` or
-`session/niri/default.nix` alongside this. The steps are each small, but missing
+Read `session/sway/default.nix` alongside this. The steps are each small, but missing
 one tends to fail at login rather than at evaluation.
 
 1. **Name it.** Add `"<name>"` to `sessionNames` in `features/desktop/options.nix`.
@@ -165,16 +160,15 @@ one tends to fail at login rather than at evaluation.
    **How to rewrite that entry depends on what the package is, and getting it
    wrong costs a full rebuild rather than an error.** sway's `programs.sway.package`
    is a `symlinkJoin` wrapper, so appending to its `buildCommand` is nearly free.
-   niri's is `rustPlatform.buildRustPackage` — an `overrideAttrs` on `postInstall`
-   there would recompile the whole compositor from source to change one 6-line
-   text file. So niri wraps instead:
+   For packages built as a plain derivation where modifying the build would recompile
+   from source, wrap in a `pkgs.symlinkJoin` instead:
 
    ```nix
    package = pkgs.symlinkJoin {
-     name = "niri-uwsm-session-${pkgs.niri.version}";
-     paths = [ pkgs.niri ];
-     inherit (pkgs.niri) meta passthru;   # providedSessions lives in passthru
-     postBuild = ''rm $out/share/wayland-sessions/niri.desktop && cat > ... '';
+     name = "<name>-uwsm-session-${pkgs.<name>.version}";
+     paths = [ pkgs.<name> ];
+     inherit (pkgs.<name>) meta passthru;   # providedSessions lives in passthru
+     postBuild = ''rm $out/share/wayland-sessions/<name>.desktop && cat > ... '';
    };
    ```
 
@@ -185,9 +179,8 @@ one tends to fail at login rather than at evaluation.
    The session environment (toolkit variables and the like) goes **here** when the
    compositor's NixOS module offers a hook for it, because uwsm starts the system
    binary by absolute path and anything set in a Home Manager wrapper never runs.
-   `programs.sway` has `extraSessionCommands`; **`programs.niri` has no
-   equivalent**, so niri's go in `~/.config/uwsm/env-niri`, which uwsm's env
-   preloader sources — see **The niri session**.
+   `programs.sway` has `extraSessionCommands`; for compositors with no equivalent,
+   variables go in `~/.config/uwsm/env-<name>`, which uwsm's env preloader sources.
 
 1. **Home Manager half:**
 
@@ -199,14 +192,14 @@ one tends to fail at login rather than at evaluation.
 
    plus the compositor's config, with its package set to `null` and its own
    systemd/session integration turned off, and `uwsm finalize <VARS>` as the
-   **first** startup command. If Home Manager has no module for the compositor —
-   which is niri's case on the `release-26.05` pin — the config is a hand-written
-   file under `xdg.configFile`; write it as **`.text`, not a `writeText` `source`**,
-   so a check can read what is in it without building anything.
+   **first** startup command. If Home Manager has no module for the compositor,
+   the config is a hand-written file under `xdg.configFile`; write it as
+   **`.text`, not a `writeText` `source`**, so a check can read what is in it
+   without building anything.
 
 1. **Give it a bar.** Whichever renderer the host picked, the compositor's IPC
    socket has to reach the systemd user environment through `uwsm finalize`, the
-   way `SWAYSOCK` does — niri's is `NIRI_SOCKET`. Then:
+   way `SWAYSOCK` does. Then:
 
    - **waybar** needs a file next to the session's own contributing
      `den.session.bar.<name>`, imported by the Home Manager half (see **One bar
@@ -215,17 +208,14 @@ one tends to fail at login rather than at evaluation.
    - **ironbar** needs nothing, because it detects the compositor itself — but
      check it against `supportedBy` in `features/desktop/ironbar.nix`: a session
      ironbar cannot drive silently drops `workspaces` from *every* host that
-     installs it, and one it drives only partly (niri, no `bindmode`) drops that
-     module for everyone. Extend that attrset rather than the module list.
+     installs it. Extend that attrset rather than the module list.
 
 1. **Host:** add `"<name>"` to `den.desktop.environments` (usually via a
    profile). To preselect it under greetd, `services.displayManager.defaultSession = "<name>"`. Under **GDM, leave `defaultSession` unset** — see below.
 
 1. **Prove it boots.** `mkSessionTest` in `modules/core/tests.nix` takes a
    `session` argument, so this is one more entry in `packages` — `nix flake check`
-   will not tell you a session comes up. Then **look at the screenshot**: a
-   compositor with no software-rendering fallback passes every unit assertion
-   while drawing nothing at all, which is exactly what `test-session-niri` does.
+   will not tell you a session comes up.
    See **Booted-VM tests** in `modules/core/CLAUDE.md`.
 
 Five things that are easy to get wrong, in the order they bite:
@@ -260,101 +250,9 @@ Five things that are easy to get wrong, in the order they bite:
 A session that ships its own shell (GNOME) skips all of this: no uwsm entry, no
 anchors, no `session-wayland`, no session command.
 
-## The niri session
-
-zuko's second session, and the second bare compositor. **It is on trial**, which
-is why `den.desktop.environments = [ "niri" ]` sits in `hosts/zuko/default.nix`
-rather than in a profile: the option merges, so a host can add one on top of what
-its roles install, and katara shares `profile-workstation` and should not pay for
-this. Move it into a profile if and when it stops being an experiment.
-
-**The keybindings are deliberately upstream's**, transcribed from niri's own
-`resources/default-config.kdl` (in the package's `doc` output) with five changes
-and no more: the terminal and launcher spawn what this repo installs, the terminal
-is on `Mod+Return` rather than `Mod+T`, the lock key goes through logind, and the
-orca screen-reader bind is dropped because orca is not installed and a bind to a
-missing binary is the silent-failure shape this repo rejects. So **`Mod+Q` closes
-a window** — niri's binding, not sway's `Mod+Shift+Q`. Do not "fix" the rest to
-match sway without being asked; it is the point of the first pass.
-
-Eight things about this session that are not visible in the file:
-
-- **Home Manager has no niri module on the `release-26.05` pin.** `wayland.windowManager.niri`
-  exists upstream but not here, so the whole session config is one hand-written KDL
-  string in `_config.nix`. Two consequences: it is written as `xdg.configFile.<n>.text`
-  rather than a `writeText` `source`, so `terminal-choice` can grep it for free; and
-  it gets its own `niri-config` check, because a typo there does not fail evaluation
-  — niri falls back to its built-in defaults and you find out at login. Revisit all
-  of this when the pin gains the module.
-
-- **Nothing sets outputs, on purpose.** kanshi owns them for every session here, and
-  niri really does implement `zwlr_output_manager_v1` (`src/protocols/output_management.rs`,
-  including `CreateConfiguration`, so it is writable and not just introspection). It
-  reports `make`/`model`/`serial_number` per head, which is what katara's
-  identity-keyed profiles ("Dell Inc. DELL U2722DE J85KV83") match on. Note niri
-  reports the head *name* as make-model-serial too when it has them
-  (`format_make_model_serial_or_connector`), where sway reports the connector — so
-  `niri msg outputs` reads differently from `swaymsg -t get_outputs`. An `output`
-  node in the config would fight kanshi rather than help it.
-
-- **niri draws no wallpaper**, where sway has `output "*" bg`. So one layer-shell
-  client supplies it, as a user unit anchored to niri — `wbg` rather than `swaybg`:
-  same protocol, 20 KiB, and no sway in the closure. `session-anchors` pins its
-  `WantedBy`, and `test-session-niri` includes it in the `NRestarts` set, since a
-  wallpaper that died is the one companion whose failure looks like the compositor's.
-
-- **The lock key names logind, not a locker.** `spawn "loginctl" "lock-session"`
-  fires the Lock signal that `services.swayidle` in `session/wayland.nix` already
-  handles, so the niri config never mentions swaylock. That keeps the choice of
-  locker in one place for every session — and swaylock does work here (niri serves
-  `ext-session-lock-v1`), it just is not niri's business which one it is.
-
-- **`programs.niri` has no `extraSessionCommands`**, so the toolkit variables sway
-  gets from its wrapper go in `~/.config/uwsm/env-niri` instead, which uwsm's env
-  preloader sources: `libexec/uwsm/prepare-env.sh` walks every config dir and, per
-  dir, sources `uwsm/env` then `uwsm/env-<name>` (plus `.d/` directories) **for each
-  lowercased entry of `XDG_CURRENT_DESKTOP`** — not the uwsm compositor id. Those
-  coincide for niri; they would not for Hyprland, whose id is `Hyprland` and whose
-  file is `env-hyprland`. Same trap as the anchor key naming `<desktop>-mimeapps.list`.
-  `env-niri` and not `env`: the file is home-wide like everything Home Manager
-  writes, and only the per-desktop name keeps it out of a GNOME login in the same
-  home.
-
-- **X11 goes through `xwayland-satellite`**, pinned by store path in the config
-  because niri's default is a bare name on `PATH` and a lookup that misses disables
-  X11 with nothing but a journal line.
-
-- **`prefer-no-csd` is set, and it is what makes ghostty behave.** ghostty asks the
-  compositor for decorations (`window-decoration = server`, see **Choosing a
-  terminal**), and niri serves `org_kde_kwin_server_decoration` — so without this
-  every window in a tiling session would carry a GTK headerbar. It is not a
-  keybinding, which is why it is set despite the vanilla-first rule.
-
-- **Screen capture is the GNOME portal, not wlr.** niri implements the GNOME
-  screencast D-Bus API — that is its `xdp-gnome-screencast` build feature — so
-  `xdg.portal.config.niri` points ScreenCast and Screenshot at `gnome`, mirroring the
-  `niri-portals.conf` the package ships. `useNautilus = false` keeps FileChooser on
-  gtk, which is what `session/wayland.nix` already asks for and what a session using
-  thunar wants.
-
-One loose end worth knowing rather than fixing:
-
-- **ironbar loses its mode indicator on any host that installs niri.** `bindmode` is
-  sway/hyprland only, and `supportedBy` in `features/desktop/ironbar.nix` drops a
-  module the moment one installed session cannot back it. That was predicted in
-  **Choosing a bar** (`../CLAUDE.md`) before niri existed, and it is now what actually happens on
-  any host that also installs ironbar. waybar is unaffected — it builds one bar per session.
-
-The package's own `niri.service` and `niri-shutdown.target` are installed by
-nixpkgs' `systemd.packages` and are inert: `niri.service` has no `[Install]`
-section, so nothing pulls it in, and only `niri-session` would have started it.
-That is fine to leave alone — but it is also why the shipped `Exec=niri-session`
-desktop entry has to be rewritten rather than kept: it binds the session to
-`graphical-session.target`, which is precisely the target no companion here follows.
-
 ## Session Layout
 
-A session that brings companion pieces becomes a directory, so the tree says who owns what. GNOME needs none (it keeps its state in GSettings and mutter manages its own outputs), so it stays a single file; Sway and niri carry the pieces that speak their IPC:
+A session that brings companion pieces becomes a directory, so the tree says who owns what. GNOME needs none (it keeps its state in GSettings and mutter manages its own outputs), so it stays a single file; Sway carries the pieces that speak its IPC:
 
 ```
 modules/features/desktop/session/
@@ -369,18 +267,9 @@ modules/features/desktop/session/
     _modes.nix          #   modules, imported by ./default.nix
     _rules.nix
     _startup.nix
-  niri/
-    default.nix         # nixos.niri + homeManager.niri
-    waybar.nix          # den.session.bar.niri -- niri/workspaces and niri/window
-    _config.nix         # the whole config.kdl, as one curried function
 ```
 
-niri's config is *one* fragment where sway has four, and that is the shape of the
-difference rather than a stylistic choice: sway's config is an attrset the Home
-Manager module merges, so splitting it costs nothing, while niri's is a single KDL
-string on this pin and splitting it would just be string concatenation.
-
-The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `ghostty` and `foot` are terminals the host picks between with `den.desktop.terminal` (see **Choosing a terminal** in `../CLAUDE.md`), `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks — niri included), `waybar` and `ironbar` are bars that learn the compositor from `den.session.bar` and from the environment respectively (see **Choosing a bar**, same file), `bar-scripts` holds the two readings they share, and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
+The test for whether something belongs in `session/<name>/` is whether it names the compositor. Anything DE-agnostic stays out of it: `ghostty` and `foot` are terminals the host picks between with `den.desktop.terminal` (see **Choosing a terminal** in `../CLAUDE.md`), `thunar` a file manager, `kanshi` drives outputs over `wlr-output-management` (which any compositor here speaks), `waybar` and `ironbar` are bars that learn the compositor from `den.session.bar` and from the environment respectively (see **Choosing a bar**, same file), `bar-scripts` holds the two readings they share, and `monitors` only declares the schema hosts write their display layout in. Those all sit flat under `features/desktop/`.
 
 `session/wayland.nix` is where that rule leads for a *group* of them. Notifications, launcher, locker, idle handling, colour temperature, keyring and tray applets are each DE-agnostic, but they only make sense together — no host wants a subset — so they are one module ("the parts a compositor omits") rather than nine files. Sway's own copies of these were what made the first attempt at a second session look expensive.
 

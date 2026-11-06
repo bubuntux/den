@@ -33,10 +33,10 @@ nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel
 nix run .#katara-vm
 
 # Validate: formatting plus the desktop, session-anchor, terminal-choice,
-# unit-shape, module-keys, ironbar-config, ghostty-config, niri-config and media
+# unit-shape, module-keys, ironbar-config, ghostty-config and media
 # checks. Near enough evaluation-only (~1.5 min: twenty-one NixOS evaluations,
-# one of which also evaluates a user's whole Home Manager config; the three
-# *-config checks additionally run ironbar's, ghostty's and niri's own
+# one of which also evaluates a user's whole Home Manager config; the two
+# *-config checks additionally run ironbar's and ghostty's own
 # validators).
 # It does not build hosts -- see modules/core/CLAUDE.md for why.
 nix flake check
@@ -50,7 +50,6 @@ nix build .#test-greeter         # the greeter draws a usable prompt
 nix build .#test-session         # a session comes up via greetd (zuko)
 nix build .#test-session-gdm     # ... and via GDM's .desktop entry (katara)
 nix build .#test-session-ironbar # ... and the other bar really comes up
-nix build .#test-session-niri    # ... and the other compositor's plumbing (only that)
 
 # Format code
 nix fmt
@@ -80,8 +79,8 @@ needing notes gets its own file and a row in this table, not a section here.
 |---|---|
 | `modules/core/CLAUDE.md` | what each `nix flake check` proves, the booted-VM session tests, and why host builds are CI's job |
 | `modules/features/desktop/CLAUDE.md` | choosing a bar (waybar/ironbar) and a terminal (ghostty/foot), the GPU widget, what colour is allowed to mean |
-| `modules/features/desktop/session/CLAUDE.md` | how a bare session starts under uwsm, the checklist for adding an environment, the niri session, session layout |
-| `modules/features/editor/CLAUDE.md` | why Helix tracks master via its flake input, why its grammar list is filtered to GitHub, and how a vault scopes markdown behind workspace trust |
+| `modules/features/desktop/session/CLAUDE.md` | how a bare session starts under uwsm, the checklist for adding an environment, session layout |
+| `modules/features/editor/CLAUDE.md` | why kotlin-lsp uses JetBrains' build and how Gradle/JDK paths are wired |
 | `modules/features/network/CLAUDE.md` | adding a service to CrowdSec -- journald, not log files |
 | `modules/features/virtualisation/CLAUDE.md` | deep links out of the work container |
 | `modules/hardware/CLAUDE.md` | the Precision 5690 board (Meteor Lake, not Raptor Lake), its fingerprint reader, GPU render offload |
@@ -104,7 +103,7 @@ Features ──→ Bundles ──→ Profiles ──→ Hosts
 
 Note the direction of two edges that are easy to get backwards: **users are imported by profiles**, not by hosts (a role knows who operates the machine), and **hardware is imported by hosts**, not by profiles.
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (helix), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, ghostty, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` and `session/niri/` the pieces only those compositors use — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, nvtop, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
+- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (neovim), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, ghostty, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` the pieces only that compositor uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, nvtop, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
 - **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
 - **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
 - **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
@@ -270,12 +269,9 @@ den.desktop.environments = [          den.desktop.environments = [ "sway" ];
 
 # hosts/katara/default.nix -- imports both roles, then picks one greeter
 den.desktop.loginManager = "gdm";
-den.desktop.environments = [ "niri" ];   # one of its own, on trial
 ```
 
-katara is the worked example: two roles, three environments installed, and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path.
-
-Note the third entry comes from the **host**, not a role, and that is the one place the table above bends: because the option merges, a host can add an environment its roles do not install, and that is right for something being tried on one machine (see **The niri session** in `modules/features/desktop/session/CLAUDE.md`). It stays wrong for anything settled — a role is where an environment belongs once it is not an experiment. `defaultSession` is deliberately absent here; under GDM it wipes every user's remembered session on each boot.
+katara is the worked example: two roles, two environments installed, and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path. `defaultSession` is deliberately absent here; under GDM it wipes every user's remembered session on each boot.
 
 **There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. Naming one desktop per person cannot work: the greeter offers every installed session to everyone regardless, so all such an option decides is whose home is *unprepared* for the session they chose.
 

@@ -10,7 +10,7 @@ It is the standalone Home Manager config `homeConfigurations.bbtux-anywhere-<sys
 | included | left out |
 | --- | --- |
 | zsh, starship, direnv, eza, screen | SSH config and keys |
-| Helix (master) with its language servers | jj commit signing (the key is on zuko) |
+| Neovim with its plugins and language servers | jj commit signing (the key is on zuko) |
 | git and jj with my identity, gh, difftastic | secrets (sops) |
 | Claude Code, devenv, ripgrep, fd, jq, … | the desktop (sway, waybar, firefox, theme) |
 | nix settings and binary caches | auto-upgrade |
@@ -125,7 +125,7 @@ Both scripts read these from the environment:
   `--container`, or turn systemd on in WSL (`[boot] systemd=true` in
   `/etc/wsl.conf`, then `wsl --shutdown`).
 - **Nix was already installed and I'm not a trusted user**: my caches are
-  ignored with a warning, and Helix builds from source. Slow, not broken.
+  ignored with a warning, and packages build from source. Slow, not broken.
 - **`/work` is not writable on Fedora/RHEL**: SELinux; add `:Z` to the
   volume (`-v "$PWD:/work:Z"`).
 - **Intel Mac**: no config for `x86_64-darwin`; use the container route.

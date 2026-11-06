@@ -35,12 +35,6 @@
     hardware.nvidia.prime.offload.offloadCmdMainProgram = "gpu-offload";
 
     den.desktop.loginManager = "greetd";
-    # den.desktop.environments = [ "niri" ];
     services.displayManager.defaultSession = "sway";
-
-    home-manager.users.bbtux = {
-      imports = [ self.modules.homeManager.vault ];
-      den.vaults.personal.path = "Documents/vault";
-    };
   };
 }

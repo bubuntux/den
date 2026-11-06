@@ -67,23 +67,6 @@
           src-cli
         ];
 
-        # Language servers Helix auto-detects when their binaries are on PATH.
-        # Docker LSPs are already provided by the shared helix module.
-        programs.helix.extraPackages = with pkgs; [
-          kotlinLsp
-          jdt-language-server
-          terraform-ls
-          python3Packages.python-lsp-server
-          ruff
-        ];
-
-        programs.helix.languages.language = [
-          {
-            name = "kotlin";
-            language-servers = [ "kotlin-lsp" ];
-          }
-        ];
-
         programs.nvf.settings.vim = {
           lsp.servers.kotlin-language-server.cmd = lib.mkForce [ (lib.getExe kotlinLsp) ];
           languages = {

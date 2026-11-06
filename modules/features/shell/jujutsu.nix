@@ -9,7 +9,6 @@
         enable = true;
         settings = {
           ui.default-command = "log";
-          ui.editor = "hx"; # Helix is the repo's sole editor
           # Render diffs structurally with difftastic (already on PATH).
           ui.diff-formatter = [
             "difft"

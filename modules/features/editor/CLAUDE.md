@@ -1,56 +1,12 @@
 # Editor
 
-## Helix comes from the flake input, not nixpkgs
-
-nixpkgs packages the last tagged Helix release, and upstream cuts releases
-rarely enough that it sits many hundreds of commits behind master. So
-`programs.helix.package` is built from the `helix` flake input, lockfile-pinned
-and bumped by `nix flake update helix`.
-
-That choice carries a trap worth knowing before touching the package line.
-
-## Why the grammar list is filtered
-
-Helix's own flake resolves every tree-sitter grammar with `builtins.fetchTree`
-at **evaluation** time, passing a rev but no `narHash`. A hash-less eval fetch
-is not substitutable: Nix has to reach the forge to compute the derivation, so
-neither cache.nixos.org nor helix.cachix.org nor den.cachix.org can stand in for
-it. Every build on a cold machine clones *each* grammar repo, and one
-unreachable forge fails the whole thing.
-
-Most grammars live on GitHub, but a couple of dozen live on codeberg, gitlab and
-sr.ht, and those are the ones that have actually broken CI — rate limits, 503s,
-and one account deleted outright, taking its grammar with it. `includeGrammarIf`
-therefore keeps only the GitHub-hosted grammars. The cost is syntax highlighting
-for the dropped languages; check the current list before assuming one you need
-is still there.
-
-Two consequences to keep in mind:
-
-- **Any** override changes the derivation, so helix.cachix.org no longer
-  matches and CI compiles Helix from source once per input bump. den.cachix.org
-  carries it from there. This is not specific to `includeGrammarIf` — it is the
-  price of deviating from upstream's expression at all, so a narrower filter
-  would not buy the cache back.
-- CI caches `~/.cache/nix` for the same reason. Warm, it answers the remaining
-  fetches without the network; that is the only thing standing between a GitHub
-  outage and a red build. Cache the whole directory, not one subdirectory of
-  it: GitHub-hosted grammars land in `tarball-cache-v2`, and `gitv3` only ever
-  held the non-GitHub ones the filter above now drops.
-
-Upstream intends to replace per-grammar fetching with a single tree-house clone
-([#12831](https://github.com/helix-editor/helix/pull/12831)). When that lands,
-both the filter and the cache step can go.
-
 ## kotlin-lsp is pinned to a build that expires
 
 Kotlin support is JetBrains' `kotlin-lsp` (`_kotlin-lsp.nix`), not nixpkgs'
 `kotlin-language-server` — the latter is unmaintained since Jan 2025 and its
 embedded Kotlin 2.1 compiler cannot read stdlib metadata newer than 2.2, so
 against a current project *every* top-level stdlib function reports
-`Unresolved reference` while built-in classes still resolve. Helix already
-defines a `kotlin-lsp` server, but its `kotlin` language still points at the old
-one, so the language entry has to be overridden as well as the binary installed.
+`Unresolved reference` while built-in classes still resolve.
 
 These are EAP builds and **stop running about thirty days after they are cut**
 ("This build of intellij-server has expired") — and an expired build still
@@ -95,39 +51,3 @@ Three parts to how that JDK is passed, each failing differently:
   `lib/openjdk/bin`, so IntelliJ's probe walks up from `bin/java` to the package
   root, finds no `release` or `conf`, and discards it — `Checked Java paths: []`
   even though java is plainly on PATH.
-
-## Vaults override markdown per directory, behind workspace trust
-
-`vault.nix` writes a `.moxide.toml` and a `.helix/` into each
-`den.vaults.<name>` directory. That is what lets one home hold a PKM setup for
-markdown without imposing it on every repo's `.md` files — the global markdown
-entry stays marksman-and-mdformat, the vault swaps in markdown-oxide and harper
-for that directory only. Four things about it are not obvious.
-
-- **Trust gates the local config, not the language servers.** The default
-  implicit level is `servers`, so markdown-oxide starts in any directory; only
-  `.helix/` needs an explicit grant. A grant pins a SHA-256 of every file under
-  `.helix/`, so a rebuild that changes the generated config demotes the
-  workspace to `Stale` and the local config quietly stops loading. `trust = true` sidesteps the mechanism by listing the vault in
-  `editor.workspace-trust.trusted`, where a glob match short-circuits ahead of
-  the hash check.
-- **Mutable state stays out of `.helix/`** for the same reason. The harper
-  dictionary sits beside it, not in it, or every word added from the editor
-  revokes trust.
-- **Local config merges at depth 3, and arrays at that depth concatenate.** So
-  `helixSettings` can lengthen `editor.rulers` but never shorten it; only the
-  global config can. One level deeper — a language's `language-servers` — lists
-  replace instead.
-- **The daily-note filename is stated twice, in two syntaxes.** chrono strftime
-  in `.moxide.toml`, moment.js in Obsidian's `daily-notes.json`. Obsidian
-  rewrites the latter itself, so it cannot be generated; `checkObsidian` only
-  compares the two at activation and warns.
-- **`dailynote` is both the file path and the inserted link text.**
-  markdown-oxide writes it verbatim when a `[[today]]` completion is accepted,
-  but resolves links relative to the vault root. A flat format resolves on the
-  filename alone — which matches a file however deeply nested — and keeps the
-  link short. A format naming subdirectories resolves only if the folder is in
-  the link text too, so `dailyNoteSettings` folds the folder into `dailynote`
-  in that case and leaves `daily_notes_folder` empty. There is no third option:
-  nested files and short link text cannot both be had, and
-  `link_filenames_only` does not apply to daily-note completions.

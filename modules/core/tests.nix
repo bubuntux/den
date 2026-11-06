@@ -77,8 +77,7 @@
       # show.
       #
       # Once per greeter: greetd runs a command line, GDM execs the .desktop
-      # entry, and only the former was covered. Once per session too, since
-      # nothing about uwsm is sway-shaped and niri proves it.
+      # entry, and only the former was covered.
       mkSessionTest =
         {
           testName,
@@ -155,12 +154,9 @@
                 }
               ];
 
-              # `-vga std` gives no DRM node a compositor can drive, so both
-              # sessions need the virtio card (lifted from nixpkgs'
-              # nixos/tests/sway.nix). The renderer is where they part, and it is
-              # why the niri run proves less -- see the note on that package
-              # below. wlroots takes a software backend by name; niri is smithay
-              # and refuses one outright.
+              # `-vga std` gives no DRM node a compositor can drive, so sway
+              # needs the virtio card (lifted from nixpkgs'
+              # nixos/tests/sway.nix). wlroots takes a software backend by name.
               environment.variables = lib.mkIf (session == "sway") {
                 WLR_RENDERER = "pixman";
               };
@@ -201,9 +197,6 @@
                   "kanshi"
                   "swayidle"
                 ]
-                # niri draws no background of its own, so this is the one place
-                # a blank screen and a working session look alike.
-                ++ lib.optional (session == "niri") "niri-wallpaper"
               )
             }]
             for unit in companions:
@@ -254,30 +247,6 @@
           loginModule = self.modules.nixos.login-gdm;
           greeterUnit = "display-manager.service";
           memorySize = 4096;
-        };
-
-        # The other session, on the cheaper greeter. Worth booting because
-        # everything uwsm does here is generic in principle and had only ever
-        # been exercised by one compositor: niri exports its own socket, spawns
-        # `uwsm finalize` from its own config rather than a wrapper, and needs
-        # the session entry the package ships to have been rewritten. All three
-        # are real here, and `DISPLAY (already set)` in the log is
-        # xwayland-satellite as well.
-        #
-        # It proves strictly less than the sway runs, and the screenshot is the
-        # honest evidence of that: it shows uwsm's console output, not a desktop.
-        # niri rejects software EGL outright -- `ensure!(!egl_device.is_software())`
-        # in src/backend/tty.rs, no config key and no env var -- so in a VM with
-        # no render node it comes up with **zero outputs**. Every unit is active
-        # and nothing is drawn. So read this as a test of the session plumbing
-        # only; that a bar appears has to be checked on real hardware, where the
-        # GPU is not software and the rejection never fires.
-        test-session-niri = mkSessionTest {
-          testName = "niri-session-comes-up";
-          loginManager = "greetd";
-          loginModule = self.modules.nixos.login-greetd;
-          greeterUnit = "greetd.service";
-          session = "niri";
         };
 
         # The other bar, on the cheaper greeter: nothing in an evaluation shows

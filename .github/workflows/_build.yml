@@ -88,10 +88,8 @@ jobs:
           large-packages: false
           docker-images: true
           swap-storage: true
-      # Helix resolves every tree-sitter grammar with an unhashed eval-time
-      # fetch, so a cold runner re-fetches ~280 repos and any one of them being
-      # down fails the build. Warm, this answers them without the network.
-      # Saved even on failure so a partial fetch still counts.
+      # Cache eval-time fetches so a cold runner answers them without
+      # the network. Saved even on failure so a partial fetch still counts.
       - name: Restore Nix fetcher cache
         id: nix-fetch-cache
         uses: actions/cache/restore@v4

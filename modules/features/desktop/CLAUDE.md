@@ -66,20 +66,18 @@ daemon to the socket at login.
 Five more things that shaped the ironbar file:
 
 - **One bar for every session works because ironbar detects its compositor at
-  startup**, from `SWAYSOCK` / `HYPRLAND_INSTANCE_SIGNATURE` / `NIRI_SOCKET`, in
+  startup**, from `SWAYSOCK` / `HYPRLAND_INSTANCE_SIGNATURE`, in
   that order (`src/clients/compositor/mod.rs`). So `workspaces` needs no
   per-session variant — which is the whole reason this renderer ignores
   `den.session.bar`. Two consequences: a new session must export its socket
   through `uwsm finalize` the way sway does with `SWAYSOCK`, and a compositor
-  ironbar does not know (**mangowc**) makes `workspaces` fail — the module is
+  ironbar does not know makes `workspaces` fail — the module is
   dropped with `failed to create module` in the journal and a gap in the bar,
   exactly waybar's failure mode.
 - **A module goes in only where every installed session can back it.** ironbar's
-  matrix is per module — `workspaces` is sway/hyprland/niri, `bindmode` is
+  matrix is per module — `workspaces` is sway/hyprland, `bindmode` is
   sway/hyprland — so `supportedBy` in the file mirrors that and drops a module
-  the moment a host installs a session that cannot serve it. katara installs
-  niri, so its ironbar has no mode indicator, and no file was edited to make
-  that so.
+  the moment a host installs a session that cannot serve it.
 - **Native modules replace two of waybar's three exec widgets**: `brightness`
   for `custom/backlight`, and `sys_info` for cpu, memory *and* `custom/temp`.
   Note `{temp_c}` with no sensor reduces
@@ -204,17 +202,15 @@ What shaped the two modules:
   keeping, that `ghostty` typed in a project shell still opens there. Tabs and
   splits have keys of their own, both still inheriting.
 
-- **The theme is `One Dark Two`, chosen against helix's `onedark`**
-  (`features/editor/helix.nix`). `Atom One Dark` is the closer match on paper;
+- **The theme is `One Dark Two`, chosen against neovim's `onedark`**
+  (`features/editor/neovim.nix`). `Atom One Dark` is the closer match on paper;
   One Dark Two is the same family a few points lighter, with a brighter
   foreground, and is a deliberate preference for the brighter variant — **do not
   "correct" it back to the closest match.**
 
   The theme is taken whole, background included, and that is worth knowing before
-  someone reports it as a bug: helix's `onedark.toml` sets
-  `"ui.background" = { bg = "black" }`, so helix paints `#282C34` across the grid
-  while the theme's `#21252b` stays in ghostty's padding — a slightly darker ring
-  around the editor. `background = "#282c34"` next to the theme removes it, and
+  someone reports it as a bug: while the theme's `#21252b` stays in ghostty's padding,
+  `background = "#282c34"` next to the theme removes it, and
   works regardless of key order, since an explicit colour beats `theme`.
 
   Note this makes the terminal One Dark while both bars are Catppuccin Mocha.
@@ -285,8 +281,7 @@ Three things that follow, and are easy to undo by accident:
   `waybar/<id>.json` are written all the same, for running a bar by hand.
 - **The stylesheet stays shared, dead selectors and all.** `#workspaces`,
   `#mode`, `#scratchpad` and `#window` are the ids whichever compositor supplies
-  those modules — niri's workspaces module carries the same
-  `button.focused/.active/.urgent` classes — and a rule matching no widget costs
+  those modules, and a rule matching no widget costs
   nothing. Splitting the CSS per session would cost the ability to read the bar's
   colour scheme in one place, which **Colour in the bar** below depends on.
 

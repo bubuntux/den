@@ -33,7 +33,6 @@
           home-manager
           fonts
           git
-          # helix
           neovim
         ];
 

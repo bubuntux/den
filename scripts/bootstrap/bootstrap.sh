@@ -8,8 +8,8 @@ DEN_FLAKE="${DEN_FLAKE:-github:bubuntux/den}"
 DEN_RAW="${DEN_RAW:-https://raw.githubusercontent.com/bubuntux/den/main/scripts/bootstrap}"
 DEN_IMAGE="${DEN_IMAGE:-bbtux-env}"
 
-SUBSTITUTERS="https://den.cachix.org https://helix.cachix.org https://nix-community.cachix.org https://devenv.cachix.org"
-TRUSTED_PUBLIC_KEYS="den.cachix.org-1:1/SPrWvkgbW6kD/tfSN/a7WkoVajMEw1znID8ja+Z1M= helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr+cv0M+/mB6Sto4="
+SUBSTITUTERS="https://den.cachix.org https://nix-community.cachix.org https://devenv.cachix.org"
+TRUSTED_PUBLIC_KEYS="den.cachix.org-1:1/SPrWvkgbW6kD/tfSN/a7WkoVajMEw1znID8ja+Z1M= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr+cv0M+/mB6Sto4="
 
 usage() {
   cat <<EOF
