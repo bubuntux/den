@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1793984258,
-        "narHash": "sha256-kLAE16aJkYVBDDYxlNgyfmzSx/H4is/4FUTVFdaiSus=",
+        "lastModified": 1793997249,
+        "narHash": "sha256-nDiwRRH0nOunUHYsA7SsOmcI/LZdUw+7MwYvNKMBUxM=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "9fb9e12c06c8f31bc1fea5ebf4b4153f3d2f2999",
+        "rev": "0a218f8cc13220013f72147e2e0fdbe350b34ae2",
         "type": "github"
       },
       "original": {
@@ -280,11 +280,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1793949034,
-        "narHash": "sha256-xws6ZOZuv6+BtqF9BZ9NRH5GdJ8zTa/ACN9lNeKC/+s=",
+        "lastModified": 1794005938,
+        "narHash": "sha256-TqBiHiJMSCq5SVAczMyEmI8s+B/m16ai+UGk5KGWVz8=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "baf924369e8d5ec02af1eab444db411d6fed1e5e",
+        "rev": "f7c4804237b1ce4c4422e717d9615dbe2f4eb39b",
         "type": "github"
       },
       "original": {
@@ -431,11 +431,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793657466,
-        "narHash": "sha256-GoOvpdsjO5hqZuO6T6ok9u6sJEjO0iPli2zRr9oNUNw=",
+        "lastModified": 1793995029,
+        "narHash": "sha256-ZlE4BtMjWhfC6rFXLO9Qimn36Ene1INqCgKDDvazjhc=",
         "owner": "Mic92",
         "repo": "sops-nix",
-        "rev": "b18e01ce148eb3efff5de2f2d3181ca53b2b2a54",
+        "rev": "89a234ce2daf6e568a7d4b4fe250afdd23d84e20",
         "type": "github"
       },
       "original": {
