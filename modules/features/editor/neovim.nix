@@ -18,6 +18,7 @@
         settings.vim = {
           package =
             inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system}.neovim-unwrapped;
+          extraPackages = with pkgs; [ fzf ];
 
           theme = {
             enable = true;
