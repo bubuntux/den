@@ -88,6 +88,7 @@
             jdt-language-server = {
               cmd = lib.mkForce jdtlsCmd;
               settings.java.import.gradle.java.home = lib.generators.mkLuaInline "vim.env.JAVA_HOME";
+              init_options.settings.java.import.gradle.java.home = lib.generators.mkLuaInline "vim.env.JAVA_HOME";
             };
           };
 

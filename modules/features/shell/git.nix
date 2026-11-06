@@ -22,6 +22,10 @@
             ".direnv"
             ".claude/settings.local.json"
             "result"
+            ".project"
+            ".classpath"
+            ".factorypath"
+            ".settings/"
           ];
         };
 
