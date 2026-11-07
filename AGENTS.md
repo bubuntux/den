@@ -80,7 +80,7 @@ needing notes gets its own file and a row in this table, not a section here.
 | `modules/core/AGENTS.md` | what each `nix flake check` proves, the booted-VM session tests, and why host builds are CI's job |
 | `modules/features/desktop/AGENTS.md` | choosing a bar (waybar/ironbar) and a terminal (ghostty/foot), the GPU widget, what colour is allowed to mean |
 | `modules/features/desktop/session/AGENTS.md` | how a bare session starts under uwsm, the checklist for adding an environment, session layout |
-| `modules/features/editor/AGENTS.md` | why kotlin-lsp uses JetBrains' build and how Gradle/JDK paths are wired |
+| `modules/features/dev-tools/AGENTS.md` | why kotlin-lsp uses JetBrains' build and how Gradle/JDK paths are wired |
 | `modules/features/network/AGENTS.md` | adding a service to CrowdSec -- journald, not log files |
 | `modules/features/virtualisation/AGENTS.md` | deep links out of the work container |
 | `modules/hardware/AGENTS.md` | the Precision 5690 board (Meteor Lake, not Raptor Lake), its fingerprint reader, GPU render offload |

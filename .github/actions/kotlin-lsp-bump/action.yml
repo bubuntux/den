@@ -9,7 +9,7 @@ inputs:
   file:
     description: '_kotlin-lsp.nix path to patch.'
     required: false
-    default: 'modules/features/editor/_kotlin-lsp.nix'
+    default: 'modules/features/dev-tools/_kotlin-lsp.nix'
 
 outputs:
   bumped:

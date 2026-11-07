@@ -17,9 +17,12 @@
           go
           gradle
           jujutsu
+          neovim
           npm
           rust
         ];
+
+        den.neovim.languages.rust = true;
 
         # Common development tools
         home.packages = with pkgs; [

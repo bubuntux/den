@@ -203,7 +203,7 @@ What shaped the two modules:
   splits have keys of their own, both still inheriting.
 
 - **The theme is `One Dark Two`, chosen against neovim's `onedark`**
-  (`features/editor/neovim.nix`). `Atom One Dark` is the closer match on paper;
+  (`features/editor/nvim`). `Atom One Dark` is the closer match on paper;
   One Dark Two is the same family a few points lighter, with a brighter
   foreground, and is a deliberate preference for the brighter variant — **do not
   "correct" it back to the closest match.**

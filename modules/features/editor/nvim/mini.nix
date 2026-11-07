@@ -1,0 +1,83 @@
+let
+  mkHipatternsHighlighter = group: words: {
+    pattern = map (word: "%f[%w_]()${word}%f[^%w_].-()%s*$") words;
+    inherit group;
+  };
+in
+{
+  flake.modules.nixvim.neovim = {
+    key = "den:nixvim.neovim#mini";
+
+    plugins = {
+      mini-ai = {
+        enable = true;
+        lazyLoad.settings.event = "DeferredUIEnter";
+      };
+      mini-surround = {
+        enable = true;
+        lazyLoad.settings.event = "DeferredUIEnter";
+      };
+      mini-splitjoin = {
+        enable = true;
+        lazyLoad.settings.event = "DeferredUIEnter";
+      };
+      mini-pairs = {
+        enable = true;
+        lazyLoad.settings.event = "InsertEnter";
+      };
+
+      mini-icons.enable = true;
+      mini-statusline.enable = true;
+      mini-indentscope.enable = true;
+      mini-trailspace.enable = true;
+
+      mini-hipatterns = {
+        enable = true;
+        settings.highlighters = {
+          fixme = mkHipatternsHighlighter "MiniHipatternsFixme" [
+            "FIXME"
+            "ISSUE"
+            "BUG"
+          ];
+          hack = mkHipatternsHighlighter "MiniHipatternsHack" [
+            "HACK"
+            "WARN"
+            "WARNING"
+          ];
+          todo = mkHipatternsHighlighter "MiniHipatternsTodo" [
+            "TODO"
+            "PERF"
+          ];
+          note = mkHipatternsHighlighter "MiniHipatternsNote" [
+            "NOTE"
+            "INFO"
+          ];
+          hex_color.__raw = "require('mini.hipatterns').gen_highlighter.hex_color()";
+        };
+      };
+
+      mini-files = {
+        enable = true;
+        settings.mappings = {
+          go_in = "<CR>";
+          go_in_plus = "<CR>";
+          go_out = "<BS>";
+          go_out_plus = "-";
+        };
+        lazyLoad.settings.keys = [
+          {
+            __unkeyed-1 = "<leader>e";
+            __unkeyed-2.__raw = ''
+              function()
+                if not MiniFiles.close() then
+                  MiniFiles.open(vim.api.nvim_buf_get_name(0), true)
+                end
+              end
+            '';
+            desc = "Toggle file tree";
+          }
+        ];
+      };
+    };
+  };
+}

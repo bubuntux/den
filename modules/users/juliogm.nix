@@ -19,53 +19,6 @@
         settingsFile = jsonFormat.generate "claude-base-settings.json" (
           claudeBaseSettings // { "$schema" = "https://json.schemastore.org/claude-code-settings.json"; }
         );
-
-        kotlinLsp = pkgs.callPackage "${self}/modules/features/editor/_kotlin-lsp.nix" { };
-
-        jdtlsCmd = lib.generators.mkLuaInline ''
-          {
-            '${lib.getExe pkgs.jdt-language-server}',
-            '-configuration',
-            get_jdtls_config_dir(),
-            '-data',
-            get_jdtls_workspace_dir(),
-            '--jvm-arg=-javaagent:${pkgs.lombok}/share/java/lombok.jar',
-            get_jdtls_jvm_args(),
-          }
-        '';
-
-        jdtlsGradleInitScript = pkgs.writeText "jdtls-gradle-init.gradle" ''
-          gradle.projectsEvaluated {
-              gradle.rootProject.allprojects { project ->
-                  project.plugins.withId('java') {
-                      def sourceDirectorySets = project.sourceSets.collectMany { [it.java, it.resources] }
-                      def allSourceDirs = sourceDirectorySets.collectMany { it.srcDirs }
-                      sourceDirectorySets.each { sourceDirectorySet ->
-                          def nestedDirs = sourceDirectorySet.srcDirs.findAll { dir ->
-                              allSourceDirs.any { other -> other != dir && dir.path.startsWith(other.path + File.separator) }
-                          }
-                          if (nestedDirs) {
-                              sourceDirectorySet.srcDirs = sourceDirectorySet.srcDirs - nestedDirs
-                          }
-                      }
-                  }
-
-                  // JDT compiles into Buildship's default bin/ output folders, which most repos don't ignore.
-                  // Put them under build/, which every Gradle repo ignores.
-                  project.plugins.withId('eclipse') {
-                      project.eclipse.classpath.defaultOutputDir = project.file('build/jdtls/default')
-                      project.eclipse.classpath.baseSourceOutputDir.set(project.file('build/jdtls'))
-                  }
-              }
-          }
-        '';
-
-        # jdtls starts its first Gradle import from init_options, before nvim sends `settings`,
-        # so both get the same values.
-        jdtlsSettings.java.import.gradle = {
-          java.home = lib.generators.mkLuaInline "vim.env.JAVA_HOME";
-          arguments = "--init-script ${jdtlsGradleInitScript} -Didea.sync.active=true";
-        };
       in
       {
         key = "den:homeManager.user-juliogm";
@@ -74,6 +27,7 @@
           aws
           glab
           gws
+          neovim
           xdg
         ];
 
@@ -112,94 +66,9 @@
           src-cli
         ];
 
-        programs.nvf.settings.vim = {
-          lsp.servers = {
-            kotlin-language-server.cmd = lib.mkForce [ (lib.getExe kotlinLsp) ];
-
-            # Same trap as kotlin-lsp (551ff71): jdtls runs on nixpkgs openjdk (java.vendor "N/A") and
-            # imports Gradle on it, so vendor-checking plugins reject the import and jdtls serves an empty model.
-            jdt-language-server = {
-              cmd = lib.mkForce jdtlsCmd;
-              settings = jdtlsSettings;
-              init_options.settings = jdtlsSettings;
-            };
-          };
-
-          languages = {
-            java = {
-              enable = true;
-              format.enable = false;
-              extensions.gradle-nvim.enable = true;
-              extensions.maven-nvim.enable = true;
-            };
-            kotlin.enable = true;
-          };
-
-          formatter.conform-nvim.setupOpts = {
-            formatters_by_ft = {
-              java = [ "spotless" ];
-              kotlin = [ "spotless" ];
-            };
-            formatters.spotless = {
-              command = "./gradlew";
-              stdin = true;
-              cwd = lib.generators.mkLuaInline ''require("conform.util").root_file({ "gradlew" })'';
-              require_cwd = true;
-              args = lib.generators.mkLuaInline ''
-                function(self, ctx)
-                  local root = vim.fs.root(ctx.filename, "gradlew")
-                  local project_dir = vim.fs.root(ctx.filename, { "build.gradle", "build.gradle.kts" }) or root
-                  local relative_dir = vim.fs.relpath(root, project_dir) or "."
-                  local project_path = relative_dir == "." and ":" or (":" .. relative_dir:gsub("/", ":") .. ":")
-                  local language = vim.bo[ctx.buf].filetype == "kotlin" and "Kotlin" or "Java"
-                  return {
-                    "--daemon", "-q", "-a",
-                    project_path .. "spotless" .. language, "--rerun",
-                    "-x", "compile" .. language,
-                    "-PspotlessIdeHook=" .. ctx.filename,
-                    "-PspotlessIdeHookUseStdIn",
-                    "-PspotlessIdeHookUseStdOut",
-                  }
-                end
-              '';
-            };
-            default_format_opts = {
-              lsp_format = "fallback";
-              timeout_ms = 20000;
-            };
-            format_on_save = lib.generators.mkLuaInline ''
-              function(bufnr)
-                local ft = vim.bo[bufnr].filetype
-                if ft == "java" or ft == "kotlin" then
-                  return
-                end
-                local b = bufnr and vim.b[bufnr] or vim.b
-                if b.nvf_format_save == nil and not vim.g.nvf_format_save then
-                  return
-                elseif b.nvf_format_save then
-                  return
-                else
-                  return { lsp_format = "fallback", timeout_ms = 500 }
-                end
-              end
-            '';
-            format_after_save = lib.generators.mkLuaInline ''
-              function(bufnr)
-                local ft = vim.bo[bufnr].filetype
-                if ft ~= "java" and ft ~= "kotlin" then
-                  return
-                end
-                local b = bufnr and vim.b[bufnr] or vim.b
-                if b.nvf_format_save == nil and not vim.g.nvf_format_save then
-                  return
-                elseif b.nvf_format_save then
-                  return
-                else
-                  return { lsp_format = "fallback", timeout_ms = 20000 }
-                end
-              end
-            '';
-          };
+        den.neovim.languages = {
+          java = true;
+          kotlin = true;
         };
 
         # Git user configuration (decrypted from sops secret via bind mount)
