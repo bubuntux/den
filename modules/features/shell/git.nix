@@ -18,14 +18,39 @@
             push.autoSetupRemote = true;
           };
           ignores = [
-            ".devenv*"
-            ".direnv"
-            ".claude/settings.local.json"
+            # Nix & environment tooling
             "result"
+            "result-*"
+            ".direnv"
+            ".devenv*"
+            "devenv.local.nix"
+
+            # Eclipse / JDT LS
             ".project"
             ".classpath"
             ".factorypath"
             ".settings/"
+
+            # Editors & IDEs
+            ".idea/"
+            ".vscode/"
+            "*.swp"
+            "*.swo"
+            "*~"
+
+            # OS metadata
+            ".DS_Store"
+            "Thumbs.db"
+
+            # AI & agent tooling
+            ".claude/settings.local.json"
+            ".claude/*.local.json"
+            ".agents/scratch/"
+            ".agents/*.local.*"
+            "AGENTS.local.md"
+            "GEMINI.local.md"
+            ".gemini/"
+            ".antigravity/"
           ];
         };
 
