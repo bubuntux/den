@@ -17,14 +17,18 @@ in
       {
         key = "den:nixos.nh";
         programs.nh = commonNh lib;
-        home-manager.sharedModules = [ self.modules.homeManager.nh ];
       };
 
     homeManager.nh =
-      { lib, ... }:
+      {
+        lib,
+        osConfig ? null,
+        ...
+      }:
       {
         key = "den:homeManager.nh";
-        programs.nh = commonNh lib;
+        # Yield to NixOS when `nixos.nh` is active so HM doesn't clobber NH_FLAKE or run a second gc timer.
+        programs.nh = lib.mkIf (!(osConfig.programs.nh.enable or false)) (commonNh lib);
       };
   };
 }
