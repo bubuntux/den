@@ -16,11 +16,9 @@
   # own `key`.
   flake.modules.nixos.katara = {
     key = "den:nixos.katara#host";
-    # Two roles: the family desktop it is for, and the workstation stack it also
-    # carries. Their additive desktop settings merge, so the machine installs
-    # both GNOME and Sway and every user gets the environment named for them.
     imports = with self.modules.nixos; [
       profile-family
+      profile-laptop
       inputs.nixos-hardware.nixosModules.common-cpu-amd
       inputs.nixos-hardware.nixosModules.common-gpu-amd
     ];

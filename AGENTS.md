@@ -148,17 +148,16 @@ This is a description, not a restriction. **A host may import as many profiles a
 
 > When two hosts would list the same set of profiles, name that set as a role.
 
-That is the only reason `profile-workstation` exists. A one-off combination needs no role — just import the capabilities. Note the rule says *the same* set, not *nearly* the same: two hosts agreeing on one capability is two host-level imports, not a reason to widen the role. katara and zuko both want `profile-gaming` and it still does not belong in the role — a workstation is not a gaming rig even when it happens to have Steam on it.
+That is the reason `profile-workstation` exists. A one-off combination needs no role — just import the capabilities. Note the rule says *the same* set, not *nearly* the same: two hosts agreeing on one capability is two host-level imports, not a reason to widen the role. `zuko` wants `profile-gaming` and it still does not belong in the role — a workstation is not a gaming rig even when it happens to have Steam on it.
 
 ```nix
 # hosts/appa/default.nix          # hosts/katara/default.nix
 imports = [ profile-nas           imports = [ profile-family
-            <nixos-hardware …> ];             profile-workstation
-                                              profile-gaming
+            <nixos-hardware …> ];             profile-laptop
                                               <nixos-hardware …> ];
 ```
 
-katara imports two roles at once, which works because everything a role
+Two roles can also be imported at once on one host because everything a role
 contributes to the desktop is additive — see **Desktop Environments and Login
 Managers** for which settings a profile may set and which belong to the host.
 
@@ -267,11 +266,11 @@ den.desktop.environments = [          den.desktop.environments = [ "sway" ];
   "sway"
 ];
 
-# hosts/katara/default.nix -- imports both roles, then picks one greeter
+# hosts/katara/default.nix -- imports profile-family, then picks one greeter
 den.desktop.loginManager = "gdm";
 ```
 
-katara is the worked example: two roles, two environments installed, and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path. `defaultSession` is deliberately absent here; under GDM it wipes every user's remembered session on each boot.
+katara is the worked example: two environments installed (`profile-family`), and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path. `defaultSession` is deliberately absent here; under GDM it wipes every user's remembered session on each boot.
 
 **There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. Naming one desktop per person cannot work: the greeter offers every installed session to everyone regardless, so all such an option decides is whose home is *unprepared* for the session they chose.
 

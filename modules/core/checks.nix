@@ -65,7 +65,7 @@
 
       cases = [
         {
-          name = "sway on greetd (what zuko and katara run)";
+          name = "sway on greetd (what zuko runs)";
           modules = [
             {
               den.desktop = {
@@ -238,9 +238,9 @@
           };
         }
         {
-          # katara's shape: two roles on one machine, one greeter. Proves the
-          # additive settings merge instead of colliding.
-          name = "profile-family + profile-workstation on one host (katara)";
+          # Two roles on one machine, one greeter. Proves the additive settings
+          # merge instead of colliding.
+          name = "profile-family + profile-workstation on one host";
           modules = [
             self.modules.nixos.bundle-host
             self.modules.nixos.profile-family

@@ -1,6 +1,6 @@
 # katara
 
-The family/workstation AMD laptop, on a Dell WD19TB dock.
+The family AMD laptop, on a Dell WD19TB dock.
 
 ## The dock on katara
 

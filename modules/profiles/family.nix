@@ -2,7 +2,7 @@
 {
   # Shared family machine: a browser, a desktop for each way of working, and
   # nothing else. Deliberately no developer, work or gaming capability -- a host
-  # that wants those imports them as well (katara does).
+  # that wants those imports them as well.
   #
   # Only the *additive* desktop setting lives here (`environments`).
   # loginManager, defaultSession and autoLogin are single-valued whole-machine
