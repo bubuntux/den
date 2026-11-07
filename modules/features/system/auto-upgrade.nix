@@ -37,7 +37,7 @@
           text = ''
             home-manager switch \
               -b bkp \
-              --flake ${self.lib.remoteFlake}#''${config.home.username} \
+              --flake ${self.lib.remoteFlake}#${config.home.username} \
               --refresh
           '';
         };
