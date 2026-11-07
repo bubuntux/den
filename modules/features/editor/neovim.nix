@@ -152,7 +152,20 @@
             gitsigns.enable = true;
           };
 
-          binds.whichKey.enable = true;
+          binds.whichKey = {
+            enable = true;
+            register = {
+              "<leader>c" = "+Conflict";
+              "<leader>h" = "+Gitsigns";
+              "<leader>t" = "+Toggle";
+              "<leader>l" = "+LSP";
+              "<leader>lc" = "+Calls";
+              "gr" = "+LSP";
+              "s" = "+Surround";
+              "[" = "+Prev";
+              "]" = "+Next";
+            };
+          };
 
           lsp = {
             enable = true;
@@ -253,6 +266,30 @@
               key = "<leader>a";
               action = "<cmd>lua vim.lsp.buf.code_action()<CR>";
               desc = "Code action";
+            }
+            {
+              mode = [ "n" ];
+              key = "gd";
+              action = "<cmd>lua vim.lsp.buf.definition()<CR>";
+              desc = "Go to definition";
+            }
+            {
+              mode = [ "n" ];
+              key = "gD";
+              action = "<cmd>lua vim.lsp.buf.declaration()<CR>";
+              desc = "Go to declaration";
+            }
+            {
+              mode = [ "n" ];
+              key = "gi";
+              action = "<cmd>lua vim.lsp.buf.implementation()<CR>";
+              desc = "Go to implementation";
+            }
+            {
+              mode = [ "n" ];
+              key = "gy";
+              action = "<cmd>lua vim.lsp.buf.type_definition()<CR>";
+              desc = "Go to type definition";
             }
             {
               mode = [ "n" ];
