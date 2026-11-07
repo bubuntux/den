@@ -32,6 +32,24 @@
               end,
             })
             vim.api.nvim_set_hl(0, "@lsp.type.modifier", { link = "@keyword" })
+
+            require("fzf-lua").register_ui_select()
+
+            vim.lsp.buf.references = function(opts)
+              require("fzf-lua").lsp_references(opts)
+            end
+            vim.lsp.buf.implementation = function(opts)
+              require("fzf-lua").lsp_implementations(opts)
+            end
+            vim.lsp.buf.definition = function(opts)
+              require("fzf-lua").lsp_definitions(vim.tbl_extend("keep", opts or {}, { jump1 = true }))
+            end
+            vim.lsp.buf.type_definition = function(opts)
+              require("fzf-lua").lsp_typedefs(vim.tbl_extend("keep", opts or {}, { jump1 = true }))
+            end
+            vim.lsp.buf.declaration = function(opts)
+              require("fzf-lua").lsp_declarations(vim.tbl_extend("keep", opts or {}, { jump1 = true }))
+            end
           '';
 
           globals = {
@@ -235,6 +253,36 @@
               key = "<leader>a";
               action = "<cmd>lua vim.lsp.buf.code_action()<CR>";
               desc = "Code action";
+            }
+            {
+              mode = [ "n" ];
+              key = "<leader>lci";
+              action = "<cmd>FzfLua lsp_incoming_calls<CR>";
+              desc = "Incoming calls";
+            }
+            {
+              mode = [ "n" ];
+              key = "<leader>lco";
+              action = "<cmd>FzfLua lsp_outgoing_calls<CR>";
+              desc = "Outgoing calls";
+            }
+            {
+              mode = [ "n" ];
+              key = "<leader>o";
+              action = "<cmd>FzfLua oldfiles<CR>";
+              desc = "Recent files";
+            }
+            {
+              mode = [ "n" ];
+              key = "<leader>R";
+              action = "<cmd>FzfLua resume<CR>";
+              desc = "Resume last search";
+            }
+            {
+              mode = [ "n" ];
+              key = "<leader>j";
+              action = "<cmd>FzfLua jumps<CR>";
+              desc = "Jumplist";
             }
             {
               mode = [ "n" ];
