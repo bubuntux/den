@@ -1,3 +1,4 @@
+{ self, ... }:
 let
   users = [
     "root"
@@ -39,6 +40,7 @@ in
   flake.modules = {
     nixos.nix = {
       key = "den:nixos.nix";
+      home-manager.sharedModules = [ self.modules.homeManager.nix ];
       nixpkgs.config.allowUnfree = true;
       # pnpm 10.29.2 is flagged insecure but is only a hermetic build-time dep of
       # the gws (googleworkspace/cli) flake package; no runtime exposure.
@@ -56,11 +58,10 @@ in
     };
 
     homeManager.nix =
-      { pkgs, ... }:
+      { lib, pkgs, ... }:
       {
         key = "den:homeManager.nix";
-        nix.package = pkgs.nix;
-        nixpkgs.config.allowUnfree = true;
+        nix.package = lib.mkDefault pkgs.nix;
         nix = {
           settings = commonSettings;
           gc = commonGc;
