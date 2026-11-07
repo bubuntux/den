@@ -33,6 +33,39 @@
             get_jdtls_jvm_args(),
           }
         '';
+
+        jdtlsGradleInitScript = pkgs.writeText "jdtls-gradle-init.gradle" ''
+          gradle.projectsEvaluated {
+              gradle.rootProject.allprojects { project ->
+                  project.plugins.withId('java') {
+                      def sourceDirectorySets = project.sourceSets.collectMany { [it.java, it.resources] }
+                      def allSourceDirs = sourceDirectorySets.collectMany { it.srcDirs }
+                      sourceDirectorySets.each { sourceDirectorySet ->
+                          def nestedDirs = sourceDirectorySet.srcDirs.findAll { dir ->
+                              allSourceDirs.any { other -> other != dir && dir.path.startsWith(other.path + File.separator) }
+                          }
+                          if (nestedDirs) {
+                              sourceDirectorySet.srcDirs = sourceDirectorySet.srcDirs - nestedDirs
+                          }
+                      }
+                  }
+
+                  // JDT compiles into Buildship's default bin/ output folders, which most repos don't ignore.
+                  // Put them under build/, which every Gradle repo ignores.
+                  project.plugins.withId('eclipse') {
+                      project.eclipse.classpath.defaultOutputDir = project.file('build/jdtls/default')
+                      project.eclipse.classpath.baseSourceOutputDir.set(project.file('build/jdtls'))
+                  }
+              }
+          }
+        '';
+
+        # jdtls starts its first Gradle import from init_options, before nvim sends `settings`,
+        # so both get the same values.
+        jdtlsSettings.java.import.gradle = {
+          java.home = lib.generators.mkLuaInline "vim.env.JAVA_HOME";
+          arguments = "--init-script ${jdtlsGradleInitScript} -Didea.sync.active=true";
+        };
       in
       {
         key = "den:homeManager.user-juliogm";
@@ -87,8 +120,8 @@
             # imports Gradle on it, so vendor-checking plugins reject the import and jdtls serves an empty model.
             jdt-language-server = {
               cmd = lib.mkForce jdtlsCmd;
-              settings.java.import.gradle.java.home = lib.generators.mkLuaInline "vim.env.JAVA_HOME";
-              init_options.settings.java.import.gradle.java.home = lib.generators.mkLuaInline "vim.env.JAVA_HOME";
+              settings = jdtlsSettings;
+              init_options.settings = jdtlsSettings;
             };
           };
 
@@ -101,29 +134,6 @@
             };
             kotlin.enable = true;
           };
-
-          autocmds = [
-            {
-              event = [ "FileType" ];
-              pattern = [
-                "java"
-                "kotlin"
-              ];
-              desc = "Pre-warm Gradle daemon in background";
-              callback = lib.generators.mkLuaInline ''
-                function(args)
-                  local file = args.file ~= "" and args.file or vim.api.nvim_buf_get_name(args.buf)
-                  local root = vim.fs.root(file, "gradlew")
-                  if not root then return end
-                  _G._gradle_warmed_roots = _G._gradle_warmed_roots or {}
-                  if _G._gradle_warmed_roots[root] then return end
-                  _G._gradle_warmed_roots[root] = true
-
-                  vim.system({ "./gradlew", "--daemon", "-q", "help" }, { cwd = root }, function() end)
-                end
-              '';
-            }
-          ];
 
           formatter.conform-nvim.setupOpts = {
             formatters_by_ft = {
