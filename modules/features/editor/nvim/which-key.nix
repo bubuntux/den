@@ -11,6 +11,7 @@ in
     plugins.which-key = {
       enable = true;
       lazyLoad.settings.event = "DeferredUIEnter";
+      settings.layout.width.max = 40;
       settings.spec = [
         (mkGroup "<leader>l" "LSP")
         (mkGroup "gr" "LSP")
