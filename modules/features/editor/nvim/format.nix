@@ -6,10 +6,8 @@
       enable = true;
       autoInstall.enable = true;
       settings = {
-        formatters_by_ft = {
-          lua = [ "stylua" ];
-          nix = [ "nixfmt" ];
-        };
+        # autoInstall fails to evaluate while this is null.
+        formatters_by_ft = { };
         default_format_opts.lsp_format = "fallback";
         format_on_save.__raw = ''
           function(bufnr)

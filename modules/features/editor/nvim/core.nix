@@ -71,10 +71,8 @@
         grammarPackages = with config.plugins.treesitter.package.builtGrammars; [
           bash
           json
-          lua
           markdown
           markdown_inline
-          nix
           query
           toml
           vim

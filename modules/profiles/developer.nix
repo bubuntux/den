@@ -22,7 +22,10 @@
           rust
         ];
 
-        den.neovim.languages.rust = true;
+        den.neovim.languages = {
+          nix = true;
+          rust = true;
+        };
 
         # Common development tools
         home.packages = with pkgs; [
