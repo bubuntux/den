@@ -23,6 +23,7 @@
         ];
 
         den.neovim.languages = {
+          markdown = true;
           nix = true;
           rust = true;
         };
