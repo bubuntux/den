@@ -23,8 +23,8 @@ in
       (mkFzfKeymap "<leader>R" "resume" "Resume last search")
       (mkFzfKeymap "<leader>j" "jumps" "Jumplist")
       (mkFzfKeymap "<leader>S" "lsp_workspace_symbols" "Workspace symbols")
-      (mkFzfKeymap "<leader>d" "diagnostics_document" "Document diagnostics")
-      (mkFzfKeymap "<leader>D" "diagnostics_workspace" "Workspace diagnostics")
+      (mkFzfKeymap "<leader>x" "diagnostics_document" "Document diagnostics")
+      (mkFzfKeymap "<leader>X" "diagnostics_workspace" "Workspace diagnostics")
       (mkFzfKeymap "<leader>lci" "lsp_incoming_calls" "Incoming calls")
       (mkFzfKeymap "<leader>lco" "lsp_outgoing_calls" "Outgoing calls")
     ];
