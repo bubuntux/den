@@ -37,6 +37,7 @@
       diagnostic.settings = {
         severity_sort = true;
         virtual_text.spacing = 2;
+        virtual_lines.current_line = true;
         float = {
           border = "rounded";
           source = "if_many";
