@@ -74,7 +74,6 @@
           markdown
           markdown_inline
           query
-          toml
           vim
           vimdoc
           yaml

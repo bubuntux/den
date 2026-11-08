@@ -6,6 +6,8 @@
 
       options.den.neovim.languages.rust = lib.mkEnableOption "Rust language support";
 
+      config.den.neovim.languages.toml = lib.mkIf config.den.neovim.languages.rust (lib.mkDefault true);
+
       config.programs.nixvim = lib.mkIf config.den.neovim.languages.rust {
         plugins.treesitter.grammarPackages =
           with config.programs.nixvim.plugins.treesitter.package.builtGrammars; [
