@@ -13,11 +13,9 @@ in
       lazyLoad.settings.event = "DeferredUIEnter";
       settings.spec = [
         (mkGroup "<leader>l" "LSP")
-        (mkGroup "<leader>lc" "Calls")
         (mkGroup "gr" "LSP")
         (mkGroup "s" "Surround")
-        (mkGroup "[" "Prev")
-        (mkGroup "]" "Next")
+        (mkGroup "\\" "Toggle")
       ];
     };
   };
