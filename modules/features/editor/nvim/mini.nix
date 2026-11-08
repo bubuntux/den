@@ -9,6 +9,16 @@ in
     key = "den:nixvim.neovim#mini";
 
     plugins = {
+      mini-basics = {
+        enable = true;
+        settings.mappings.windows = true;
+      };
+      mini-notify.enable = true;
+      mini-bracketed = {
+        enable = true;
+        lazyLoad.settings.event = "DeferredUIEnter";
+      };
+
       mini-ai = {
         enable = true;
         lazyLoad.settings.event = "DeferredUIEnter";
