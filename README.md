@@ -37,7 +37,7 @@ Hosts are named after Avatar: The Last Airbender characters.
 
 ## Module Hierarchy
 
-```
+```text
 Features ──→ Bundles ──→ Profiles ──→ Hosts
     │                     ↑   ↑          ↑
     └─────────────────────┘   │          │
