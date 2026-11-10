@@ -16,6 +16,8 @@ in
   # Surface thinking summaries in the transcript view
   showThinkingSummaries = true;
 
+  copyOnSelect = false;
+
   # `auto` sends anything that is not a read or a working-dir edit to a
   # classifier instead of prompting; the `allow` list below just skips that
   # round-trip for the commands this repo uses most.

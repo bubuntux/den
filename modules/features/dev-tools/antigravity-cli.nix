@@ -11,6 +11,7 @@
     let
       settingsFile = (pkgs.formats.json { }).generate "antigravity-cli-settings.json" {
         agentMode = "auto";
+        copyOnSelect = false;
         notifications = true;
         showTips = true;
         showFeedbackSurvey = false;
