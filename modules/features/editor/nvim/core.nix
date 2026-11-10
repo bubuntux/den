@@ -13,6 +13,11 @@
       withNodeJs = false;
       withRuby = false;
 
+      clipboard = {
+        register = "unnamedplus";
+        providers.wl-copy.enable = true;
+      };
+
       globals = {
         mapleader = " ";
         maplocalleader = " ";
