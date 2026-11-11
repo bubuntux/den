@@ -146,6 +146,7 @@
       self.modules.homeManager.nix
       self.modules.homeManager.sops
       self.modules.homeManager.auto-upgrade
+      self.modules.homeManager.voicemode-client
       (
         { config, lib, ... }:
         {
@@ -182,6 +183,8 @@
           sops.age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
           sops.secrets.git_config.sopsFile = "${self}/secrets/juliogm.yaml";
           sops.secrets.jj_config.sopsFile = "${self}/secrets/juliogm.yaml";
+          sops.secrets.voicemode_serve_token.sopsFile = "${self}/secrets/juliogm.yaml";
+          den.voicemode.client.tokenFile = config.sops.secrets.voicemode_serve_token.path;
           programs.git.includes = lib.mkForce [
             { path = config.sops.secrets.git_config.path; }
           ];

@@ -153,6 +153,13 @@
         # the compositor restarts. The container keeps its own XDG_RUNTIME_DIR;
         # this is only the window onto the host session.
         hostSessionDir = "/mnt/host-session";
+        hasNvidia = config.hardware.nvidia.enabled;
+        nvidiaDevices = [
+          "/dev/nvidia0"
+          "/dev/nvidiactl"
+          "/dev/nvidia-modeset"
+          "/dev/nvidia-uvm"
+        ];
       in
       {
         key = "den:nixos.work-container";
@@ -202,6 +209,10 @@
           owner = workUser;
         };
         sops.secrets.ssh_public_key = {
+          sopsFile = "${self}/secrets/juliogm.yaml";
+          owner = workUser;
+        };
+        sops.secrets.voicemode_serve_token = {
           sopsFile = "${self}/secrets/juliogm.yaml";
           owner = workUser;
         };
@@ -293,12 +304,23 @@
               mountPoint = "/run/secrets-host/ssh_public_key";
               isReadOnly = true;
             };
+            "voicemode-serve-token" = {
+              hostPath = config.sops.secrets.voicemode_serve_token.path;
+              mountPoint = "/run/secrets-host/voicemode_serve_token";
+              isReadOnly = true;
+            };
             "localtime" = {
               hostPath = "/etc/localtime";
               mountPoint = "/etc/localtime";
               isReadOnly = true;
             };
-          };
+          }
+          // lib.optionalAttrs hasNvidia (
+            lib.genAttrs nvidiaDevices (device: {
+              hostPath = device;
+              isReadOnly = false;
+            })
+          );
 
           config =
             { pkgs, ... }:
@@ -523,17 +545,73 @@
                 defaultGateway = "192.168.100.10";
               };
 
-              # Inside the container: Chrome handles URLs, Slack handles slack://,
-              # zoom:// links open in Chrome as an ad-hoc PWA window
-              home-manager.users.juliogm.xdg.mimeApps.defaultApplications = {
-                "text/html" = "google-chrome.desktop";
-                "x-scheme-handler/http" = "google-chrome.desktop";
-                "x-scheme-handler/https" = "google-chrome.desktop";
-                "x-scheme-handler/about" = "google-chrome.desktop";
-                "x-scheme-handler/unknown" = "google-chrome.desktop";
-                "x-scheme-handler/slack" = "slack.desktop";
-                "x-scheme-handler/zoommtg" = "zoom-web.desktop";
-                "x-scheme-handler/zoomus" = "zoom-web.desktop";
+              # PortAudio and simpleaudio only speak ALSA, and the host's audio
+              # reaches the container solely as a PulseAudio socket.
+              environment.etc."asound.conf".text = ''
+                pcm_type.pulse { libs.native = ${pkgs.alsa-plugins}/lib/alsa-lib/libasound_module_pcm_pulse.so ; }
+                ctl_type.pulse { libs.native = ${pkgs.alsa-plugins}/lib/alsa-lib/libasound_module_ctl_pulse.so ; }
+                pcm.!default { type pulse }
+                ctl.!default { type pulse }
+              '';
+
+              # VoiceMode's units must outlive whichever shell started them.
+              users.users.juliogm.linger = true;
+
+              home-manager.users.juliogm = {
+                imports = [ self.modules.homeManager.voicemode-server ];
+
+                den.voicemode.server = {
+                  tokenFile = "/run/secrets-host/voicemode_serve_token";
+                  environment = {
+                    PULSE_SERVER = "unix:${hostSessionDir}/pulse/native";
+                  }
+                  // lib.optionalAttrs hasNvidia {
+                    VK_DRIVER_FILES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
+                  };
+                };
+
+                # cvm cannot reach the container, so the container dials out and
+                # lends cvm its MCP port.
+                systemd.user.services.voicemode-tunnel = {
+                  Unit = {
+                    Description = "VoiceMode MCP endpoint, forwarded to cvm";
+                    PartOf = [ "voicemode.target" ];
+                    After = [ "voicemode-serve.service" ];
+                  };
+                  Service = {
+                    ExecStart = lib.escapeShellArgs [
+                      (lib.getExe pkgs.openssh)
+                      "-N"
+                      "-o"
+                      "BatchMode=yes"
+                      "-o"
+                      "ExitOnForwardFailure=yes"
+                      "-o"
+                      "ServerAliveInterval=30"
+                      "-o"
+                      "ServerAliveCountMax=3"
+                      "-R"
+                      "8765:127.0.0.1:8765"
+                      "cvm"
+                    ];
+                    Restart = "always";
+                    RestartSec = 10;
+                  };
+                  Install.WantedBy = [ "voicemode.target" ];
+                };
+
+                # Inside the container: Chrome handles URLs, Slack handles slack://,
+                # zoom:// links open in Chrome as an ad-hoc PWA window
+                xdg.mimeApps.defaultApplications = {
+                  "text/html" = "google-chrome.desktop";
+                  "x-scheme-handler/http" = "google-chrome.desktop";
+                  "x-scheme-handler/https" = "google-chrome.desktop";
+                  "x-scheme-handler/about" = "google-chrome.desktop";
+                  "x-scheme-handler/unknown" = "google-chrome.desktop";
+                  "x-scheme-handler/slack" = "slack.desktop";
+                  "x-scheme-handler/zoommtg" = "zoom-web.desktop";
+                  "x-scheme-handler/zoomus" = "zoom-web.desktop";
+                };
               };
 
               system.stateVersion = "25.11";
@@ -550,6 +628,10 @@
               "char-drm rwm"
               "char-video4linux rwm"
               "char-misc rwm"
+            ]
+            ++ lib.optionals hasNvidia [
+              "char-nvidia rwm"
+              "char-nvidia-uvm rwm"
             ];
             EnvironmentFile = lib.mkForce [ "-/run/nixos-containers/work.conf" ];
           };
