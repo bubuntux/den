@@ -37,6 +37,23 @@ _: {
         export VOICEMODE_SERVE_TOKEN
         exec ${lib.getExe voicemode} serve --host 127.0.0.1 --port ${toString ports.serve}
       '';
+
+      voicemode-timing = pkgs.writeShellApplication {
+        name = "voicemode-timing";
+        runtimeInputs = [
+          pkgs.jq
+          pkgs.util-linux
+        ];
+        text = ''
+          day=''${1:-$(date +%F)}
+          log="$HOME/.voicemode/logs/conversations/exchanges_$day.jsonl"
+          if [ ! -f "$log" ]; then
+            echo "voicemode-timing: no exchanges logged on $day ($log)" >&2
+            exit 1
+          fi
+          jq -s -r -f ${./_voicemode-timing.jq} "$log" | column -t -s "$(printf '\t')"
+        '';
+      };
     in
     {
       key = "den:homeManager.voicemode-server";
@@ -67,6 +84,11 @@ _: {
           '';
         };
       };
+
+      config.home.packages = [
+        voicemode
+        voicemode-timing
+      ];
 
       config.systemd.user = {
         targets.voicemode.Unit.Description = "VoiceMode: speech-to-text, text-to-speech and the MCP endpoint";
@@ -124,6 +146,10 @@ _: {
                 "VOICEMODE_STT_BASE_URLS=http://127.0.0.1:${toString ports.whisper}/v1"
                 "VOICEMODE_TTS_BASE_URLS=http://127.0.0.1:${toString ports.kokoro}/v1"
                 "VOICEMODE_VOICES=af_heart"
+                # Sent with every request, so it overrides whisper-server's own
+                # --language; its default, auto, adds a detection pass per turn.
+                "VOICEMODE_WHISPER_LANGUAGE=en"
+                "VOICEMODE_SILENCE_THRESHOLD_MS=800"
               ];
               Restart = "on-failure";
             };

@@ -9,6 +9,10 @@
           exec machinectl -q shell juliogm@work /bin/sh -l -c "$*"
         '';
         workExec = cmd: "${work-run}/bin/work-run ${cmd}";
+        # Unlike work-run, does not boot a stopped container just to stop voice.
+        stop-voice-work = pkgs.writeShellScriptBin "stop-voice-work" ''
+          exec machinectl -q shell juliogm@work /bin/sh -l -c "systemctl --user stop voicemode.target"
+        '';
         # Host-side handler for a deep link (slack://, zoommtg://, ...) clicked
         # anywhere on the host — including container-Chrome, which routes OpenURI
         # through the shared host session bus to the host portal. Run the
@@ -114,6 +118,24 @@
               icon = "process-stop";
               categories = [
                 "System"
+              ];
+            })
+            (makeDesktopItem {
+              name = "start-voice-work";
+              desktopName = "Start Voice (Work)";
+              exec = workExec "systemctl --user start voicemode.target";
+              icon = "audio-input-microphone";
+              categories = [
+                "AudioVideo"
+              ];
+            })
+            (makeDesktopItem {
+              name = "stop-voice-work";
+              desktopName = "Stop Voice (Work)";
+              exec = "${stop-voice-work}/bin/stop-voice-work";
+              icon = "process-stop";
+              categories = [
+                "AudioVideo"
               ];
             })
           ];

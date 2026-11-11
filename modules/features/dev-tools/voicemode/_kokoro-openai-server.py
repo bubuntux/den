@@ -10,6 +10,7 @@ import io
 import json
 import logging
 import threading
+import time
 import wave
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -59,6 +60,24 @@ class Synthesizer:
                     continue
                 samples = np.clip(result.audio.numpy(), -1.0, 1.0)
                 yield (samples * 32767).astype(np.int16).tobytes()
+
+
+def log_timing(sentences, character_count: int):
+    started = time.monotonic()
+    first_audio = None
+    audio_bytes = 0
+    for pcm in sentences:
+        if first_audio is None:
+            first_audio = time.monotonic() - started
+        audio_bytes += len(pcm)
+        yield pcm
+    LOGGER.info(
+        "synthesised %d characters into %.1f s of speech: first audio %.0f ms, all %.0f ms",
+        character_count,
+        audio_bytes / (2 * SAMPLE_RATE),
+        (first_audio or 0) * 1000,
+        (time.monotonic() - started) * 1000,
+    )
 
 
 class SpeechServer(ThreadingHTTPServer):
@@ -129,7 +148,7 @@ class SpeechRequestHandler(BaseHTTPRequestHandler):
             self.send_error_json(HTTPStatus.BAD_REQUEST, "speed must be between 0.25 and 4.0")
             return
 
-        sentences = self.server.synthesizer.sentences(text, voice, speed)
+        sentences = log_timing(self.server.synthesizer.sentences(text, voice, speed), len(text))
         if response_format == "wav":
             self.send_wav(sentences)
         else:
