@@ -37,3 +37,4 @@
   - Body & footers: optional; separated from description by a blank line for extended context or issue references
 - When I say "commit", run `jj commit` (the commit command that finalizes the change) — NOT `jj describe`, which only sets the message
 - Commit only — NEVER push. "Commit" never implies push: after `jj commit`, stop. Do not run `jj git push` (or `git push`), move bookmarks to remotes, or open/merge PRs unless I explicitly say "push"
+- Never omit signing: all commits must be signed; never bypass or disable signing (e.g. never pass `--no-sign` or drop signing via configuration)
