@@ -1,7 +1,7 @@
 { inputs, ... }:
 {
   flake.modules.nixvim.neovim =
-    { config, ... }:
+    { config, pkgs, ... }:
     {
       key = "den:nixvim.neovim#core";
 
@@ -15,7 +15,7 @@
 
       clipboard = {
         register = "unnamedplus";
-        providers.wl-copy.enable = true;
+        providers.wl-copy.enable = pkgs.stdenv.hostPlatform.isLinux;
       };
 
       extraConfigLua = ''
