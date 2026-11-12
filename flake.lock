@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1794478868,
-        "narHash": "sha256-417KC+4zXryzeECpfhzi/uBRWruYsdL0et+U5zwFO0E=",
+        "lastModified": 1794521929,
+        "narHash": "sha256-8YL6+QewWGcK1NvOrhyQosJ4yQCPMt10Gi+IgkiT4P0=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "b93737686478a37ca411e37147f83169a453e065",
+        "rev": "3bc7d13796c777dab8d2cf7de8d01f2afe835587",
         "type": "github"
       },
       "original": {
@@ -186,11 +186,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1794473891,
-        "narHash": "sha256-eWSGQG4TrJVdzTfPtfH0jHL7A2zg3mO0Xz945D0T/5o=",
+        "lastModified": 1794525134,
+        "narHash": "sha256-5dl+K0FhW9eO4jGrfjOrLr12SRf7VX/puKw1B5icgYY=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "941271f5482bb3edc72de73929c751f62d1b715f",
+        "rev": "cbeda81469faa7bcb77427e602a6a66d4baf8b5f",
         "type": "gitlab"
       },
       "original": {
@@ -334,11 +334,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1794408178,
-        "narHash": "sha256-jnNhqdXGJs5qIvdzFwABBvhzuPHLK09CcWKtvYVxVOk=",
-        "rev": "9397dcb09c9598a33509fbc0cce699bd4e6c84d5",
+        "lastModified": 1794495034,
+        "narHash": "sha256-QG/HY0t5t3sfT2ozW/Ikis5Klqf0X4nfTuLvFaBpNno=",
+        "rev": "2074cc672349f14240fb7ea90d509e0b643e9dd4",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1117836.9397dcb09c95/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1118975.2074cc672349/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
@@ -556,11 +556,11 @@
     },
     "vpn-confinement": {
       "locked": {
-        "lastModified": 1791310298,
-        "narHash": "sha256-SpqEEuyrkzTqjIHwHrZE+Rs6ez2tzIeYkSY67zp6fcQ=",
+        "lastModified": 1794523109,
+        "narHash": "sha256-AwEm7+NWkEgyZsKLlR3a0qU/V0uIirwCuxSLpmAiufA=",
         "owner": "Maroka-chan",
         "repo": "VPN-Confinement",
-        "rev": "cc37bcf5000e237709e725a9cda010a5cbce3111",
+        "rev": "eeab5446fdbba273905da915805db665524abda6",
         "type": "github"
       },
       "original": {
