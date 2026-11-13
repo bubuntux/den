@@ -19,6 +19,7 @@ _: {
       systemd.user.services.blueman-applet = {
         wantedBy = [ "graphical-session.target" ];
         partOf = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
         serviceConfig = {
           ExecStart = lib.mkForce [
             ""
