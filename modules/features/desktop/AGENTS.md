@@ -4,33 +4,13 @@ The bar, the terminal and the widgets on them -- everything here is
 DE-agnostic. The compositors are in `session/AGENTS.md`; repo-wide rules and the
 `den.desktop` profile-vs-host table are in the root `AGENTS.md`.
 
-## Session scoping and login managers
+## Login managers
 
 `katara` is the worked example of `den.desktop`: two environments installed (`profile-family`), and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: `zuko` keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path. `defaultSession` is deliberately absent on `katara`; under GDM it wipes every user's remembered session on each boot.
 
-**There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. Naming one desktop per person cannot work: the greeter offers every installed session to everyone regardless, so all such an option decides is whose home is *unprepared* for the session they chose.
-
-What makes one home holding several desktops work is that nothing a session owns may be home-wide. Anything that would be gets scoped, in one of two ways.
-
-**User units** name the session they belong to:
-
-- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "wayland-session@sway.target"`. It is keyed by id rather than a bare list because the key is the lowercased name the session announces in `XDG_CURRENT_DESKTOP`, which is what the per-desktop *files* below are named after. Key and value can disagree on more than shape — Hyprland's are `hyprland` and `wayland-session@Hyprland.target` — so see **Adding a desktop environment** in `session/AGENTS.md`.
-- **`den.desktop.sessionAnchors`** (`features/desktop/options.nix`, per host) — the same fact system-side, for system-level user units (`blueman-applet`) and as the gate for "does any installed session need the companion stack" (`nixos.thunar`, `nixos.session-wayland`). A session that ships its own shell publishes nothing, which is why GNOME has no entry.
-- **`den-session.target`** (`session/wayland.nix`) — one unit for the shared companions to name, started by *any* anchor and stopped with it. `wayland.systemd.target` points at it, and some thirty upstream Home Manager modules (kanshi, swayidle, clipman, dunst…) default their binding to that option, so they need no per-unit wiring.
-
-Nothing a session owns may bind to `graphical-session.target`: **every** desktop starts it, GNOME included. That is not hypothetical — a companion bound there follows the user into GNOME, which is how a Waybar once ended up drawn over mutter with kanshi fighting it for the outputs. The `session-anchors` check exists to keep that fixed.
-
-**Config files** that a desktop reads by name are already scoped — `~/.config/sway/config` means nothing to GNOME — so they need no special handling. The awkward case is a *shared* file two desktops would fill in differently, and the answer is a per-desktop variant rather than a per-user choice:
-
-- **`<desktop>-mimeapps.list`** (`features/desktop/thunar.nix`) — XDG reads `$XDG_CONFIG_HOME/<desktop>-mimeapps.list` before `mimeapps.list`, once per entry in `XDG_CURRENT_DESKTOP`. Writing `sway-mimeapps.list` is what lets folders open in thunar under Sway and nautilus under GNOME out of one home. Home Manager's `xdg.mimeApps` only writes the shared list, so this is a hand-written `xdg.configFile`.
-- **Anything with no per-desktop form** has to be settled once for the home, and the tie-break is "what is least wrong in the desktop that did not ask for it". `xdg.userDirs.desktop` is the example: Sway used to drop the Desktop folder, which is right for a tiling session and wrong for the GNOME session in the same home, so the folder stays.
-
-**Wiring rules:**
-
 - **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.
-- **Desktop Home Manager modules reach users through `den.desktop.environments`**, which pushes them at `home-manager.sharedModules`, never from the user module — `user-bbtux` is shared with headless `appa`, which must not grow a desktop. Pushing a session's config at every user is only safe because of the scoping above: everything a session owns sits behind `homeManager.session-wayland` and an anchor. Note some of those modules live outside `features/desktop/`, so this is not a rule about that directory but about anything a session owns.
-- **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each one keeping all of its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so a module a session imports lands on hosts that never selected the session. Either the imported module attaches per user (the HM case above) or it gates itself: `nixos.thunar` and `nixos.session-wayland` follow `config.den.desktop.sessionAnchors != { }`, so they install nowhere else. Gating on one compositor's own switch (`programs.sway.enable`, as thunar used to) works only until a second compositor arrives.
-- **A host that writes an option through `home-manager.sharedModules` must declare it there too.** `hosts/*/monitors.nix` pushes `monitors` at every user, and the block imports the schema alongside the values so the option exists even on a host with no session that reads it.
+
+See `session/AGENTS.md` for session scoping (`den.session.anchors`, `den-session.target`, `<desktop>-mimeapps.list`, `imports` vs `mkIf`, `home-manager.sharedModules`).
 
 ## Choosing a bar
 
@@ -40,33 +20,11 @@ pushes the match at every user. It is host-level and single-valued for the same
 reason `loginManager` is.
 
 **Which bars exist and which one starts are separate questions.**
-`den.desktop.barsInstalled` (default `[ bar ]`) is the set that gets units at
-all; `bar` is the one an anchor *wants*. Everything else is installed and inert,
-so comparing them inside a live session is two `systemctl --user` lines and no
-rebuild:
+`den.desktop.barsInstalled` (default `[ bar ]`) is the set that gets units; `bar` is the one an anchor *wants*. Everything else is installed and inert, so comparing them live is `systemctl --user stop waybar-sway && systemctl --user start ironbar` with no rebuild.
 
-```console
-$ systemctl --user stop waybar-sway
-$ systemctl --user start ironbar
-```
+The two producers are `WantedBy=ironbar.service` and `PartOf` it, split into two because their cadences differ by 180× (a 10s curl timeout in the 900s weather fetch must not stall the 5s GPU reading).
 
-One unit, because the two producers are `WantedBy=ironbar.service` rather than
-the session target — Home Manager writes `<unit>.wants/` for a service just as
-it does for a target — and `PartOf` it, so they stop with it too. There are two
-of them rather than one because their cadences differ by 180×: a 10s curl
-timeout in the 900s weather fetch must not stall the 5s GPU reading.
-
-katara carries both for that reason. It is not the default because ironbar pulls
-a substantial closure on top of waybar's, and a host that has settled on one bar
-should not pay for the other. Each renderer hangs the `Install.WantedBy` of *the
-unit the session starts* on `den.session.activeBar` matching its own name — the
-user-scoped restatement of `den.desktop.bar`, since Home Manager cannot read
-NixOS config — and `session-anchors` asserts the whole topology: the bar names
-its target exactly, its producers name the bar, and the losing renderer's units
-name nothing.
-
-The two are not interchangeable implementations of one design; they disagree
-about the thing this repo cares most about:
+`katara` carries both for comparison; it is not the default because ironbar adds a substantial closure on top of waybar. Each renderer hangs the `Install.WantedBy` of its main unit on `den.session.activeBar` matching its own name, and `session-anchors` asserts the topology.
 
 | | waybar | ironbar |
 |---|---|---|
@@ -76,20 +34,7 @@ about the thing this repo cares most about:
 | the way out of that | scope modules per output, or cache | **ironvars** |
 | toolkit | GTK3 | GTK4 |
 
-**Ironbar does *not* fix per-monitor duplication by existing** — measured, both
-renderers run a polled script once per output, as do yambar, eww and quickshell.
-Do not switch bars expecting that to change.
-
-What ironbar has instead is
-[**ironvars**](https://github.com/JakeStanger/ironbar/wiki/ironvars): global
-values in the daemon, set over IPC (`ironbar var set KEY VALUE`) and referenced
-as `#name` anywhere a dynamic string is taken. One producer, every bar updates —
-where an embedded script next to it still runs per output. So
-`features/desktop/ironbar.nix` has **no polling module at all**: the GPU,
-weather, failed-unit and power-profile readings come from the two producer
-services above, and `set_var` swallows failure because a producer outlives any
-one bar process and, `After=ironbar.service` notwithstanding, can still beat the
-daemon to the socket at login.
+**Ironbar does *not* fix per-monitor duplication by existing** — both renderers run a polled script once per output (as do yambar, eww, quickshell). What ironbar has instead is [**ironvars**](https://github.com/JakeStanger/ironbar/wiki/ironvars): global values set over IPC (`ironbar var set KEY VALUE`) and referenced as `#name`. `features/desktop/ironbar.nix` has **no polling module at all**: GPU, weather, failed-unit, and power-profile readings come from the two producer services, and `set_var` swallows failure because a producer can beat the daemon to the socket at login despite `After=ironbar.service`.
 
 Five more things that shaped the ironbar file:
 
@@ -350,28 +295,9 @@ There is deliberately no `nvidia = true` beside it: `full` is
 on every default family — NVIDIA included — on Linux. So `cudatoolkit` is the only
 thing this repo overrides.
 
-**Why this matters more than closure size:** CUDA is unfree, so with
-`cudatoolkit` left alone the booted-VM session test — which sets no
-`allowUnfree` — fails to **evaluate**, not merely to build. Tracking nixpkgs does
-not fix it either; the narrowed replacement upstream
-([PR #521327](https://github.com/NixOS/nixpkgs/pull/521327), not on our
-`nixos-26.05` pin) is `free = false` too, so the eval wall stands.
+**Why this matters:** CUDA is unfree, so without this override the booted-VM session test (no `allowUnfree`) fails to **evaluate** (even with [PR #521327](https://github.com/NixOS/nixpkgs/pull/521327)). **nvtop needs no CUDA at all** — `extract_gpuinfo_nvidia.c` resolves `libnvidia-ml.so.1` via `dlopen` + `dlsym` ([`src/CMakeLists.txt`](https://github.com/Syllo/nvtop/blob/3.3.2/src/CMakeLists.txt#L53)), and `addDriverRunpath` (applied when `nvidia = true`) lets it find `/run/opengl-driver/lib`.
 
-Answering it with nothing is safe because **nvtop needs no CUDA at all** — this is
-a nixpkgs packaging artifact, not an upstream requirement.
-`extract_gpuinfo_nvidia.c` includes no NVML header; it vendors every enum and
-signature itself and resolves the library with `dlopen("libnvidia-ml.so.1")` +
-`dlsym`, and [`src/CMakeLists.txt`](https://github.com/Syllo/nvtop/blob/3.3.2/src/CMakeLists.txt#L53)
-under `if(NVIDIA_SUPPORT)` only adds a source file — no link step, no
-`find_package`, no mention of CUDA. What *does* matter is `addDriverRunpath`,
-which nixpkgs applies when `nvidia = true` and which is how the `dlopen` finds
-`/run/opengl-driver/lib`. If nixpkgs ever genuinely links NVML this breaks the
-build loudly rather than mis-reporting, which is the failure mode to want.
-
-**The NVIDIA path is only testable on zuko.** katara has no discrete card, so
-`nvtop -s` there proves the mesa side and nothing more. The failure mode if NVML
-is unreachable is silent: nvtop skips the backend and the dGPU simply drops out
-of the widget, so confirm with `nvtop -s` on zuko rather than assuming.
+**The NVIDIA path is only testable on `zuko`** (`katara` has no dGPU). If NVML is unreachable, nvtop silently skips the backend, so confirm with `nvtop -s` on `zuko`.
 
 nvtop's Intel backend reads DRM fdinfo, not perf counters, so the bar needs no
 `intel_gpu_top` or its `CAP_PERFMON` wrapper. zuko still sets

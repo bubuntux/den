@@ -1,8 +1,33 @@
 # Desktop sessions
 
-How a bare compositor is started and what it has to declare. The bars and
-terminals it drives are in `../AGENTS.md`; the `den.desktop` option table and the
-session-scoping rules are in the root `AGENTS.md`.
+How a bare compositor is started, scoped, and what it has to declare. The bars and
+terminals it drives are in `../AGENTS.md`; repo-wide rules and the
+`den.desktop` profile-vs-host table are in the root `AGENTS.md`.
+
+## Session scoping
+
+**There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. Naming one desktop per person cannot work: the greeter offers every installed session to everyone regardless, so all such an option decides is whose home is *unprepared* for the session they chose.
+
+What makes one home holding several desktops work is that nothing a session owns may be home-wide. Anything that would be gets scoped, in one of two ways.
+
+**User units** name the session they belong to:
+
+- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "wayland-session@sway.target"`. Keyed by id (the lowercased name in `XDG_CURRENT_DESKTOP`, used for per-desktop files below) rather than a bare list. Key and value can disagree on more than shape — Hyprland's are `hyprland` and `wayland-session@Hyprland.target` — see **Adding a desktop environment**.
+- **`den.desktop.sessionAnchors`** (`features/desktop/options.nix`, per host) — the same fact system-side, for system-level user units (`blueman-applet`) and as the gate for "does any installed session need the companion stack" (`nixos.thunar`, `nixos.session-wayland`). A session that ships its own shell publishes nothing (GNOME has no entry).
+- **`den-session.target`** (`session/wayland.nix`) — one unit for shared companions, started by *any* anchor and stopped with it. `wayland.systemd.target` points at it, so upstream Home Manager modules (kanshi, swayidle, clipman, dunst…) bind there automatically.
+
+Nothing a session owns may bind to `graphical-session.target`: **every** desktop starts it, GNOME included (a companion bound there follows the user into GNOME). `session-anchors` enforces this.
+
+**Config files** read by name (`~/.config/sway/config`) are already scoped. Shared files use per-desktop variants or a least-wrong tie-break:
+
+- **`<desktop>-mimeapps.list`** (`features/desktop/thunar.nix`) — XDG reads `$XDG_CONFIG_HOME/<desktop>-mimeapps.list` before `mimeapps.list`, letting folders open in thunar under Sway and nautilus under GNOME out of one home. Home Manager's `xdg.mimeApps` only writes the shared list, so this is a hand-written `xdg.configFile`.
+- **No per-desktop form**: settle once for the home as "least wrong in the desktop that did not ask for it" (`xdg.userDirs.desktop` stays for GNOME even though Sway doesn't need it).
+
+**Wiring rules:**
+
+- **Desktop Home Manager modules reach users through `den.desktop.environments`**, which pushes them at `home-manager.sharedModules`, never from the user module — `user-bbtux` is shared with headless `appa`, which must not grow a desktop. Everything a session owns sits behind `homeManager.session-wayland` and an anchor (including modules outside `features/desktop/`).
+- **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each keeping its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so imported modules land on hosts that never selected the session unless they attach per user (HM) or gate themselves (`nixos.thunar` and `nixos.session-wayland` gate on `config.den.desktop.sessionAnchors != { }`).
+- **A host writing an option through `home-manager.sharedModules` must declare it there too** (e.g., `hosts/*/monitors.nix` imports `monitors` schema alongside values so it exists on hosts with no session reading it).
 
 ## How a bare session starts (uwsm)
 
