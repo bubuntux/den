@@ -78,7 +78,7 @@ needing notes gets its own file and a row in this table, not a section here.
 | file | what it covers |
 |---|---|
 | `modules/core/AGENTS.md` | what each `nix flake check` proves, the booted-VM session tests, and why host builds are CI's job |
-| `modules/features/desktop/AGENTS.md` | choosing a bar (waybar/ironbar) and a terminal (ghostty/foot), the GPU widget, what colour is allowed to mean |
+| `modules/features/desktop/AGENTS.md` | choosing a bar (waybar/ironbar) and a terminal (ghostty/foot), the GPU widget, bar colour rules, session scoping and login managers |
 | `modules/features/desktop/session/AGENTS.md` | how a bare session starts under uwsm, the checklist for adding an environment, session layout |
 | `modules/features/dev-tools/AGENTS.md` | why kotlin-lsp uses JetBrains' build and how Gradle/JDK paths are wired |
 | `modules/features/network/AGENTS.md` | adding a service to CrowdSec -- journald, not log files |
@@ -103,14 +103,14 @@ Features ──→ Bundles ──→ Profiles ──→ Hosts
 
 Note the direction of two edges that are easy to get backwards: **users are imported by profiles**, not by hosts (a role knows who operates the machine), and **hardware is imported by hosts**, not by profiles.
 
-- **`modules/features/`**: Individual software/service configurations, organized in subdirectories: `browser/` (firefox), `dev-tools/` (claude-code, go), `editor/` (neovim), `desktop/` (thunar, xdg, loupe, theme, monitors, kanshi, ghostty, foot, `options.nix` for `den.desktop`, `session/` for the desktop environments — with `session/wayland.nix` holding what every bare compositor needs and `session/sway/` the pieces only that compositor uses — `login/` for the display managers), `shell/` (git, ssh, zsh, jujutsu), `system/` (boot, fonts, locale, networking, nix, nvtop, sops, auto-upgrade, power-profile-auto), `network/` (avahi, cloudflare-ddns, openssh, reverse-proxy, vpn-confinement, wifi-home, wifi-work), `arr/` (bazarr, prowlarr, qbittorrent, radarr, sonarr), `media/` (jellyfin, immich, tvheadend, mpv, plex, `registry.nix` for `den.media.services`), `virtualisation/` (podman)
-- **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base`, the container-safe foundation (fonts, home-manager, locale, nix); `host.nix` defines `bundle-host`, which adds what only a real machine needs (bootloader, networking, secrets, unattended upgrades). That split exists because `work-container.nix` takes the former and must not get the latter. `desktop/default.nix` defines `bundle-desktop`, which imports every desktop session and login manager — each stays inert until `den.desktop` selects it
-- **`modules/profiles/`**: Two kinds of thing, and the difference matters (see **Roles vs capabilities** below): whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`)
-- **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. A host with more than a screenful of config becomes a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host layout** below)
-- **`modules/users/`**: User account definitions that bridge NixOS and Home Manager; imported by hosts or profiles
-- **`modules/hardware/`**: Device and hardware configurations (audio, bluetooth, printing, dell-precision-5690)
-- **`modules/core/`**: Core infrastructure (dendritic.nix, home-manager.nix, host-vm.nix, shell.nix, treefmt.nix)
-- **`pkgs/`**: Custom package derivations not available in nixpkgs (e.g., cups-brother-hll3270cdw)
+- **`modules/features/`**: Individual software/service configurations grouped by domain (`arr/`, `browser/`, `desktop/`, `dev-tools/`, `editor/`, `media/`, `network/`, `shell/`, `system/`, `virtualisation/`).
+- **`modules/bundles/`**: Aggregate related modules into reusable sets. `base.nix` defines `bundle-base` (container-safe foundation); `host.nix` defines `bundle-host` (real-machine additions: bootloader, networking, secrets, unattended upgrades) so `work-container.nix` can take the former without the latter. `desktop/default.nix` defines `bundle-desktop`, importing every desktop session and login manager (inert until `den.desktop` selects them).
+- **`modules/profiles/`**: Whole-machine **roles** (`nas`, `workstation`, `family`) and composable **capabilities** (`laptop`, `developer`, `gaming`, `work`) — see **Roles vs capabilities** below.
+- **`modules/hosts/`**: Per-machine configurations that select profiles and set hardware options. Hosts with more than a screenful of config become a directory whose files all contribute to `flake.modules.nixos.<host>` (see **Host Layout** below).
+- **`modules/users/`**: User account definitions bridging NixOS and Home Manager; imported by profiles (or hosts).
+- **`modules/hardware/`**: Device and hardware configurations (e.g., `audio`, `bluetooth`, `printing`, `dell-precision-5690`).
+- **`modules/core/`**: Core flake infrastructure (`dendritic.nix`, `home-manager.nix`, `host-vm.nix`, `shell.nix`, `treefmt.nix`, `tests.nix`).
+- **`pkgs/`**: Custom package derivations not in nixpkgs.
 
 Features, bundles, and profiles can define both a `nixos` and a `homeManager` module in the same file, grouped under one `flake.modules` block. User modules define both a nixos module (account, groups) and a homeManager module (packages, programs), wiring them together internally via `home-manager.users.<name>`.
 
@@ -134,7 +134,7 @@ Two rules carry real weight here:
 
 ### Roles vs capabilities
 
-`modules/profiles/` holds two kinds of module. They look alike and compose differently, so keep the distinction in mind when adding one:
+`modules/profiles/` holds two kinds of module:
 
 | | **Role** | **Capability** |
 |---|---|---|
@@ -144,24 +144,11 @@ Two rules carry real weight here:
 | Brings its own users | yes | no |
 | Composes | capabilities, and features | features |
 
-This is a description, not a restriction. **A host may import as many profiles as it needs** — `imports = [ profile-laptop profile-developer ]` is perfectly good. The rule is narrower than "one role per host":
+**A host may import as many profiles as it needs** (including two roles, since desktop contributions are additive). Rule of thumb:
 
-> When two hosts would list the same set of profiles, name that set as a role.
+> When two hosts would list the *same* set of profiles, name that set as a role (e.g., `profile-workstation`).
 
-That is the reason `profile-workstation` exists. A one-off combination needs no role — just import the capabilities. Note the rule says *the same* set, not *nearly* the same: two hosts agreeing on one capability is two host-level imports, not a reason to widen the role. `zuko` wants `profile-gaming` and it still does not belong in the role — a workstation is not a gaming rig even when it happens to have Steam on it.
-
-```nix
-# hosts/appa/default.nix          # hosts/katara/default.nix
-imports = [ profile-nas           imports = [ profile-family
-            <nixos-hardware …> ];             profile-laptop
-                                              <nixos-hardware …> ];
-```
-
-Two roles can also be imported at once on one host because everything a role
-contributes to the desktop is additive — see **Desktop Environments and Login
-Managers** for which settings a profile may set and which belong to the host.
-
-What a host should *not* accumulate is config that belongs to a role: bundles, users, or a whole stack of features — those go in the role, which is where `profile-nas` and `profile-workstation` both keep them. A single feature that only makes sense on one machine is fine — zuko imports `droidcam` and `cachix-push` because no other host wants them.
+A one-off combination needs no role, and a shared capability (e.g. `zuko` importing `profile-gaming`) doesn't widen a role. Hosts may import a single machine-specific feature (`droidcam`, `cachix-push`), but bundles, users, and feature stacks belong in roles.
 
 ### Naming Conventions
 
@@ -188,39 +175,26 @@ Secrets are managed with [sops-nix](https://github.com/Mic92/sops-nix) and encry
 
 - **MCP validation**: MUST use the `nixos` MCP server to verify that packages and options exist before adding them to configurations
 
-- **Comments in Nix stay lean.** **The default is no comment.** One earns its place only by explaining something surprising about *the line it sits on* — a clause or a sentence, not the story of what happens there. Do not write a comment that justifies a structural choice (why an import sits at host level, why a profile is a capability), recounts what the code replaced, or restates a rule from an `AGENTS.md`. A bare cross-reference (`# see AGENTS.md, "How a bare session starts (uwsm)"`) is **not** an exception: the notes are read before the code is edited, so a pointer back to them costs a line and tells the reader nothing. Leave the code bare. The same goes for option `description` strings: say what the option means and what breaks if it is wrong, and leave the reasoning out. Whether that reasoning belongs in an `AGENTS.md` *at all* is a separate question — see **Where the detailed notes live**.
+- **Comments in Nix stay lean.** **The default is no comment.** Only explain something surprising about *the line it sits on* — not structural choices, what code replaced, or rules/cross-references to an `AGENTS.md`. Option `description` strings say what the option means and what breaks if wrong, without reasoning.
 
-- **Module structure**: Modules are flake-parts modules taking `{ self, inputs, ... }` and define outputs via `flake.modules.<class>.<name>`, where class is `nixos` or `homeManager`. Modules can also define `perSystem` outputs for per-architecture tooling (formatters, dev shells, VM apps)
+- **Module structure & naming**: Modules are flake-parts modules taking `{ self, inputs, ... }` and defining `flake.modules.<class>.<name>` (`nixos` or `homeManager`; never `flake.nixosModules` / `flake.homeModules`), plus optional `perSystem` outputs. Reference them via `self.modules.<class>.*`. Group multiple modules in one file under one `flake.modules = { ... };` block.
 
-- **Module naming**: Use `flake.modules.nixos.*` / `flake.modules.homeManager.*` and reference them as `self.modules.nixos.*` / `self.modules.homeManager.*`. The older `flake.nixosModules` / `flake.homeModules` outputs are **not** used. When one file publishes more than one module, group them under a single block:
+- **Module deduplication**: Every module definition MUST set `key = "den:<class>.<name>"` as the first attribute of its body, suffixed `#<fragment>` when several files build one module (`den:nixos.zuko#hardware`). Without `key`, nixpkgs deduplicates per import path and additive options double; with duplicate `key`s, all but the first are silently dropped (`module-keys` check catches both, though attribute order stays a convention).
 
-  ```nix
-  flake.modules = {
-    nixos.fonts = { pkgs, ... }: { key = "den:nixos.fonts"; ... };
-    homeManager.fonts = { pkgs, ... }: { key = "den:homeManager.fonts"; ... };
-  };
-  ```
+- **Home module wiring**: A nixos module injects its home module via `home-manager.sharedModules = [ self.modules.homeManager.my-feature ];` when every user on the host should get it; per-user config belongs on `home-manager.users.<name>`.
 
-- **Module deduplication**: every module definition MUST set `key = "den:<class>.<name>"` as the first attribute of its body, suffixed `#<fragment>` when several files build one module (`den:nixos.zuko#hardware`). The module system deduplicates by `key` and nothing else — nixpkgs runs `genericClosure` over `module.key` (`lib/modules.nix`, `filterModules`), and `key` falls back to `"${parentKey}:anon-${n}"`, a fresh string at every import site. Neither the module's shape (function or bare attrset) nor `_file` affects this. Two failure modes, both silent, and both what the **`module-keys`** check exists to catch: with no `key` the module applies once per import path, so additive options (`home.packages`, `programs.zsh.initContent`, `home-manager.sharedModules`) double; with the *same* `key` on two definitions, all but the first are dropped. The check cannot see whether `key` is the *first* attribute — Nix attrsets are unordered — so that half stays a convention.
+- **Declare options where they are read**: A module reading an option should import the module declaring it rather than relying on a parent (`key` makes duplicate imports free).
 
-- **Imports**: reference other modules through `self.modules.<class>`: `imports = with self.modules.nixos; [ bundle-host theme ];`
+- **Flake inputs & `flake.nix`**: Declare inputs inline via `flake-file.inputs.<name>.url = "github:owner/repo";`. Never edit `flake.nix` manually — regenerate with `nix run .#write-flake`.
 
-- **Home module wiring**: a nixos module injects its own home module via `home-manager.sharedModules = [ self.modules.homeManager.my-feature ];` — the standard pattern for bridging NixOS and Home Manager config in a single feature file. Use it only for config that every user on the host should get; anything meant for one user belongs on `home-manager.users.<name>`. The desktop environments go through `sharedModules` (`den.desktop.environments`) precisely because every user may log into any installed session — what keeps them apart is the session anchors, not the module wiring
+- **Pre-commit workflow** (MUST follow in order):
 
-- **Declare options where they are read**: a module that reads an option should import the module declaring it rather than relying on a parent to have done so. `homeManager.sway` and `homeManager.kanshi` both import `homeManager.monitors` for this reason, and `homeManager.session-wayland` imports `homeManager.session-options` for `den.session.*`; the `key` convention makes the duplicate import free
-
-- **Declaring inputs**: Core modules can declare flake inputs inline via `flake-file.inputs.<name>.url = "github:owner/repo";` — prefer this over editing `flake.nix` directly
-
-- **flake.nix**: Never modify manually; it is regenerated by running `nix run .#write-flake`. New inputs should be declared inline in modules using `flake-file.inputs`
-
-- **Pre-commit workflow** (MUST follow this order before every commit):
-
-  1. Run `nix fmt` to ensure consistent code style
+  1. Run `nix fmt`
   1. Stage files with `git add` (the flake only sees tracked files)
 
-- **Pre-merge validation**: Run `nix flake check` before merging or pushing — do NOT merge if checks fail. This is not required after every single change, only before finalizing. It is near enough evaluation-only, but still takes ~1.5 min because the desktop probes are sixteen NixOS evaluations; run a single check by name while iterating. Host builds are CI's job (see `modules/core/AGENTS.md`)
+- **Pre-merge validation**: Run `nix flake check` before merging or pushing (~1.5 min; run a single check by name while iterating). Host builds are CI's job (see `modules/core/AGENTS.md`).
 
-- **Committing**: Always present changes and proposed commit message to the user for explicit approval before committing
+- **Committing**: Always present changes and proposed commit message to the user for explicit approval before committing.
 
 ## Options vs Imports
 
@@ -242,63 +216,18 @@ Import-tree already gives file-granular opt-in, so a module's *existence* is the
 
 ## Desktop Environments and Login Managers
 
-`den.desktop` (declared in `features/desktop/options.nix`) keeps the two choices independent. Session modules only register sessions with `services.displayManager.sessionPackages`; each login manager only reads that list. So a session never implies a greeter, and swapping greeters never touches the sessions.
-
-A bare compositor contributes exactly **one** entry to that list, and it starts uwsm rather than the compositor directly. See **How a bare session starts (uwsm)** in `modules/features/desktop/session/AGENTS.md`.
-
-Which of the settings a **profile** may set and which belong to the **host** follows from whether the option merges:
+`den.desktop` (`features/desktop/options.nix`) decouples sessions (`services.displayManager.sessionPackages`) from login managers. Which settings a **profile** vs **host** may set follows from mergeability:
 
 | setting | mergeable? | set by |
 |---|---|---|
-| `den.desktop.environments` | yes, lists concatenate (`apply = lib.unique`) | profiles — or a host adding one of its own |
-| `den.desktop.loginManager` | no, single value | host |
-| `den.desktop.bar` | no, single value | host |
-| `den.desktop.barsInstalled` | yes, lists concatenate (`apply = lib.unique`) | host, when comparing bars |
-| `services.displayManager.defaultSession` | no, single value | host |
-| `services.displayManager.autoLogin.*` | no, single value | host |
+| `den.desktop.environments` | yes (`lib.unique`) | profiles — or host |
+| `den.desktop.loginManager` | no | host |
+| `den.desktop.bar` | no | host |
+| `den.desktop.barsInstalled` | yes (`lib.unique`) | host, when comparing bars |
+| `services.displayManager.defaultSession` | no | host |
+| `services.displayManager.autoLogin.*` | no | host |
 
-A profile that named its own greeter could not be combined with another role — the module system would report conflicting definitions. So roles contribute what they install and the host decides how it is presented:
-
-```nix
-# profiles/family.nix                 # profiles/workstation.nix
-den.desktop.environments = [          den.desktop.environments = [ "sway" ];
-  "gnome"
-  "sway"
-];
-
-# hosts/katara/default.nix -- imports profile-family, then picks one greeter
-den.desktop.loginManager = "gdm";
-```
-
-katara is the worked example: two environments installed (`profile-family`), and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: zuko keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path. `defaultSession` is deliberately absent here; under GDM it wipes every user's remembered session on each boot.
-
-**There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. Naming one desktop per person cannot work: the greeter offers every installed session to everyone regardless, so all such an option decides is whose home is *unprepared* for the session they chose.
-
-What makes one home holding several desktops work is that nothing a session owns may be home-wide. Anything that would be gets scoped, in one of two ways.
-
-**User units** name the session they belong to:
-
-- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "wayland-session@sway.target"`. It is keyed by id rather than a bare list because the key is the lowercased name the session announces in `XDG_CURRENT_DESKTOP`, which is what the per-desktop *files* below are named after. Key and value can disagree on more than shape — Hyprland's are `hyprland` and `wayland-session@Hyprland.target` — so see **Adding a desktop environment** in `modules/features/desktop/session/AGENTS.md`.
-- **`den.desktop.sessionAnchors`** (`features/desktop/options.nix`, per host) — the same fact system-side, for system-level user units (`blueman-applet`) and as the gate for "does any installed session need the companion stack" (`nixos.thunar`, `nixos.session-wayland`). A session that ships its own shell publishes nothing, which is why GNOME has no entry.
-- **`den-session.target`** (`session/wayland.nix`) — one unit for the shared companions to name, started by *any* anchor and stopped with it. `wayland.systemd.target` points at it, and some thirty upstream Home Manager modules (kanshi, swayidle, clipman, dunst…) default their binding to that option, so they need no per-unit wiring.
-
-Nothing a session owns may bind to `graphical-session.target`: **every** desktop starts it, GNOME included. That is not hypothetical — a companion bound there follows the user into GNOME, which is how a Waybar once ended up drawn over mutter with kanshi fighting it for the outputs. The `session-anchors` check exists to keep that fixed.
-
-**Config files** that a desktop reads by name are already scoped — `~/.config/sway/config` means nothing to GNOME — so they need no special handling. The awkward case is a *shared* file two desktops would fill in differently, and the answer is a per-desktop variant rather than a per-user choice:
-
-- **`<desktop>-mimeapps.list`** (`features/desktop/thunar.nix`) — XDG reads `$XDG_CONFIG_HOME/<desktop>-mimeapps.list` before `mimeapps.list`, once per entry in `XDG_CURRENT_DESKTOP`. Writing `sway-mimeapps.list` is what lets folders open in thunar under Sway and nautilus under GNOME out of one home. Home Manager's `xdg.mimeApps` only writes the shared list, so this is a hand-written `xdg.configFile`.
-
-- **Anything with no per-desktop form** has to be settled once for the home, and the tie-break is "what is least wrong in the desktop that did not ask for it". `xdg.userDirs.desktop` is the example: Sway used to drop the Desktop folder, which is right for a tiling session and wrong for the GNOME session in the same home, so the folder stays.
-
-- **To add an environment**: see **Adding a desktop environment** in `modules/features/desktop/session/AGENTS.md` — it is a checklist, because the pieces are small but there are seven of them.
-
-- **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.
-
-- **Desktop Home Manager modules reach users through `den.desktop.environments`**, which pushes them at `home-manager.sharedModules`, never from the user module — `user-bbtux` is shared with headless `appa`, which must not grow a desktop. Pushing a session's config at every user is only safe because of the scoping above: everything a session owns sits behind `homeManager.session-wayland` and an anchor. Note some of those modules live outside `features/desktop/`, so this is not a rule about that directory but about anything a session owns.
-
-- **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each one keeping all of its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so a module a session imports lands on hosts that never selected the session. Either the imported module attaches per user (the HM case above) or it gates itself: `nixos.thunar` and `nixos.session-wayland` follow `config.den.desktop.sessionAnchors != { }`, so they install nowhere else. Gating on one compositor's own switch (`programs.sway.enable`, as thunar used to) works only until a second compositor arrives.
-
-- **A host that writes an option through `home-manager.sharedModules` must declare it there too.** `hosts/*/monitors.nix` pushes `monitors` at every user, and the block imports the schema alongside the values so the option exists even on a host with no session that reads it.
+See [modules/features/desktop/AGENTS.md](modules/features/desktop/AGENTS.md) for session scoping (`den.session.anchors`, `den-session.target`, `<desktop>-mimeapps.list`, `imports` vs `mkIf`, `home-manager.sharedModules`) and adding a login manager, and [modules/features/desktop/session/AGENTS.md](modules/features/desktop/session/AGENTS.md) for uwsm and adding a desktop environment.
 
 ## Host Layout
 

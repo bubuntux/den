@@ -2,7 +2,35 @@
 
 The bar, the terminal and the widgets on them -- everything here is
 DE-agnostic. The compositors are in `session/AGENTS.md`; repo-wide rules and the
-`den.desktop` option table are in the root `AGENTS.md`.
+`den.desktop` profile-vs-host table are in the root `AGENTS.md`.
+
+## Session scoping and login managers
+
+`katara` is the worked example of `den.desktop`: two environments installed (`profile-family`), and GDM — graphical, with a user list and a session picker — remembering each user's last session, so shari lands in GNOME and bbtux in Sway. Greeter choice is a per-host judgement: `zuko` keeps greetd/tuigreet because a single-user dev machine wants the fast keyboard-only path. `defaultSession` is deliberately absent on `katara`; under GDM it wipes every user's remembered session on each boot.
+
+**There is deliberately no per-user desktop selection.** Installing an environment configures it for *every* user on the host (`home-manager.sharedModules`), so whichever session someone picks at the greeter is one their home is set up for. Naming one desktop per person cannot work: the greeter offers every installed session to everyone regardless, so all such an option decides is whose home is *unprepared* for the session they chose.
+
+What makes one home holding several desktops work is that nothing a session owns may be home-wide. Anything that would be gets scoped, in one of two ways.
+
+**User units** name the session they belong to:
+
+- **`den.session.anchors`** (`features/desktop/session/options.nix`, per user) — desktop id → the unit that means "this session is running", contributed by each session module. `homeManager.sway` publishes `sway = "wayland-session@sway.target"`. It is keyed by id rather than a bare list because the key is the lowercased name the session announces in `XDG_CURRENT_DESKTOP`, which is what the per-desktop *files* below are named after. Key and value can disagree on more than shape — Hyprland's are `hyprland` and `wayland-session@Hyprland.target` — so see **Adding a desktop environment** in `session/AGENTS.md`.
+- **`den.desktop.sessionAnchors`** (`features/desktop/options.nix`, per host) — the same fact system-side, for system-level user units (`blueman-applet`) and as the gate for "does any installed session need the companion stack" (`nixos.thunar`, `nixos.session-wayland`). A session that ships its own shell publishes nothing, which is why GNOME has no entry.
+- **`den-session.target`** (`session/wayland.nix`) — one unit for the shared companions to name, started by *any* anchor and stopped with it. `wayland.systemd.target` points at it, and some thirty upstream Home Manager modules (kanshi, swayidle, clipman, dunst…) default their binding to that option, so they need no per-unit wiring.
+
+Nothing a session owns may bind to `graphical-session.target`: **every** desktop starts it, GNOME included. That is not hypothetical — a companion bound there follows the user into GNOME, which is how a Waybar once ended up drawn over mutter with kanshi fighting it for the outputs. The `session-anchors` check exists to keep that fixed.
+
+**Config files** that a desktop reads by name are already scoped — `~/.config/sway/config` means nothing to GNOME — so they need no special handling. The awkward case is a *shared* file two desktops would fill in differently, and the answer is a per-desktop variant rather than a per-user choice:
+
+- **`<desktop>-mimeapps.list`** (`features/desktop/thunar.nix`) — XDG reads `$XDG_CONFIG_HOME/<desktop>-mimeapps.list` before `mimeapps.list`, once per entry in `XDG_CURRENT_DESKTOP`. Writing `sway-mimeapps.list` is what lets folders open in thunar under Sway and nautilus under GNOME out of one home. Home Manager's `xdg.mimeApps` only writes the shared list, so this is a hand-written `xdg.configFile`.
+- **Anything with no per-desktop form** has to be settled once for the home, and the tie-break is "what is least wrong in the desktop that did not ask for it". `xdg.userDirs.desktop` is the example: Sway used to drop the Desktop folder, which is right for a tiling session and wrong for the GNOME session in the same home, so the folder stays.
+
+**Wiring rules:**
+
+- **To add a login manager**: create `features/desktop/login/<name>.nix` gated on `config.den.desktop.loginManager == "<name>"`, add the name to the enum, and import it from `bundle-desktop`.
+- **Desktop Home Manager modules reach users through `den.desktop.environments`**, which pushes them at `home-manager.sharedModules`, never from the user module — `user-bbtux` is shared with headless `appa`, which must not grow a desktop. Pushing a session's config at every user is only safe because of the scoping above: everything a session owns sits behind `homeManager.session-wayland` and an anchor. Note some of those modules live outside `features/desktop/`, so this is not a rule about that directory but about anything a session owns.
+- **A session's `imports` are NOT covered by its `mkIf`.** `bundle-desktop` imports every session unconditionally and relies on each one keeping all of its config under `lib.mkIf (lib.elem "<name>" …)`. `imports` sits outside that, so a module a session imports lands on hosts that never selected the session. Either the imported module attaches per user (the HM case above) or it gates itself: `nixos.thunar` and `nixos.session-wayland` follow `config.den.desktop.sessionAnchors != { }`, so they install nowhere else. Gating on one compositor's own switch (`programs.sway.enable`, as thunar used to) works only until a second compositor arrives.
+- **A host that writes an option through `home-manager.sharedModules` must declare it there too.** `hosts/*/monitors.nix` pushes `monitors` at every user, and the block imports the schema alongside the values so the option exists even on a host with no session that reads it.
 
 ## Choosing a bar
 
