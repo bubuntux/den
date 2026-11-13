@@ -8,6 +8,30 @@ in
   flake.modules.nixvim.neovim = {
     key = "den:nixvim.neovim#mini";
 
+    globals = {
+      loaded_netrw = 1;
+      loaded_netrwPlugin = 1;
+    };
+
+    autoCmd = [
+      {
+        event = "VimEnter";
+        callback.__raw = ''
+          function()
+            local buf = vim.api.nvim_get_current_buf()
+            local bufname = vim.api.nvim_buf_get_name(buf)
+            if bufname ~= "" and vim.fn.isdirectory(bufname) == 1 then
+              vim.api.nvim_buf_delete(buf, { force = true })
+              require("lz.n").trigger_load("mini.files")
+              vim.schedule(function()
+                MiniFiles.open(bufname, false)
+              end)
+            end
+          end
+        '';
+      }
+    ];
+
     plugins = {
       mini-basics = {
         enable = true;
