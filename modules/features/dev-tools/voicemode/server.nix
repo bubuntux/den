@@ -149,7 +149,6 @@ _: {
                 # Sent with every request, so it overrides whisper-server's own
                 # --language; its default, auto, adds a detection pass per turn.
                 "VOICEMODE_WHISPER_LANGUAGE=en"
-                "VOICEMODE_SILENCE_THRESHOLD_MS=800"
               ];
               Restart = "on-failure";
             };
