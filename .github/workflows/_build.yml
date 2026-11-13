@@ -38,6 +38,9 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
       - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            fallback = true
       - id: hosts
         run: |
           hosts=$(nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json)
@@ -73,6 +76,9 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
       - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            fallback = true
       - uses: cachix/cachix-action@v17
         continue-on-error: true
         with:
@@ -148,6 +154,9 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
       - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            fallback = true
       - uses: cachix/cachix-action@v17
         continue-on-error: true
         with:
