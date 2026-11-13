@@ -14,9 +14,12 @@
           "music"
         ];
         public = true;
-        # Only the login POST: the rest of /auth/* (me, providers, callback) is
-        # hit on every page load and would trip a 5/min limit.
-        rateLimit.paths = [ "/auth/login" ];
+        # Only the login POST: /auth/{me,providers,callback} are hit on every
+        # page load; 15/min leaves headroom for several guests on one IP.
+        rateLimit = {
+          paths = [ "/auth/login" ];
+          events = 15;
+        };
       };
     };
 }
