@@ -55,6 +55,9 @@ in
       "Bash(jj file list:*)"
       "Bash(jj bookmark list:*)"
 
+      # Local jj commits (pushing still prompts via `ask` below)
+      "Bash(jj commit:*)"
+
       # Read-only git (canonical `<cmd>:*` prefix syntax)
       "Bash(git log:*)"
       "Bash(git show:*)"
