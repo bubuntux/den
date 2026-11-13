@@ -19,11 +19,12 @@
           "homeassistant"
         ];
         public = true;
-        # HA's auth endpoints are the obvious brute-force target once this is
-        # internet-reachable. 5/IP/min mirrors the jellyfin pattern; legitimate
-        # users tripping it just means waiting a minute. /auth/* covers both
-        # the login flow and the long-lived token issuer.
-        rateLimit.paths = [ "/auth/*" ];
+        # Scope to the credential login flow so /auth/token refreshes from
+        # companion apps and multi-step redirects are not throttled.
+        rateLimit = {
+          paths = [ "/auth/login_flow*" ];
+          events = 15;
+        };
       };
 
       # HA is not on appa, so detection happens at the caddy layer instead:
