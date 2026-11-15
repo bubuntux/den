@@ -186,11 +186,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1794592941,
-        "narHash": "sha256-1xPZgXI5wV46fOnE8eEmi3rB59ukhnUPnE7vCSDN2yE=",
+        "lastModified": 1794781865,
+        "narHash": "sha256-KUu0wotP2KGvSHAQRPC6/thBIJ+KyF0I1LeRECimObM=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "71d2f9135352311e8914c04d6ee9707cf56afc8f",
+        "rev": "f582917c18d7854366adbe4f18a70ef8364631c0",
         "type": "gitlab"
       },
       "original": {
@@ -285,11 +285,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794721493,
-        "narHash": "sha256-7extb+ld6xPCzcVuhVdvcvGPLu/qtDRrhFJmH68jXfM=",
+        "lastModified": 1794782952,
+        "narHash": "sha256-M9+7wgLqqOsQTJ/jB6RYBWCWIlZY3iGZbR40hGjnhfs=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "aeb1afe1529c5dc7dcdc54d644a8aed212d99dd0",
+        "rev": "e8f652827b725f6d7810dfa22f96e08012d1c4c9",
         "type": "github"
       },
       "original": {
@@ -334,11 +334,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1794554816,
-        "narHash": "sha256-E5zhHNI4GPnhvJFu8cxkO5wt0NK23Hu66QQXrD4XX8Q=",
-        "rev": "e126e9e73c335158ff8279ac14d5f4afec153716",
+        "lastModified": 1794644783,
+        "narHash": "sha256-Qiji3lsueSxl/ngykvc6AEQJnqXRhOMDtUp66DPCxfw=",
+        "rev": "5d2b81a7a3be3e2f832879028e4d60abbf58e9a0",
         "type": "tarball",
-        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1119636.e126e9e73c33/nixexprs.tar.xz"
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1120695.5d2b81a7a3be/nixexprs.tar.xz"
       },
       "original": {
         "type": "tarball",
