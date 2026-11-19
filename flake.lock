@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1795054215,
-        "narHash": "sha256-EiBwaeKxxOQqW+hxFgFZTCmnYwJTw7qt7jw4fhotALA=",
+        "lastModified": 1795096443,
+        "narHash": "sha256-mP3qu3XgA4GTYI6Cuul2hhI9afkulBlyJ3a9m9NypkU=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "f8d56532ed0b5711c46cbacf2c1ae62a7c77d4cb",
+        "rev": "a40fe381c28fb708a1133b85eef9cb59bc392c7f",
         "type": "github"
       },
       "original": {
@@ -186,11 +186,11 @@
     "glab-cli": {
       "flake": false,
       "locked": {
-        "lastModified": 1795050739,
-        "narHash": "sha256-ApJHdj39o928hcJDavQ7CRuYSLEzZd6kSMAQ+QcHjTg=",
+        "lastModified": 1795086246,
+        "narHash": "sha256-Fw6an00b4qRLIUTq5Uax02uTGhxnI9kkQADglFN8TxA=",
         "owner": "gitlab-org",
         "repo": "cli",
-        "rev": "94035cff3be568779f6bcc7235a59b21d73ef24e",
+        "rev": "31ecb156e834eece88459d59773c3e01b386220a",
         "type": "gitlab"
       },
       "original": {
@@ -285,11 +285,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1795053855,
-        "narHash": "sha256-2M31WhYLweKabSGqGM3GoNAGGsEOsQ7FIuv8d4g2lXc=",
+        "lastModified": 1795095256,
+        "narHash": "sha256-psFOVEJ/Z/7wo9VbDnGz3z06NYzT4zJqCL3jfUAKG7A=",
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "7a6051143c31b932c16345d7887aad1672dbefc3",
+        "rev": "60037f203e5f2dd1f318318c93e78a9a5e42646a",
         "type": "github"
       },
       "original": {
