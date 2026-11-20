@@ -1,4 +1,4 @@
-{ self, ... }:
+{ self, inputs, ... }:
 let
   users = [
     "root"
@@ -46,6 +46,9 @@ in
       # the gws (googleworkspace/cli) flake package; no runtime exposure.
       nixpkgs.config.permittedInsecurePackages = [ "pnpm-10.29.2" ];
       nix = {
+        channel.enable = false;
+        registry.nixpkgs.flake = inputs.nixpkgs;
+        nixPath = [ "nixpkgs=flake:nixpkgs" ];
         settings = commonSettings // {
           log-lines = 20;
           download-buffer-size = 268435456;
