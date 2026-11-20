@@ -12,7 +12,11 @@
     programs.biome.enable = true;
     programs.mdformat.enable = true;
     programs.nixfmt.enable = true;
-    programs.shfmt.enable = true;
+    programs.shfmt = {
+      enable = true;
+      indent_size = 2;
+      simplify = true;
+    };
     programs.taplo.enable = true;
   };
 
