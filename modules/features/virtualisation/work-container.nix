@@ -102,16 +102,6 @@
               ];
             })
             (makeDesktopItem {
-              name = "gateway-work";
-              desktopName = "Gateway (Work)";
-              exec = workExec "gateway";
-              icon = "jetbrains-gateway";
-              categories = [
-                "Development"
-                "IDE"
-              ];
-            })
-            (makeDesktopItem {
               name = "stop-work";
               desktopName = "Stop Work";
               exec = "machinectl stop work";
@@ -453,7 +443,6 @@
 
               environment.systemPackages = with pkgs; [
                 cloudflare-warp
-                jetbrains.gateway
                 ssh-cvm
                 # Chrome uses V4L2 for cameras (the default), so it sees the DroidCam
                 # v4l2loopback bound at /dev/video*. (The built-in IPU6 cam is
@@ -484,7 +473,7 @@
                 xdg-desktop-portal-gtk
               ];
 
-              # nix-ld for non-Nix binaries (JetBrains Gateway downloads)
+              # nix-ld for non-Nix binaries
               programs.nix-ld.enable = true;
               programs.nix-ld.libraries = with pkgs; [
                 stdenv.cc.cc.lib
