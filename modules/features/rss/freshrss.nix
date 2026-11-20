@@ -65,6 +65,12 @@
         '';
       };
 
+      services.phpfpm.pools.${config.services.freshrss.pool}.phpOptions = ''
+        ; Defense-in-depth (blocks CVE-2026-126714 upload-progress vector; FreshRSS doesn't use it).
+        session.upload_progress.enabled = Off
+        expose_php = Off
+      '';
+
       systemd.services."phpfpm-${config.services.freshrss.pool}".serviceConfig = resources;
       systemd.services.freshrss-updater.serviceConfig = resources;
     };
