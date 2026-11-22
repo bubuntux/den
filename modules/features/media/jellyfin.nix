@@ -39,17 +39,20 @@
       den.media.services.jellyfin = {
         inherit port;
         extraVmPorts = [ httpsPort ];
-        # Transcoding sessions can burst memory; cap above observed ~700 MB peak
-        # so live streams don't get OOM-killed mid-playback. CPUWeight=150
-        # (default 100) wins CPU contention over scanners and downloaders --
-        # real-time playback timing must beat bulk work.
+        # 4K VA-API transcodes pin ~700 MB of unevictable GEM/shmem buffers on
+        # top of Jellyfin's own heap; MemoryHigh must sit comfortably above both
+        # or the cgroup livelocks in reclaim. CPUWeight=150 beats bulk work.
         resources = {
-          memoryHigh = "8%";
-          memoryMax = "15%";
+          memoryHigh = "20%";
+          memoryMax = "30%";
           cpuWeight = 150;
           ioWeight = 150;
         };
       };
+
+      # Bound swap (percentage of physical RAM) so an over-limit transcode hits
+      # MemoryMax and gets OOM-killed instead of thrashing swap indefinitely.
+      systemd.services.jellyfin.serviceConfig.MemorySwapMax = "10%";
 
       # Catches actual auth failures from Jellyfin's own log stream — slow
       # brute force that stays below caddy-ratelimit wouldn't otherwise
