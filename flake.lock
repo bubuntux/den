@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1795446029,
-        "narHash": "sha256-h3SNjaaPLzJVY5E71LLQqDtMj6vvbyszfhKvqzYOnu0=",
+        "lastModified": 1795462244,
+        "narHash": "sha256-jOnhch9xTlbY2vtmtJXngCMBacnMn6nOrG+CU94gkkI=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "d3177529fcd86081fd9d7e9e524cd72b8d33ebb4",
+        "rev": "c7338830e5467da63dcd2c1d89c74cf72da16e62",
         "type": "github"
       },
       "original": {
@@ -422,11 +422,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794866654,
-        "narHash": "sha256-Y28AMB8lyKjASdJ0BVsR2AqR1cUsVuo8RVVpzHoECho=",
+        "lastModified": 1795471345,
+        "narHash": "sha256-2p8/wnENYHU2Z79Ir/rpq+V1sMI9mSD6xGAlvlbVBUY=",
         "owner": "Mic92",
         "repo": "sops-nix",
-        "rev": "7c637afdccdf9bcf35c4a2d67b58a77c1fd843a4",
+        "rev": "d5abe5e53200ad48254e8e6bd95e6cef94e66577",
         "type": "github"
       },
       "original": {
