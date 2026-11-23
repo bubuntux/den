@@ -62,7 +62,9 @@
         # awscli2 and glab are provided by the aws/glab feature modules (which
         # also wire up their Claude Code skills).
         home.packages = with pkgs; [
-          acli
+          # Static binary; nixpkgs' buildFHSEnv wrapper invokes bwrap (only for
+          # rovodev), which fails under restricted userns.
+          acli.unwrapped
           src-cli
         ];
 
