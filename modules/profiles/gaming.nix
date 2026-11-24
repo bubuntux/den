@@ -72,10 +72,6 @@
         steam-gamemode-desktop
 
         discord-ptb
-
-        (import inputs.nixpkgs-unstable {
-          inherit (pkgs.stdenv.hostPlatform) system;
-        }).shattered-pixel-dungeon
       ];
 
       # Ensure 32-bit support for games
