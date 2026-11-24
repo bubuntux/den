@@ -3,11 +3,11 @@
     "aws-agent-toolkit": {
       "flake": false,
       "locked": {
-        "lastModified": 1795539492,
-        "narHash": "sha256-DbnGHhfXOvqpDs0bHwZ0eaW2NdIqb77Lx3YOxVsfJ7Y=",
+        "lastModified": 1795543611,
+        "narHash": "sha256-GxazZ6HDy7JyK4zVQxhmUKo3137Gmkq2N49WES0l284=",
         "owner": "aws",
         "repo": "agent-toolkit-for-aws",
-        "rev": "8a7ae9b5e0ad1f9c190bc8f28fedf07e97de4fe3",
+        "rev": "24b0e244c91ab0c64fb3202b568236e1ec6430ad",
         "type": "github"
       },
       "original": {
@@ -207,11 +207,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793375279,
-        "narHash": "sha256-wDnvPdRZ40cb3NcPcNoj2Zz5OOWanfNyA0ijSEUw14g=",
+        "lastModified": 1795542533,
+        "narHash": "sha256-NbvG/d6akwPpwm1fQCoflxEAPGeVXFiqXrdQ4gCmbRk=",
         "owner": "googleworkspace",
         "repo": "cli",
-        "rev": "cd3697e07eb520056dcf142d0c7439bbb9ba32e9",
+        "rev": "a52249351d2be86f391cf8ca237c1de7d8544181",
         "type": "github"
       },
       "original": {
