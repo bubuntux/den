@@ -7,6 +7,7 @@
 
   flake.modules.nixos.dell-precision-5690 =
     {
+      config,
       lib,
       pkgs,
       ...
@@ -117,5 +118,13 @@
         nvidia-container-toolkit.enable = lib.mkForce false;
         nvidia.dynamicBoost.enable = lib.mkForce false;
       };
+
+      # Off the boot critical path (~5.4s): podman-immich-ml pulls it in on
+      # demand via wants/after instead of blocking multi-user.target every boot.
+      systemd.services.nvidia-container-toolkit-cdi-generator =
+        lib.mkIf config.hardware.nvidia-container-toolkit.enable
+          {
+            wantedBy = lib.mkForce [ ];
+          };
     };
 }
