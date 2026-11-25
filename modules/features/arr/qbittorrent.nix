@@ -71,6 +71,7 @@
 
       services.qbittorrent = {
         enable = true;
+        package = pkgs.unstable.qbittorrent-nox;
         # Exposure is handled by the vpn-confinement namespace's portMappings.
         openFirewall = false;
         inherit webuiPort;

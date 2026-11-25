@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.modules.nixos.restic =
-    { config, ... }:
+    { config, pkgs, ... }:
     # Nightly encrypted backups to Google Drive (restic has no native Drive
     # backend; rclone exposes it as a generic remote). Drive caps uploads at
     # ~750 GB/day, so the initial ~670 GB seed fits one window or resumes.
@@ -28,6 +28,7 @@
     let
       # Repo/credentials shared by all three jobs.
       sharedRepo = {
+        package = pkgs.unstable.restic;
         repository = "rclone:gdrive:restic-appa";
         passwordFile = config.sops.secrets.restic_password.path;
         rcloneConfigFile = config.sops.secrets.rclone_gdrive_conf.path;

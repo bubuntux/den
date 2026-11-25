@@ -26,12 +26,13 @@
 
       services.freshrss = {
         enable = true;
+        package = pkgs.unstable.freshrss;
         # Empty, because the domain only exists in the sops env file; FreshRSS
         # then builds relative URLs.
         baseUrl = "";
         passwordFile = config.sops.secrets.freshrss_password.path;
         api.enable = true;
-        extensions = [ pkgs.freshrss-extensions.reddit-image ];
+        extensions = [ pkgs.unstable.freshrss-extensions.reddit-image ];
         webserver = "caddy";
         # Caddy proxies to itself: the wildcard site in reverse-proxy.nix keeps
         # the TLS, CrowdSec and LAN filtering, and this one only speaks FastCGI.

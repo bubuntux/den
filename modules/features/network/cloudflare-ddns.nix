@@ -1,7 +1,12 @@
 { self, ... }:
 {
   flake.modules.nixos.cloudflare-ddns =
-    { config, lib, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     {
       key = "den:nixos.cloudflare-ddns";
       imports = [ self.modules.nixos.sops ];
@@ -13,6 +18,7 @@
 
       services.cloudflare-ddns = {
         enable = true;
+        package = pkgs.unstable.cloudflare-ddns;
 
         # Placeholder to satisfy the module assertion; actual domains come from the sops EnvironmentFile.
         domains = [ "placeholder.invalid" ];

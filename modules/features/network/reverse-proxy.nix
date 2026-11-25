@@ -204,13 +204,13 @@
           #   * mholt/caddy-ratelimit — per-IP rate limits on auth endpoints
           # When bumping any plugin version, set hash to lib.fakeHash,
           # rebuild, and copy the real hash from the error.
-          package = pkgs.caddy.withPlugins {
+          package = pkgs.unstable.caddy.withPlugins {
             plugins = [
               "github.com/caddy-dns/cloudflare@v0.2.4"
               "github.com/hslatman/caddy-crowdsec-bouncer@v0.13.1"
               "github.com/mholt/caddy-ratelimit@v0.1.0"
             ];
-            hash = "sha256-BnNs7jJdaBS01Vi2ycIZydyOfb1s7Mnm6rs1Wj1tZc8=";
+            hash = "sha256-d1ddUQJ/bzusOwsSK4jq8ZfDtGd9qkCZ7dZ0655ilV4=";
           };
 
           environmentFile = config.sops.secrets.caddy_env.path;

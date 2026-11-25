@@ -83,7 +83,7 @@
           Type = "oneshot";
           User = "gickup";
           Group = "gickup";
-          ExecStart = "${pkgs.gickup}/bin/gickup ${configFile}";
+          ExecStart = "${pkgs.unstable.gickup}/bin/gickup ${configFile}";
 
           PrivateTmp = true;
           ProtectSystem = "strict";
