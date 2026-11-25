@@ -87,6 +87,12 @@
               QueueingSystemEnabled = false;
               PerformanceWarning = true;
               DefaultSavePath = defaultSavePath;
+              # Avoid libtorrent 2.0 mmap page-cache bloat inside the 15% cgroup cap,
+              # and limit async I/O threads on the five spinning HDDs.
+              DiskIOType = "Posix";
+              AsyncIOThreadsCount = 2;
+              CheckingMemUsageSize = 64;
+              SaveResumeDataInterval = 60;
               # The *arrs hardlink the wanted files out, so this only avoids
               # burning seed-tree space on junk that rides along.
               ExcludedFileNames = lib.concatStringsSep ", " [

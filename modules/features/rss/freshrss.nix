@@ -1,7 +1,12 @@
 { self, ... }:
 {
   flake.modules.nixos.freshrss =
-    { config, pkgs, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       port = 8085;
       resources = {
@@ -66,11 +71,25 @@
         '';
       };
 
-      services.phpfpm.pools.${config.services.freshrss.pool}.phpOptions = ''
-        ; Defense-in-depth (blocks CVE-2026-126714 upload-progress vector; FreshRSS doesn't use it).
-        session.upload_progress.enabled = Off
-        expose_php = Off
-      '';
+      services.phpfpm.pools.${config.services.freshrss.pool} = {
+        # Spawn workers on demand instead of keeping idle PHP processes resident on 8 GB RAM.
+        # mkForce drops upstream's dynamic-only pm.{start,min_spare,max_spare}_servers keys.
+        settings = lib.mkForce {
+          "listen.owner" = config.services.caddy.user;
+          "listen.group" = config.services.caddy.group;
+          "listen.mode" = "0600";
+          "pm" = "ondemand";
+          "pm.max_children" = 8;
+          "pm.process_idle_timeout" = "30s";
+          "pm.max_requests" = 500;
+          "catch_workers_output" = true;
+        };
+        phpOptions = ''
+          ; Defense-in-depth (blocks CVE-2026-126714 upload-progress vector; FreshRSS doesn't use it).
+          session.upload_progress.enabled = Off
+          expose_php = Off
+        '';
+      };
 
       systemd.services."phpfpm-${config.services.freshrss.pool}".serviceConfig = resources;
       systemd.services.freshrss-updater.serviceConfig = resources;
