@@ -1,4 +1,7 @@
 # Sway window rules configuration
+let
+  zoomAppId = "^([Zz]oom|Zoom Workplace|us\\.zoom\\.Zoom)$";
+in
 [
   # Browser marks
   {
@@ -95,73 +98,87 @@
     command = "floating enable";
   }
 
-  # Zoom rules
+  # Zoom rules (matches native Wayland app_id: zoom, Zoom, Zoom Workplace, us.zoom.Zoom)
   {
-    criteria.app_id = "^zoom.*";
+    criteria.app_id = zoomAppId;
     command = "floating enable";
   }
   {
     criteria = {
-      app_id = "^zoom.*";
+      app_id = zoomAppId;
       title = "^zoom$";
     };
     command = "border none, floating enable, move position mouse";
   }
   {
     criteria = {
-      app_id = "^zoom.*";
+      app_id = zoomAppId;
       title = "^(Zoom|About)$";
     };
     command = "border pixel, floating enable, move position mouse";
   }
   {
     criteria = {
-      app_id = "^zoom.*";
+      app_id = zoomAppId;
+      title = "^Zoom Workplace.*";
+    };
+    command = "floating disable";
+  }
+  {
+    criteria = {
+      app_id = zoomAppId;
       title = "Settings";
     };
     command = "floating enable, floating_minimum_size 960 x 700, move position mouse";
   }
   {
     criteria = {
-      app_id = "^zoom.*";
+      app_id = zoomAppId;
       title = "Choose ONE of the audio conference options";
     };
     command = "floating enable, move position mouse";
   }
   {
     criteria = {
-      app_id = "^zoom.*";
-      title = "^Zoom Meeting$";
+      app_id = zoomAppId;
+      title = "^(Meeting|Zoom Meeting|Zoom Meeting ID.*)$";
     };
     command = "move container to workspace current, floating disable, inhibit_idle open";
   }
   {
     criteria = {
-      app_id = "^zoom.*";
-      title = "^Zoom Meeting ID.*";
-    };
-    command = "move container to workspace current, floating disable, inhibit_idle open";
-  }
-  {
-    criteria = {
-      app_id = "^zoom.*";
+      app_id = zoomAppId;
       title = "^as_toolbar$";
     };
-    command = "floating enable, move position mouse";
+    command = "floating enable, border none, sticky enable, move position 33 ppt 6 px";
   }
   {
     criteria = {
-      app_id = "^zoom.*";
+      app_id = zoomAppId;
       title = "^zoom_linux_float_video_window$";
     };
-    command = "floating enable, move position mouse";
+    command = "floating enable, border none, sticky enable, move position 85 ppt 45 ppt";
   }
   {
     criteria = {
-      app_id = "^zoom.*";
+      app_id = zoomAppId;
       title = "^Zoom Meeting Control.*";
     };
-    command = "floating enable, move position mouse";
+    command = "floating enable, border none, sticky enable, move position 33 ppt 6 px";
+  }
+  {
+    criteria = {
+      app_id = zoomAppId;
+      title = "^menu window$";
+    };
+    command = "floating enable, border none";
+  }
+  {
+    criteria = {
+      app_id = zoomAppId;
+      title = "^cpt_frame_xcb_window$";
+    };
+    command = "floating enable, border none";
   }
 
   # JetBrains rules

@@ -30,10 +30,9 @@
               exec machinectl -q shell juliogm@work /bin/sh -l -c 'exec ${cmd}'
             fi
           '';
-        # Slack lives only in the container; zoom:// links open the Zoom web
-        # client as a Chrome --app window via the container's zoom-web-open.
+        # Both Slack and Zoom live only in the container.
         slack-work-open = mkUriOpener "slack-work-open" "slack";
-        zoom-work-open = mkUriOpener "zoom-work-open" "zoom-web-open";
+        zoom-work-open = mkUriOpener "zoom-work-open" "zoom-work";
         # The WARP enrollment token comes back as a com.cloudflare.warp:// link,
         # and warp-cli itself is what consumes it. --accept-tos because there is
         # no terminal here to answer the prompt.
@@ -67,13 +66,10 @@
               exec = "${zoom-work-open}/bin/zoom-work-open %u";
               icon = "Zoom";
               categories = [ "Network" ];
-              # Handle zoom:// deep links: open the Zoom web client as a Chrome
-              # --app window inside the container. Hidden from the app menu.
               mimeTypes = [
                 "x-scheme-handler/zoommtg"
                 "x-scheme-handler/zoomus"
               ];
-              noDisplay = true;
             })
             (makeDesktopItem {
               name = "warp-work";
@@ -361,49 +357,30 @@
 
                 exec ssh cvm "$@"
               '';
-              # Translate zoommtg:// / zoomus:// links into the Zoom web client and
-              # open them in Chrome as an ad-hoc PWA window (--app=URL).
-              zoom-web-open = pkgs.writeShellScriptBin "zoom-web-open" ''
-                set -u
-                url="''${1:-}"
-                confno=""
-                pwd=""
-                tk=""
-                if [ -n "$url" ]; then
-                  query="''${url#*\?}"
-                  old_ifs="$IFS"
-                  IFS='&'
-                  set -f
-                  for pair in $query; do
-                    k="''${pair%%=*}"
-                    v="''${pair#*=}"
-                    case "$k" in
-                      confno) confno="$v" ;;
-                      pwd) pwd="$v" ;;
-                      tk) tk="$v" ;;
-                    esac
-                  done
-                  set +f
-                  IFS="$old_ifs"
-                fi
-                if [ -z "$confno" ]; then
-                  exec google-chrome-stable --app="https://zoom.us/wc/join"
-                fi
-                target="https://zoom.us/wc/join/$confno"
-                sep="?"
-                if [ -n "$pwd" ]; then
-                  target="''${target}''${sep}pwd=''${pwd}"
-                  sep="&"
-                fi
-                if [ -n "$tk" ]; then
-                  target="''${target}''${sep}tk=''${tk}"
-                fi
-                exec google-chrome-stable --app="$target"
+              # Zoom defaults to XWayland (xcb), which crashes in this pure-Wayland
+              # container. Setting xwayland=false and enableWaylandShare=true makes
+              # Zoom run natively on Wayland and share screens through the host's
+              # xdg-desktop-portal-wlr.
+              zoom-work = pkgs.writeShellScriptBin "zoom-work" ''
+                conf="$HOME/.config/zoomus.conf"
+                mkdir -p "$HOME/.config"
+                [ -f "$conf" ] || printf '[General]\n' >"$conf"
+                set_conf() {
+                  if grep -q "^$1=" "$conf"; then
+                    sed -i "s/^$1=.*/$1=$2/" "$conf"
+                  else
+                    printf '\n%s=%s\n' "$1" "$2" >>"$conf"
+                  fi
+                }
+                set_conf xwayland false
+                set_conf enableWaylandShare true
+                set_conf showframewindow false
+                exec ${lib.getExe pkgs.unstable.zoom-us} "$@"
               '';
-              zoom-web-desktop = pkgs.makeDesktopItem {
-                name = "zoom-web";
-                desktopName = "Zoom (Web)";
-                exec = "${zoom-web-open}/bin/zoom-web-open %u";
+              zoom-work-desktop = pkgs.makeDesktopItem {
+                name = "zoom-work";
+                desktopName = "Zoom";
+                exec = "${zoom-work}/bin/zoom-work %u";
                 icon = "Zoom";
                 categories = [ "Network" ];
                 mimeTypes = [
@@ -452,8 +429,9 @@
                 google-chrome
                 slack
                 xdg-utils
-                zoom-web-open
-                zoom-web-desktop
+                unstable.zoom-us
+                zoom-work
+                zoom-work-desktop
 
                 v4l-utils
                 libv4l
@@ -510,7 +488,8 @@
                 JAVA_TOOL_OPTIONS = "-Dawt.toolkit.name=WLToolkit";
 
                 PIPEWIRE_RUNTIME_DIR = hostSessionDir;
-                PIPEWIRE_REMOTE = "unix:${hostSessionDir}/pipewire-0";
+                # libpipewire joins PIPEWIRE_RUNTIME_DIR and PIPEWIRE_REMOTE; a unix: URI breaks direct PipeWire clients.
+                PIPEWIRE_REMOTE = "pipewire-0";
                 PULSE_SERVER = "unix:${hostSessionDir}/pulse/native";
                 DBUS_SESSION_BUS_ADDRESS = "unix:path=${hostSessionDir}/bus";
                 XDG_RUNTIME_DIR = workRuntimeDir;
@@ -612,7 +591,7 @@
                 };
 
                 # Inside the container: Chrome handles URLs, Slack handles slack://,
-                # zoom:// links open in Chrome as an ad-hoc PWA window
+                # zoom:// links open the native Zoom client
                 xdg.mimeApps.defaultApplications = {
                   "text/html" = "google-chrome.desktop";
                   "x-scheme-handler/http" = "google-chrome.desktop";
@@ -620,8 +599,8 @@
                   "x-scheme-handler/about" = "google-chrome.desktop";
                   "x-scheme-handler/unknown" = "google-chrome.desktop";
                   "x-scheme-handler/slack" = "slack.desktop";
-                  "x-scheme-handler/zoommtg" = "zoom-web.desktop";
-                  "x-scheme-handler/zoomus" = "zoom-web.desktop";
+                  "x-scheme-handler/zoommtg" = "zoom-work.desktop";
+                  "x-scheme-handler/zoomus" = "zoom-work.desktop";
                 };
               };
 
