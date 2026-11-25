@@ -17,7 +17,7 @@
       ...
     }:
     let
-      inherit (self.lib.barScripts pkgs) gpu weather;
+      inherit (self.lib.barScripts pkgs) gpu services weather;
 
       backlight-script = pkgs.writeShellApplication {
         name = "waybar-backlight";
@@ -195,6 +195,7 @@
           "systemd-failed-units"
           "privacy"
           "gamemode"
+          "custom/services"
           "clock"
           "custom/weather-f"
         ];
@@ -355,6 +356,13 @@
           interval = 5;
         };
 
+        "custom/services" = {
+          format = "{}";
+          return-type = "json";
+          exec = lib.getExe services;
+          interval = 5;
+        };
+
         "custom/weather-f" = {
           format = "{}";
           return-type = "json";
@@ -451,6 +459,7 @@
         #systemd-failed-units,
         #privacy,
         #gamemode,
+        #custom-services,
         #custom-weather-f,
         #custom-weather-c,
         #custom-gpu,
@@ -481,6 +490,7 @@
         #custom-weather-f:hover,
         #custom-weather-c:hover,
         #custom-gpu:hover,
+        #custom-services:hover,
         #mpris:hover,
         #tray:hover {
           background-color: @surface0;

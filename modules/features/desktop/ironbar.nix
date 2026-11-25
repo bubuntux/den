@@ -14,7 +14,7 @@
       ...
     }:
     let
-      inherit (self.lib.barScripts pkgs) gpu weather;
+      inherit (self.lib.barScripts pkgs) gpu services weather;
 
       jsonFormat = pkgs.formats.json { };
       ironbar = lib.getExe pkgs.ironbar;
@@ -96,6 +96,8 @@
         ironvar_defaults = {
           gpu = "";
           gpu_tooltip = "";
+          services = "";
+          services_tooltip = "";
           alerts = "";
           power_profile = "";
           weather_c = "";
@@ -136,6 +138,13 @@
             name = "alerts";
             label = "#alerts";
             show_if = "#alerts";
+          }
+          {
+            type = "label";
+            name = "services";
+            label = "#services";
+            tooltip = "#services_tooltip";
+            show_if = "#services";
           }
           {
             type = "clock";
@@ -233,6 +242,10 @@
             snapshot=$(${lib.getExe gpu})
             set_var gpu "$(jq -r .text <<<"$snapshot")"
             set_var gpu_tooltip "$(jq -r .tooltip <<<"$snapshot")"
+
+            services_out=$(${lib.getExe services})
+            set_var services "$(jq -r .text <<<"$services_out")"
+            set_var services_tooltip "$(jq -r .tooltip <<<"$services_out")"
 
             failed=$(systemctl list-units --failed --output=json | jq length)
             failed=$((failed + $(systemctl --user list-units --failed --output=json | jq length)))

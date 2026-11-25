@@ -211,5 +211,59 @@
           jq -nc --arg text "$text" --arg tooltip "$tooltip" '{text: $text, tooltip: $tooltip}'
         '';
       };
+
+      # On-demand AI workers (VoiceMode inside container@work, Immich ML on host).
+      # Hidden when both are stopped; reads cgroup.procs for VoiceMode so it
+      # never spawns machinectl/PAM sessions every 5s.
+      services = pkgs.writeShellApplication {
+        name = "bar-services";
+        runtimeInputs = with pkgs; [
+          findutils
+          jq
+          systemd
+        ];
+        text = ''
+          voice_units_str=""
+          if systemctl is-active --quiet container@work.service 2>/dev/null; then
+            cg=$(systemctl show -p ControlGroup --value container@work.service 2>/dev/null || true)
+            if [ -n "$cg" ] && [ -d "/sys/fs/cgroup$cg" ]; then
+              while IFS= read -r -d "" procs; do
+                [ -s "$procs" ] || continue
+                unit=''${procs%/*}
+                unit=''${unit##*/}
+                unit=''${unit#voicemode-}
+                unit=''${unit%.service}
+                voice_units_str+="$unit"$'\n'
+              done < <(find "/sys/fs/cgroup$cg" -name 'cgroup.procs' -path '*/voicemode-*.service/cgroup.procs' -print0 2>/dev/null)
+            fi
+          fi
+
+          immich_active=false
+          if systemctl is-active --quiet podman-immich-ml.service 2>/dev/null; then
+            immich_active=true
+          fi
+
+          jq -nc \
+            --arg voice_raw "$voice_units_str" \
+            --argjson immich "$immich_active" '
+            ($voice_raw | split("\n") | map(select(length > 0)) | unique) as $voice_units
+            | [
+                (if ($voice_units | length) > 0 then {
+                  badge: "<span color=\"#a6e3a1\">󰍬 voice</span>",
+                  tip: ("<span color=\"#a6e3a1\">VoiceMode (work)</span>\n" + ($voice_units | join(" · ")))
+                } else empty end),
+                (if $immich then {
+                  badge: "<span color=\"#fab387\">󰚩 immich</span>",
+                  tip: "<span color=\"#fab387\">Immich ML</span>\nCUDA worker · :3003"
+                } else empty end)
+              ] as $items
+            | if ($items | length) == 0 then { text: "", tooltip: "" }
+              else {
+                text: ($items | map(.badge) | join(" ")),
+                tooltip: ($items | map(.tip) | join("\n\n"))
+              } end
+          '
+        '';
+      };
     };
 }
