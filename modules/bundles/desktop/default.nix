@@ -91,9 +91,7 @@ in
         # Desktop packages
         home.packages = with pkgs; [
           kdePackages.okular # PDF viewer
-          # Drop already-applied 5.11 patch; revert once unstable channel passes NixOS/nixpkgs@8927bc2ba3.
           qalculate-gtk # Calculator
-          loupe # Image viewer
           pwvucontrol # PipeWire volume control
           qpwgraph # PipeWire patchbay (route audio to multiple devices)
           gimp-with-plugins # image editor
@@ -112,6 +110,7 @@ in
       # is in use (or vice versa).
       imports = with self.modules.nixos; [
         bundle-host
+        loupe
         theme
 
         desktop-options

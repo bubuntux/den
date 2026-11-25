@@ -15,7 +15,6 @@
       user-bbtux
       vpn
       firefox
-      loupe
     ];
 
     # Only the additive desktop setting; the greeter and the default session are

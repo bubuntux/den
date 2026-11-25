@@ -23,7 +23,6 @@
   flake.modules.nixos.networking = {
     key = "den:nixos.networking";
     networking = {
-      # hostName = "${host}"; TODO
       nftables.enable = true;
       useDHCP = lib.mkDefault true;
     };

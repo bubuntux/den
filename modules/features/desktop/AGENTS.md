@@ -24,7 +24,7 @@ reason `loginManager` is.
 
 The two producers are `WantedBy=ironbar.service` and `PartOf` it, split into two because their cadences differ by 180× (a 10s curl timeout in the 900s weather fetch must not stall the 5s GPU reading).
 
-`katara` carries both for comparison; it is not the default because ironbar adds a substantial closure on top of waybar. Each renderer hangs the `Install.WantedBy` of its main unit on `den.session.activeBar` matching its own name, and `session-anchors` asserts the topology.
+Ironbar is not the default because it adds a substantial closure on top of waybar; a host can set `den.desktop.barsInstalled = [ "waybar" "ironbar" ]` when comparing both. Each renderer hangs the `Install.WantedBy` of its main unit on `den.session.activeBar` matching its own name, and `session-anchors` asserts the topology.
 
 | | waybar | ironbar |
 |---|---|---|
