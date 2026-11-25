@@ -92,6 +92,8 @@
         # and skip multi-page swap readahead (zram is random-access).
         "vm.swappiness" = 100;
         "vm.page-cluster" = 0;
+        # Coalesce buffered writes over 15s (default 5s) to cut SSD/HDD churn.
+        "vm.dirty_writeback_centisecs" = 1500;
         # Caddy HTTP/3 (quic-go) asks for ~7.5 MB UDP buffers; BBR + fq (applies
         # to both IPv4 and IPv6 despite the ipv4 sysctl prefix) keeps remote
         # streams steady over WAN latency/jitter.
@@ -101,6 +103,7 @@
         "net.ipv4.tcp_congestion_control" = "bbr";
       };
       systemd.settings.Manager.RuntimeWatchdogSec = "60s";
+      services.journald.extraConfig = "SystemMaxUse=1G";
 
       # geoclue cannot set the timezone on a headless host: timedated's dbus
       # policy only grants it to interactive callers.

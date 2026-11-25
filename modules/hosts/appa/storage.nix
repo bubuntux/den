@@ -19,6 +19,7 @@
     # LVM support (systemd initrd handles dm modules automatically)
     boot.initrd.services.lvm.enable = true;
     services.lvm.enable = true;
+    services.smartd.enable = true;
 
     # Switch HDDs to the BFQ I/O scheduler so per-cgroup IOWeight
     # actually takes effect; the stock mq-deadline ignores weights.
@@ -34,7 +35,10 @@
     fileSystems."/" = {
       device = "/dev/disk/by-uuid/312a5183-407c-4855-a6e1-ef5991765a19";
       fsType = "ext4";
-      options = [ "noatime" ];
+      options = [
+        "noatime"
+        "lazytime"
+      ];
     };
 
     fileSystems."/boot" = {
@@ -70,6 +74,7 @@
       options = [
         "nofail"
         "noatime"
+        "lazytime"
       ];
     };
 
