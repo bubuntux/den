@@ -16,6 +16,16 @@
           "x-scheme-handler/steamlink"
         ];
       };
+
+      restorePowerProfile = pkgs.writeShellScript "gamemode-restore-power-profile" ''
+        for ps in /sys/class/power_supply/BAT*; do
+          [ -r "$ps/status" ] || continue
+          if [ "$(<"$ps/status")" = "Discharging" ]; then
+            exec ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver
+          fi
+        done
+        exec ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced
+      '';
     in
     {
       key = "den:nixos.profile-gaming";
@@ -52,10 +62,14 @@
         settings = {
           general = {
             renice = 10;
+            # Leave scaling_governor at powersave so active HWP/EPP drivers
+            # (intel_pstate, amd-pstate-epp) do not lock
+            # energy_performance_preference (EBUSY) against powerprofilesctl.
+            desiredgov = "powersave";
           };
           custom = {
-            start = "${pkgs.power-profiles-daemon}/bin/powerprofilesctl set performance &";
-            end = "${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced &";
+            start = "${pkgs.power-profiles-daemon}/bin/powerprofilesctl set performance";
+            end = "${restorePowerProfile}";
           };
         };
       };
