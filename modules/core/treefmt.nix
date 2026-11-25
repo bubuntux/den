@@ -6,8 +6,12 @@
   imports = [ inputs.treefmt-nix.flakeModule ];
 
   perSystem.treefmt = {
-    # sops writes encrypted blobs, not parseable source.
-    settings.excludes = [ "secrets/*" ];
+    # sops writes encrypted blobs; waybar uses GTK3 CSS (@define-color / @var)
+    # which biome's standard CSS parser rejects.
+    settings.excludes = [
+      "secrets/*"
+      "modules/features/desktop/_waybar-style.css"
+    ];
 
     programs.biome.enable = true;
     programs.mdformat.enable = true;

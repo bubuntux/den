@@ -1,0 +1,264 @@
+/* === Catppuccin Mocha Flat Minimal === */
+@define-color base #1e1e2e;
+@define-color mantle #181825;
+@define-color surface0 #313244;
+@define-color text #cdd6f4;
+@define-color subtext0 #a6adc8;
+@define-color blue #89b4fa;
+@define-color lavender #b4befe;
+@define-color green #a6e3a1;
+@define-color yellow #f9e2af;
+@define-color red #f38ba8;
+@define-color peach #fab387;
+@define-color mauve #cba6f7;
+@define-color teal #94e2d5;
+@define-color sky #89dceb;
+@define-color pink #f5c2e7;
+
+* {
+	font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font", monospace;
+	font-size: 13px;
+	min-height: 0;
+}
+
+window#waybar {
+	background-color: rgba(30, 30, 46, 0.85);
+	color: @text;
+}
+
+tooltip {
+	background-color: @mantle;
+	border: 1px solid @surface0;
+	border-radius: 8px;
+	color: @text;
+}
+
+tooltip label {
+	color: @text;
+}
+
+/* --- Global module defaults --- */
+/* #workspaces, #mode, #scratchpad and #window are the ids the
+   per-session modules take, whichever compositor supplies them. */
+#workspaces,
+#mode,
+#scratchpad,
+#window,
+#mpris,
+#systemd-failed-units,
+#privacy,
+#gamemode,
+#custom-services,
+#custom-weather-f,
+#custom-weather-c,
+#custom-gpu,
+#power-profiles-daemon,
+#cpu,
+#memory,
+#custom-temp,
+#custom-backlight,
+#wireplumber,
+#clock,
+#battery,
+#tray {
+	padding: 0 8px;
+	margin: 0 2px;
+	color: @text;
+	transition: background-color 200ms ease;
+}
+
+/* Hover effect */
+#cpu:hover,
+#memory:hover,
+#custom-temp:hover,
+#custom-backlight:hover,
+#wireplumber:hover,
+#clock:hover,
+#battery:hover,
+#power-profiles-daemon:hover,
+#custom-weather-f:hover,
+#custom-weather-c:hover,
+#custom-gpu:hover,
+#custom-services:hover,
+#mpris:hover,
+#tray:hover {
+	background-color: @surface0;
+	border-radius: 4px;
+}
+
+/* --- Workspaces --- */
+#workspaces button {
+	padding: 0 6px;
+	color: @subtext0;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	transition: all 200ms ease;
+}
+
+#workspaces button:hover {
+	background-color: @surface0;
+	border-radius: 4px;
+}
+
+#workspaces button.focused {
+	color: @blue;
+	border-bottom: 2px solid @blue;
+}
+
+#workspaces button.active {
+	color: @blue;
+	border-bottom: 2px solid @blue;
+}
+
+#workspaces button.urgent {
+	color: @red;
+}
+
+/* --- Mode --- */
+/* Peach, not red: a mode is a state you are in, not something wrong.
+   @red and @yellow are alert-only across this bar. */
+#mode {
+	color: @peach;
+	font-weight: bold;
+}
+
+/* --- Scratchpad --- */
+#scratchpad {
+	color: @lavender;
+}
+
+/* --- Window title --- */
+#window {
+	color: @subtext0;
+	font-style: italic;
+}
+
+/* --- Clock --- */
+#clock {
+	color: @lavender;
+}
+
+/* --- Battery --- */
+#battery {
+	color: @green;
+}
+
+#battery.charging {
+	color: @green;
+}
+
+#battery.warning:not(.charging) {
+	color: @yellow;
+}
+
+#battery.critical:not(.charging) {
+	color: @red;
+}
+
+/* --- CPU --- */
+#cpu.warning {
+	color: @yellow;
+}
+
+#cpu.critical {
+	color: @red;
+}
+
+/* --- Memory --- */
+#memory.warning {
+	color: @yellow;
+}
+
+#memory.critical {
+	color: @red;
+}
+
+/* --- Temperature --- */
+/* Plain until it matters, like #cpu and #memory -- the three load
+   metrics read the same way. The script emits `warning` at 60C, which
+   had no rule here, so 60-79C was indistinguishable from idle. */
+#custom-temp.warning {
+	color: @yellow;
+}
+
+#custom-temp.critical {
+	color: @red;
+}
+
+/* --- GPU --- */
+/* Text colour is vendor identity -- green NVIDIA, blue Intel, peach AMD
+   -- written by the widget as Pango markup, which wins over any colour
+   set here. So load signals through an underline on a channel of its
+   own, and no vendor reading can be mistaken for an alert. The
+   transparent border keeps the label from shifting when one appears. */
+#custom-gpu {
+	border-bottom: 2px solid transparent;
+}
+
+#custom-gpu.warning {
+	border-bottom: 2px solid @yellow;
+}
+
+#custom-gpu.critical {
+	border-bottom: 2px solid @red;
+}
+
+/* --- Backlight --- */
+#custom-backlight {
+	color: @sky;
+}
+
+/* --- Wireplumber --- */
+/* Mauve rather than pink: this sits immediately right of #custom-gpu,
+   whose AMD reading is peach. */
+#wireplumber {
+	color: @mauve;
+}
+
+#wireplumber.muted {
+	color: @subtext0;
+}
+
+/* --- Power profiles --- */
+#power-profiles-daemon {
+	color: @teal;
+}
+
+/* --- MPRIS --- */
+#mpris {
+	color: @mauve;
+}
+
+/* --- Systemd failed units --- */
+#systemd-failed-units {
+	color: @red;
+}
+
+/* --- Privacy --- */
+/* Only ever visible while the mic or camera is live, which is the one
+   thing on this bar you most want to notice. */
+#privacy {
+	color: @red;
+}
+
+/* --- GameMode --- */
+#gamemode {
+	color: @pink;
+}
+
+/* --- Weather --- */
+#custom-weather-f,
+#custom-weather-c {
+	color: @teal;
+}
+
+/* --- Tray --- */
+#tray > .passive {
+	-gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+	-gtk-icon-effect: highlight;
+	color: @yellow;
+}
