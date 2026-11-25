@@ -12,6 +12,7 @@
         enable = true;
         package = pkgs.unstable.plex;
         openFirewall = true;
+        accelerationDevices = [ "/dev/dri/renderD128" ];
       };
 
       # `render` owns /dev/dri/renderD128 (GPU compute / VA-API), `video` owns

@@ -19,6 +19,31 @@
         # 12.x is unstable-only, and its database migration is one-way. The
         # module is compatible across channels, so only the package crosses.
         package = pkgs.unstable.jellyfin;
+        forceEncodingConfig = true;
+        hardwareAcceleration = {
+          enable = true;
+          type = "vaapi";
+          device = "/dev/dri/renderD128";
+        };
+        transcoding = {
+          enableHardwareEncoding = true;
+          enableIntelLowPowerEncoding = true;
+          enableToneMapping = true;
+          throttleTranscoding = true;
+          maxConcurrentStreams = 2;
+          hardwareDecodingCodecs = {
+            h264 = true;
+            hevc = true;
+            hevc10bit = true;
+            mpeg2 = true;
+            vc1 = true;
+            vp8 = true;
+            vp9 = true;
+          };
+          hardwareEncodingCodecs = {
+            hevc = true;
+          };
+        };
       };
 
       # `render` owns /dev/dri/renderD128 (GPU compute / VA-API), `video` owns

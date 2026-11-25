@@ -56,17 +56,11 @@
 
       hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
-      # UHD 605 (Gemini Lake, Gen 9.5). VA-API via the iHD driver is the
-      # supported transcoding path for Jellyfin on this CPU class --
-      # oneVPL/QSV requires Tiger Lake+ and won't load here. Ship the i965
-      # fallback too in case iHD fails to probe a specific codec.
-      hardware.graphics = {
-        enable = true;
-        extraPackages = with pkgs; [
-          intel-media-driver
-          intel-vaapi-driver
-        ];
-      };
+      # UHD 605 (Gemini Lake, Gen 9.5). common-cpu-intel defaults to
+      # intel-compute-runtime (Gen 12+ only), leaving OpenCL HDR tone mapping
+      # broken on Gen 9.5; select the Gen 8/9/11 legacy compute runtime instead.
+      hardware.graphics.enable = true;
+      hardware.intelgpu.computeRuntime = "legacy";
 
       # vainfo confirms the VA-API stack; intel_gpu_top shows live
       # per-engine GPU utilization, which is the definitive way to tell
@@ -86,6 +80,7 @@
       boot.kernelParams = lib.mkForce [
         "boot.shell_on_fail"
         "reboot=acpi"
+        "i915.enable_guc=2"
       ];
       boot.consoleLogLevel = lib.mkForce 3;
     };
