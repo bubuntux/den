@@ -88,6 +88,17 @@
         "kernel.panic_on_oops" = 1;
         "kernel.hardlockup_panic" = 1;
         "kernel.softlockup_panic" = 1;
+        # zramSwap (storage.nix): prefer compressed RAM over dropping page cache,
+        # and skip multi-page swap readahead (zram is random-access).
+        "vm.swappiness" = 100;
+        "vm.page-cluster" = 0;
+        # Caddy HTTP/3 (quic-go) asks for ~7.5 MB UDP buffers; BBR + fq (applies
+        # to both IPv4 and IPv6 despite the ipv4 sysctl prefix) keeps remote
+        # streams steady over WAN latency/jitter.
+        "net.core.rmem_max" = 7500000;
+        "net.core.wmem_max" = 7500000;
+        "net.core.default_qdisc" = "fq";
+        "net.ipv4.tcp_congestion_control" = "bbr";
       };
       systemd.settings.Manager.RuntimeWatchdogSec = "60s";
 

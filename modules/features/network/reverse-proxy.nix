@@ -266,6 +266,13 @@
           openFirewall = true;
         };
 
+        systemd.services.caddy.serviceConfig = {
+          MemoryHigh = "5%";
+          MemoryMax = "10%";
+          CPUWeight = 150;
+          IOWeight = 150;
+        };
+
         # HTTP/3 (QUIC) needs UDP 443; openFirewall above only handles TCP.
         networking.firewall.allowedUDPPorts = [ 443 ];
 

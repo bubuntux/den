@@ -25,7 +25,11 @@
         "sd_mod"
       ];
 
-      boot.kernelModules = [ "kvm-intel" ];
+      boot.kernelModules = [
+        "kvm-intel"
+        # Required by net.ipv4.tcp_congestion_control = "bbr" in default.nix.
+        "tcp_bbr"
+      ];
 
       # em28xx corrupts kernel memory and hangs the box (oopses 2026-08-09 and
       # 2026-10-02); the Hauppauge sticks stay plugged in but unbound.
@@ -80,6 +84,7 @@
       boot.kernelParams = lib.mkForce [
         "boot.shell_on_fail"
         "reboot=acpi"
+        # Load HuC firmware on Gemini Lake (required for Intel Low-Power encoding).
         "i915.enable_guc=2"
       ];
       boot.consoleLogLevel = lib.mkForce 3;

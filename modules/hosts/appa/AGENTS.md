@@ -14,7 +14,7 @@ weights form one ladder that only makes sense read together:
 | weight | services | why |
 |---|---|---|
 | 1000 | openssh | the machine must stay reachable to fix the rest |
-| 150 | jellyfin, plex, tvheadend | live streams lose to nothing |
+| 150 | caddy, jellyfin, plex, tvheadend | reverse proxy and live streams lose to nothing |
 | 125 | crowdsec | ban decisions should stay timely under load |
 | 100 | immich | interactive browsing, above background work |
 | 75 | sonarr, radarr, prowlarr | library scans are background |

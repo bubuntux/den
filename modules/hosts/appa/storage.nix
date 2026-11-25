@@ -34,6 +34,7 @@
     fileSystems."/" = {
       device = "/dev/disk/by-uuid/312a5183-407c-4855-a6e1-ef5991765a19";
       fsType = "ext4";
+      options = [ "noatime" ];
     };
 
     fileSystems."/boot" = {
@@ -48,19 +49,28 @@
     fileSystems."/mnt/config" = {
       device = "/dev/disk/by-uuid/5cac8340-4635-4ec4-bec5-b3642c16d1a3";
       fsType = "ext4";
-      options = [ "nofail" ];
+      options = [
+        "nofail"
+        "noatime"
+      ];
     };
 
     fileSystems."/mnt/data" = {
       device = "/dev/disk/by-uuid/5bc48131-4c99-43df-b866-c994f526b403";
       fsType = "ext4";
-      options = [ "nofail" ];
+      options = [
+        "nofail"
+        "noatime"
+      ];
     };
 
     fileSystems."/mnt/media" = {
       device = "/dev/disk/by-uuid/0a1c1b48-cd6e-48bd-823c-d1c30a1c5f99";
       fsType = "ext4";
-      options = [ "nofail" ];
+      options = [
+        "nofail"
+        "noatime"
+      ];
     };
 
     # Mount-point ownership normalization. systemd-tmpfiles refuses to
@@ -79,5 +89,12 @@
     swapDevices = [
       { device = "/dev/disk/by-uuid/ce0ee5b6-6ea3-4447-8540-7a52f4887441"; }
     ];
+
+    zramSwap = {
+      enable = true;
+      algorithm = "zstd";
+      memoryPercent = 35;
+      priority = 100;
+    };
   };
 }
