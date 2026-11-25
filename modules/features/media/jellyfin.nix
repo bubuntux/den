@@ -27,6 +27,7 @@
         };
         transcoding = {
           enableHardwareEncoding = true;
+          # Gemini Lake has low-power VDEnc for H.264 only (not HEVC), so leave HEVC encoding off.
           enableIntelLowPowerEncoding = true;
           enableToneMapping = true;
           throttleTranscoding = true;
@@ -39,9 +40,6 @@
             vc1 = true;
             vp8 = true;
             vp9 = true;
-          };
-          hardwareEncodingCodecs = {
-            hevc = true;
           };
         };
       };
