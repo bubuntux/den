@@ -43,14 +43,16 @@
           (self.lib.nvtop pkgs)
         ];
         text = ''
-          nvidia_suspended=false
+          nvidia_found=false
+          nvidia_all_suspended=true
           for dev in /sys/bus/pci/devices/*; do
             [ -r "$dev/vendor" ] && [ -r "$dev/class" ] && [ -r "$dev/power/runtime_status" ] || continue
             if [ "$(<"$dev/vendor")" = "0x10de" ]; then
               case "$(<"$dev/class")" in
                 0x03*)
-                  if [ "$(<"$dev/power/runtime_status")" = "suspended" ]; then
-                    nvidia_suspended=true
+                  nvidia_found=true
+                  if [ "$(<"$dev/power/runtime_status")" != "suspended" ]; then
+                    nvidia_all_suspended=false
                     break
                   fi
                   ;;
@@ -58,8 +60,22 @@
             fi
           done
 
+          cooldown="''${XDG_RUNTIME_DIR:-/tmp}/bar-gpu-nv-cooldown"
+          skip_nvml=false
+          if [ "$nvidia_found" = true ]; then
+            if [ "$nvidia_all_suspended" = true ]; then
+              skip_nvml=true
+            else
+              until_ts=""
+              [ -r "$cooldown" ] && read -r until_ts <"$cooldown" || true
+              if [[ "$until_ts" =~ ^[0-9]+$ ]] && [ "$EPOCHSECONDS" -lt "$until_ts" ]; then
+                skip_nvml=true
+              fi
+            fi
+          fi
+
           nvtop_gpus='[]'
-          if [ "$nvidia_suspended" = true ]; then
+          if [ "$skip_nvml" = true ]; then
             snapshot=$(LD_LIBRARY_PATH="${nvmlStub}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" nvtop -s 2>/dev/null) || snapshot=""
           else
             snapshot=$(nvtop -s 2>/dev/null) || snapshot=""
@@ -67,6 +83,21 @@
           if [ -n "$snapshot" ]; then
             # .processes is every GPU client with its full cmdline. Not for a bar.
             nvtop_gpus=$(jq -c 'map(del(.processes))' <<<"$snapshot") || nvtop_gpus='[]'
+            # When an active NVIDIA card reads 0% util, pause NVML polling for
+            # 20s across all bar outputs so RTD3 gets uninterrupted silence to
+            # enter D3cold instead of having its idle timer reset every 5s.
+            if [ "$nvidia_found" = true ] && [ "$skip_nvml" = false ]; then
+              if jq -e '
+                [ .[]
+                  | select((.device_name // "") | ascii_downcase | test("nvidia|geforce|quadro|tesla"))
+                  | ((.gpu_util | tostring | capture("(?<n>[0-9]+(\\.[0-9]+)?)") | .n | tonumber) // 0)
+                ] | length > 0 and all(. == 0)
+              ' <<<"$nvtop_gpus" >/dev/null 2>&1; then
+                printf '%s\n' "$((EPOCHSECONDS + 20))" >"$cooldown" 2>/dev/null || true
+              else
+                : >"$cooldown" 2>/dev/null || true
+              fi
+            fi
           fi
 
           jq -nc --argjson nvtop "$nvtop_gpus" \
