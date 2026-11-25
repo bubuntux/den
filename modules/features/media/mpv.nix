@@ -45,7 +45,8 @@ in
         config = {
           vo = "gpu-next"; # libplacebo video output (not a profile)
           ao = "pipewire";
-          hwdec = "auto-safe";
+          # Avoid probing CUDA/VDPAU interop on hybrid laptops (wakes the NVIDIA dGPU).
+          hwdec = "vaapi,vaapi-copy";
           keep-open = "yes";
           # uosc replaces the built-in OSC; disable both to avoid overlap.
           osc = "no";

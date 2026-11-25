@@ -84,7 +84,7 @@
             # .processes is every GPU client with its full cmdline. Not for a bar.
             nvtop_gpus=$(jq -c 'map(del(.processes))' <<<"$snapshot") || nvtop_gpus='[]'
             # When an active NVIDIA card reads 0% util, pause NVML polling for
-            # 20s across all bar outputs so RTD3 gets uninterrupted silence to
+            # 30s across all bar outputs so RTD3 gets uninterrupted silence to
             # enter D3cold instead of having its idle timer reset every 5s.
             if [ "$nvidia_found" = true ] && [ "$skip_nvml" = false ]; then
               if jq -e '
@@ -93,7 +93,7 @@
                   | ((.gpu_util | tostring | capture("(?<n>[0-9]+(\\.[0-9]+)?)") | .n | tonumber) // 0)
                 ] | length > 0 and all(. == 0)
               ' <<<"$nvtop_gpus" >/dev/null 2>&1; then
-                printf '%s\n' "$((EPOCHSECONDS + 20))" >"$cooldown" 2>/dev/null || true
+                printf '%s\n' "$((EPOCHSECONDS + 30))" >"$cooldown" 2>/dev/null || true
               else
                 : >"$cooldown" 2>/dev/null || true
               fi
