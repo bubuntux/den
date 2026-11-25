@@ -41,19 +41,30 @@
       fileSystems."/" = {
         device = "/dev/disk/by-uuid/1981375b-540a-4a5a-8c10-9f044b4ea6c8";
         fsType = "ext4";
+        # Skip atime writes and coalesce mtime/ctime updates in memory to reduce NVMe wear.
+        options = [
+          "noatime"
+          "lazytime"
+        ];
       };
 
       boot.initrd.luks.devices = {
         "luks-3a9aee91-3370-453d-b32c-c28235011fd8" = {
           device = "/dev/disk/by-uuid/3a9aee91-3370-453d-b32c-c28235011fd8";
           allowDiscards = true;
+          # Bypass dm-crypt's internal read/write workqueues for lower NVMe 4K latency.
+          bypassWorkqueues = true;
           crypttabExtraOpts = [ "tpm2-device=auto" ];
         };
         "luks-cd021106-a3fc-44f9-b291-2bf9eb1ed614" = {
           device = "/dev/disk/by-uuid/cd021106-a3fc-44f9-b291-2bf9eb1ed614";
+          bypassWorkqueues = true;
           crypttabExtraOpts = [ "tpm2-device=auto" ];
         };
       };
+
+      # Keep build/temp churn off the encrypted NVMe (defaults to 50% of 62 GiB RAM).
+      boot.tmp.useTmpfs = true;
 
       fileSystems."/boot" = {
         device = "/dev/disk/by-uuid/29B5-9AC3";
