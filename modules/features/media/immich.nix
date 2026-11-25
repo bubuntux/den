@@ -42,7 +42,15 @@
         package = pkgs.unstable.immich;
         # Models peak ~3 GB, and ML alone could eat the slice budget during a
         # backfill; the per-service caps below keep browsing responsive.
-        machine-learning.enable = true;
+        machine-learning = {
+          enable = true;
+          environment = {
+            MACHINE_LEARNING_MODEL_TTL = "60";
+            MACHINE_LEARNING_MODEL_INTRA_OP_THREADS = "2";
+            MACHINE_LEARNING_MODEL_INTER_OP_THREADS = "1";
+            MACHINE_LEARNING_REQUEST_THREADS = "2";
+          };
+        };
         inherit port mediaLocation;
         # The default `[ ]` sets PrivateDevices=true and hides /dev/dri. This
         # only grants access; the codec path is chosen in the admin UI.
@@ -104,6 +112,20 @@
         MemoryMax = "35%";
         CPUWeight = 50;
         IOWeight = 50;
+      };
+
+      systemd.services.postgresql.serviceConfig = {
+        MemoryHigh = "15%";
+        MemoryMax = "25%";
+        CPUWeight = 100;
+        IOWeight = 100;
+      };
+
+      systemd.services.redis-immich.serviceConfig = {
+        MemoryHigh = "2%";
+        MemoryMax = "4%";
+        CPUWeight = 100;
+        IOWeight = 100;
       };
 
       systemd.tmpfiles.rules = [
