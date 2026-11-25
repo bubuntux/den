@@ -22,7 +22,7 @@
       dell-precision-5690
       droidcam
       cachix-push
-      # immich-ml
+      immich-ml
     ];
 
     networking.hostName = "zuko";

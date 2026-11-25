@@ -7,8 +7,8 @@
       cacheDir = "/var/cache/immich-ml";
       unit = "podman-immich-ml.service";
 
-      immich-ml-toggle = pkgs.writeShellApplication {
-        name = "immich-ml-toggle";
+      immich-ml-ctl = pkgs.writeShellApplication {
+        name = "immich-ml-ctl";
         runtimeInputs = [
           pkgs.libnotify
           pkgs.systemd
@@ -18,34 +18,87 @@
             notify-send -h string:x-canonical-private-synchronous:immich-ml "Immich ML" "$1"
           }
 
-          if systemctl is-active --quiet ${unit}; then
-            notify "Stopping..."
-            if systemctl stop ${unit}; then
-              notify "Stopped"
-            else
-              notify "Failed to stop ${unit}"
-              exit 1
+          start_unit() {
+            if systemctl is-active --quiet "${unit}"; then
+              notify "Already running on port ${toString port}"
+              return 0
             fi
-          else
             notify "Starting on RTX GPU (first run pulls image)..."
-            if systemctl start ${unit}; then
+            if systemctl start "${unit}"; then
               notify "Running on port ${toString port}"
             else
               notify "Failed to start — check journalctl -u ${unit}"
               exit 1
             fi
-          fi
+          }
+
+          stop_unit() {
+            if ! systemctl is-active --quiet "${unit}"; then
+              notify "Already stopped"
+              return 0
+            fi
+            notify "Stopping..."
+            if systemctl stop "${unit}"; then
+              notify "Stopped"
+            else
+              notify "Failed to stop ${unit}"
+              exit 1
+            fi
+          }
+
+          case "''${1:-toggle}" in
+            start) start_unit ;;
+            stop) stop_unit ;;
+            toggle)
+              if systemctl is-active --quiet "${unit}"; then
+                stop_unit
+              else
+                start_unit
+              fi
+              ;;
+            *)
+              echo "usage: immich-ml-ctl [start|stop|toggle]" >&2
+              exit 2
+              ;;
+          esac
         '';
       };
 
-      immich-ml-desktop = pkgs.makeDesktopItem {
-        name = "immich-ml-toggle";
-        desktopName = "Immich ML (Toggle GPU)";
-        comment = "Start or stop the local Immich CUDA machine learning worker";
-        exec = lib.getExe immich-ml-toggle;
-        icon = "applications-science";
-        categories = [ "Utility" ];
-      };
+      mkDesktop =
+        {
+          action,
+          label,
+          comment,
+          icon,
+        }:
+        pkgs.makeDesktopItem {
+          name = "immich-ml-${action}";
+          desktopName = "${label} Immich Worker";
+          inherit comment icon;
+          exec = "${lib.getExe immich-ml-ctl} ${action}";
+          categories = [ "Utility" ];
+        };
+
+      desktopItems = map mkDesktop [
+        {
+          action = "toggle";
+          label = "Toggle";
+          comment = "Start or stop the local Immich CUDA machine learning worker";
+          icon = "applications-science";
+        }
+        {
+          action = "start";
+          label = "Start";
+          comment = "Start the local Immich CUDA machine learning worker";
+          icon = "media-playback-start";
+        }
+        {
+          action = "stop";
+          label = "Stop";
+          comment = "Stop the local Immich CUDA machine learning worker";
+          icon = "media-playback-stop";
+        }
+      ];
     in
     {
       key = "den:nixos.immich-ml";
@@ -97,10 +150,7 @@
         });
       '';
 
-      environment.systemPackages = [
-        immich-ml-toggle
-        immich-ml-desktop
-      ];
+      environment.systemPackages = [ immich-ml-ctl ] ++ desktopItems;
 
       # zuko is a laptop: only accept Immich ML requests from trusted LAN ranges.
       networking.firewall.extraInputRules = ''
