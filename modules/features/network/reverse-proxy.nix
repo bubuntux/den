@@ -220,6 +220,10 @@
           email = "{$ACME_EMAIL}";
 
           globalConfig = ''
+            # Bound shutdown drain so long-lived WebSocket/HTTP3 streams do not
+            # stall caddy.service until systemd's 90s TimeoutStopSec SIGKILL.
+            grace_period 5s
+
             order crowdsec first
             order rate_limit before basic_auth
 
@@ -271,6 +275,7 @@
           MemoryMax = "10%";
           CPUWeight = 150;
           IOWeight = 150;
+          TimeoutStopSec = "10s";
         };
 
         # HTTP/3 (QUIC) needs UDP 443; openFirewall above only handles TCP.
