@@ -275,12 +275,12 @@
           echo "deriving NAT-PMP gateway $gateway from wg0 address $addr"
 
           # Force the wg tunnel subnet via wg0 with a /24 override route.
-          # The namespace's `accessibleFrom` rules can install broader routes
+          # The namespace's `allowedIngress` rules can install broader routes
           # (e.g. 10.0.0.0/8 via the host bridge) that capture the VPN
           # gateway address, so NAT-PMP requests never reach the tunnel.
           subnet="$(echo "$addr" | cut -d. -f1-3).0/24"
           if ip route replace "$subnet" dev wg0; then
-            echo "pinned $subnet via wg0 (override for accessibleFrom routes)"
+            echo "pinned $subnet via wg0 (override for allowedIngress routes)"
           else
             echo "warn: failed to pin $subnet via wg0" >&2
           fi

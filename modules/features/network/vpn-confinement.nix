@@ -26,7 +26,7 @@
       vpnNamespaces.wg = {
         enable = true;
         wireguardConfigFile = config.sops.secrets.wireguard_config.path;
-        # accessibleFrom lives in the importing profile (profile-nas) so the
+        # allowedIngress lives in the importing profile (profile-nas) so the
         # list isn't duplicated when this module is evaluated through multiple
         # service paths. portMappings and openVPNPorts live with each service
         # — they don't duplicate because each service contributes its own.

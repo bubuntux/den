@@ -37,7 +37,7 @@
         bridgeAddress = "192.168.16.5";
         namespaceAddressIPv6 = "fd93:9701:1d01::2";
         bridgeAddressIPv6 = "fd93:9701:1d01::1";
-        # accessibleFrom lives in profile-nas alongside wg's — same reason
+        # allowedIngress lives in profile-nas alongside wg's — same reason
         # (avoid list duplication across multiple import paths).
       };
     };

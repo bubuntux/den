@@ -47,7 +47,7 @@
       # appa; moving it means chgrp'ing all of /mnt/media under a freeze.
       users.groups.media.gid = 984;
 
-      # LAN ranges that may reach the namespaced services. accessibleFrom adds a
+      # LAN ranges that may reach the namespaced services. allowedIngress adds a
       # route per entry, so fe80::/10 is filtered out: a global route for
       # link-local via a ULA next-hop can fail the namespace activation.
       vpnNamespaces =
@@ -61,8 +61,8 @@
             ];
         in
         {
-          wg.accessibleFrom = lanAccess;
-          # wg-tvh.accessibleFrom = lanAccess;
+          wg.allowedIngress = lanAccess;
+          # wg-tvh.allowedIngress = lanAccess;
         };
     };
 }
