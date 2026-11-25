@@ -75,6 +75,9 @@
         # Spawn workers on demand instead of keeping idle PHP processes resident on 8 GB RAM.
         # mkForce drops upstream's dynamic-only pm.{start,min_spare,max_spare}_servers keys.
         settings = lib.mkForce {
+          "listen" = config.services.phpfpm.pools.${config.services.freshrss.pool}.socket;
+          "user" = config.services.freshrss.user;
+          "group" = config.services.freshrss.user;
           "listen.owner" = config.services.caddy.user;
           "listen.group" = config.services.caddy.group;
           "listen.mode" = "0600";
