@@ -287,7 +287,6 @@ modules/features/desktop/session/
   sway/
     default.nix         # nixos.sway + homeManager.sway
     waybar.nix          # den.session.bar.sway -- the four sway/* modules only
-    dictation.nix       # writes wayland.windowManager.sway.config.keybindings
     _keybindings.nix    # `_` fragments: curried functions, not flake-parts
     _modes.nix          #   modules, imported by ./default.nix
     _rules.nix

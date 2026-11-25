@@ -49,7 +49,6 @@ in
           session-options
           monitors
           waybar-sway
-          # dictation
         ];
 
         # uwsm names this from the binary basename; the key is the id the
