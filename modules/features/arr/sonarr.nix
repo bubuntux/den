@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.modules.nixos.sonarr =
-    _:
+    { pkgs, ... }:
     let
       port = 8989;
     in
@@ -11,6 +11,7 @@
 
       services.sonarr = {
         enable = true;
+        package = pkgs.unstable.sonarr;
         openFirewall = true;
         settings.server.port = port;
       };

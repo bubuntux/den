@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.modules.nixos.syncthing =
-    { config, ... }:
+    { config, pkgs, ... }:
     let
       guiPort = 8384;
       dataDir = "/mnt/data/syncthing";
@@ -17,6 +17,7 @@
 
       services.syncthing = {
         enable = true;
+        package = pkgs.unstable.syncthing;
         # Identity, keys and the synced folders on /mnt/data so restic covers
         # them; the database is rewritten on every rescan and stays on the SSD.
         inherit dataDir;

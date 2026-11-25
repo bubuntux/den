@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.modules.nixos.bazarr =
-    _:
+    { pkgs, ... }:
     let
       port = 6767;
     in
@@ -11,6 +11,7 @@
 
       services.bazarr = {
         enable = true;
+        package = pkgs.unstable.bazarr;
         openFirewall = true;
         listenPort = port;
       };

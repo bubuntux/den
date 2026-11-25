@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.modules.nixos.prowlarr =
-    _:
+    { pkgs, ... }:
     let
       port = 9696;
     in
@@ -11,6 +11,7 @@
 
       services.prowlarr = {
         enable = true;
+        package = pkgs.unstable.prowlarr;
         openFirewall = true;
         settings.server.port = port;
       };

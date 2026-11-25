@@ -1,7 +1,7 @@
 { self, ... }:
 {
   flake.modules.nixos.radarr =
-    _:
+    { pkgs, ... }:
     let
       port = 7878;
     in
@@ -11,6 +11,7 @@
 
       services.radarr = {
         enable = true;
+        package = pkgs.unstable.radarr;
         openFirewall = true;
         settings.server.port = port;
       };
