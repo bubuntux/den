@@ -11,6 +11,8 @@
             liberation_ttf
             noto-fonts
             noto-fonts-color-emoji
+            roboto
+            nerd-fonts.symbols-only
             nerd-fonts.fira-code
             nerd-fonts.hack
             nerd-fonts.jetbrains-mono

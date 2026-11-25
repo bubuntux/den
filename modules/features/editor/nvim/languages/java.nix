@@ -48,7 +48,7 @@
 
         lsp.servers.jdtls = {
           enable = true;
-          package = pkgs.jdt-language-server;
+          package = pkgs.jdt-language-server.override { jdk = pkgs.openjdk_headless; };
           config = {
             filetypes = [ "java" ];
             root_markers = [

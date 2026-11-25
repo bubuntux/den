@@ -56,7 +56,6 @@
       key = "den:homeManager.gws";
       home.packages = [
         inputs.gws.packages.${pkgs.stdenv.hostPlatform.system}.default
-        pkgs.google-cloud-sdk
       ];
 
       # An upstream rename would otherwise silently drop the skill.

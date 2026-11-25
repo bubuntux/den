@@ -32,7 +32,6 @@
         key = "den:homeManager.bundle-base";
         imports = with self.modules.homeManager; [
           home-manager
-          fonts
           git
           neovim
           nh

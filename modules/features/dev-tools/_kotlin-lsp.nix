@@ -13,7 +13,7 @@
   libxrender,
   libxtst,
   maven,
-  openjdk,
+  openjdk_headless,
   wayland,
   zlib,
 }:
@@ -63,7 +63,7 @@ stdenv.mkDerivation (finalAttrs: {
     makeWrapper $out/share/kotlin-lsp/bin/intellij-server $out/bin/kotlin-lsp \
       --suffix PATH : ${
         lib.makeBinPath [
-          openjdk.home
+          openjdk_headless.home
           maven
         ]
       } \

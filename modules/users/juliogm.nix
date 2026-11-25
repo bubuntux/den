@@ -5,29 +5,15 @@
 }:
 {
   flake.modules = {
-    # Home Manager module for user juliogm
+    # Home Manager module for user juliogm (shared between work container and standalone)
     homeManager.user-juliogm =
       {
         config,
-        pkgs,
-        lib,
         ...
       }:
-      let
-        jsonFormat = pkgs.formats.json { };
-        claudeBaseSettings = import "${self}/modules/features/dev-tools/_claude-settings.nix" { };
-        settingsFile = jsonFormat.generate "claude-base-settings.json" (
-          claudeBaseSettings // { "$schema" = "https://json.schemastore.org/claude-code-settings.json"; }
-        );
-      in
       {
         key = "den:homeManager.user-juliogm";
         imports = with self.modules.homeManager; [
-          profile-developer
-          aws
-          glab
-          gws
-          neovim
           xdg
         ];
 
@@ -35,43 +21,6 @@
         # the Desktop folder by pointing it at $HOME (same trick as the Sway
         # bundle). Avoids xdg.userDirs.createDirectories making a stray ~/Desktop.
         xdg.userDirs.desktop = config.home.homeDirectory;
-
-        # Prevent HM from managing settings.json as a read-only symlink,
-        # so Claude Code plugins can write to it imperatively.
-        programs.claude-code.settings = lib.mkForce { };
-
-        # Mutable file, merged on each activation. jq's `*` favours its right
-        # operand, so the Nix base goes last -- the other way round the on-disk
-        # file wins and no edit here would ever reach this user again. `*`
-        # replaces arrays, which is what permissions want: Nix owns the policy.
-        home.activation.claudeCodeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          target="$HOME/.claude/settings.json"
-          mkdir -p "$HOME/.claude"
-          if [ -f "$target" ] && [ ! -L "$target" ]; then
-            ${pkgs.jq}/bin/jq -s '.[1] * .[0]' \
-              "${settingsFile}" "$target" \
-              > "$target.tmp"
-            mv "$target.tmp" "$target"
-          else
-            rm -f "$target"
-            cp "${settingsFile}" "$target"
-            chmod 644 "$target"
-          fi
-        '';
-
-        # awscli2 and glab are provided by the aws/glab feature modules (which
-        # also wire up their Claude Code skills).
-        home.packages = with pkgs; [
-          # Static binary; nixpkgs' buildFHSEnv wrapper invokes bwrap (only for
-          # rovodev), which fails under restricted userns.
-          acli.unwrapped
-          src-cli
-        ];
-
-        den.neovim.languages = {
-          java = true;
-          kotlin = true;
-        };
 
         # Git user configuration (decrypted from sops secret via bind mount)
         programs.git.includes = [ { path = "/run/secrets-host/git_config"; } ];
@@ -145,17 +94,70 @@
     };
     modules = [
       self.modules.homeManager.user-juliogm
+      self.modules.homeManager.profile-developer
+      self.modules.homeManager.aws
+      self.modules.homeManager.glab
+      self.modules.homeManager.gws
       self.modules.homeManager.zsh
       self.modules.homeManager.nix
       self.modules.homeManager.sops
       self.modules.homeManager.auto-upgrade
       self.modules.homeManager.voicemode-client
       (
-        { config, lib, ... }:
+        {
+          config,
+          lib,
+          pkgs,
+          ...
+        }:
+        let
+          jsonFormat = pkgs.formats.json { };
+          claudeBaseSettings = import "${self}/modules/features/dev-tools/_claude-settings.nix" { };
+          settingsFile = jsonFormat.generate "claude-base-settings.json" (
+            claudeBaseSettings // { "$schema" = "https://json.schemastore.org/claude-code-settings.json"; }
+          );
+        in
         {
           home.username = "juliogm";
           home.homeDirectory = "/home/juliogm";
           targets.genericLinux.enable = true;
+
+          # Prevent HM from managing settings.json as a read-only symlink,
+          # so Claude Code plugins can write to it imperatively.
+          programs.claude-code.settings = lib.mkForce { };
+
+          # Mutable file, merged on each activation. jq's `*` favours its right
+          # operand, so the Nix base goes last -- the other way round the on-disk
+          # file wins and no edit here would ever reach this user again. `*`
+          # replaces arrays, which is what permissions want: Nix owns the policy.
+          home.activation.claudeCodeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            target="$HOME/.claude/settings.json"
+            mkdir -p "$HOME/.claude"
+            if [ -f "$target" ] && [ ! -L "$target" ]; then
+              ${pkgs.jq}/bin/jq -s '.[1] * .[0]' \
+                "${settingsFile}" "$target" \
+                > "$target.tmp"
+              mv "$target.tmp" "$target"
+            else
+              rm -f "$target"
+              cp "${settingsFile}" "$target"
+              chmod 644 "$target"
+            fi
+          '';
+
+          # awscli2 and glab are provided by the aws/glab feature modules (which
+          # also wire up their Claude Code skills).
+          home.packages = with pkgs; [
+            # Static binary; nixpkgs' buildFHSEnv wrapper invokes bwrap (only for
+            # rovodev), which fails under restricted userns.
+            acli.unwrapped
+            src-cli
+          ];
+
+          den.neovim.languages = {
+            java = true;
+            kotlin = true;
+          };
 
           # Standalone (non-NixOS) juliogm uses zsh exclusively, so opt out of
           # the bash config that bundle-base enables for every user. The work
