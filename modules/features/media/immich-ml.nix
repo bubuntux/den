@@ -136,6 +136,8 @@
           Nice = 10;
           CPUWeight = 50;
           IOWeight = 50;
+          # gunicorn exits 143 (128+SIGTERM) on normal `systemctl stop`.
+          SuccessExitStatus = "143";
         };
       };
 

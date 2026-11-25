@@ -228,7 +228,9 @@
             cg=$(systemctl show -p ControlGroup --value container@work.service 2>/dev/null || true)
             if [ -n "$cg" ] && [ -d "/sys/fs/cgroup$cg" ]; then
               while IFS= read -r -d "" procs; do
-                [ -s "$procs" ] || continue
+                pids=""
+                read -r pids <"$procs" 2>/dev/null || true
+                [ -n "$pids" ] || continue
                 unit=''${procs%/*}
                 unit=''${unit##*/}
                 unit=''${unit#voicemode-}
@@ -249,8 +251,8 @@
             ($voice_raw | split("\n") | map(select(length > 0)) | unique) as $voice_units
             | [
                 (if ($voice_units | length) > 0 then {
-                  badge: "<span color=\"#a6e3a1\">󰍬 voice</span>",
-                  tip: ("<span color=\"#a6e3a1\">VoiceMode (work)</span>\n" + ($voice_units | join(" · ")))
+                  badge: "<span color=\"#89dceb\">󰍬 voice</span>",
+                  tip: ("<span color=\"#89dceb\">VoiceMode (work)</span>\n" + ($voice_units | join(" · ")))
                 } else empty end),
                 (if $immich then {
                   badge: "<span color=\"#fab387\">󰚩 immich</span>",

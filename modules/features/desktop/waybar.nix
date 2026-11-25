@@ -195,12 +195,12 @@
           "systemd-failed-units"
           "privacy"
           "gamemode"
-          "custom/services"
           "clock"
           "custom/weather-f"
         ];
 
         modules-right = [
+          "custom/services"
           "cpu"
           "memory"
           "custom/temp"

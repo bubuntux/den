@@ -140,13 +140,6 @@
             show_if = "#alerts";
           }
           {
-            type = "label";
-            name = "services";
-            label = "#services";
-            tooltip = "#services_tooltip";
-            show_if = "#services";
-          }
-          {
             type = "clock";
             format = "%I:%M %p";
             format_popup = "%A, %B %d, %Y (%r)";
@@ -162,6 +155,13 @@
         ];
 
         end = [
+          {
+            type = "label";
+            name = "services";
+            label = "#services";
+            tooltip = "#services_tooltip";
+            show_if = "#services";
+          }
           {
             type = "sys_info";
             # temp_c with no sensor reduces with `max`, so this is the hottest
