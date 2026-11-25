@@ -17,6 +17,20 @@
         amd = "#fab387"; # @peach
         unknown = "#cdd6f4"; # @text
       };
+
+      # Empty shared object placed ahead of DT_RUNPATH via LD_LIBRARY_PATH when
+      # an NVIDIA dGPU is in PCI D3cold so nvtop's dlopen/dlsym skips NVML
+      # without waking the card, while still reporting integrated GPUs.
+      nvmlStub =
+        pkgs.runCommand "nvml-stub"
+          {
+            nativeBuildInputs = [ pkgs.stdenv.cc ];
+          }
+          ''
+            mkdir -p "$out/lib"
+            "$CC" -shared -o "$out/lib/libnvidia-ml.so.1" -x c /dev/null
+            ln -s libnvidia-ml.so.1 "$out/lib/libnvidia-ml.so"
+          '';
     in
     {
       # One widget for however many GPUs the host has, of whatever make: nvtop
@@ -29,8 +43,28 @@
           (self.lib.nvtop pkgs)
         ];
         text = ''
+          nvidia_suspended=false
+          for dev in /sys/bus/pci/devices/*; do
+            [ -r "$dev/vendor" ] && [ -r "$dev/class" ] && [ -r "$dev/power/runtime_status" ] || continue
+            if [ "$(<"$dev/vendor")" = "0x10de" ]; then
+              case "$(<"$dev/class")" in
+                0x03*)
+                  if [ "$(<"$dev/power/runtime_status")" = "suspended" ]; then
+                    nvidia_suspended=true
+                    break
+                  fi
+                  ;;
+              esac
+            fi
+          done
+
           nvtop_gpus='[]'
-          if snapshot=$(nvtop -s 2>/dev/null) && [ -n "$snapshot" ]; then
+          if [ "$nvidia_suspended" = true ]; then
+            snapshot=$(LD_LIBRARY_PATH="${nvmlStub}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" nvtop -s 2>/dev/null) || snapshot=""
+          else
+            snapshot=$(nvtop -s 2>/dev/null) || snapshot=""
+          fi
+          if [ -n "$snapshot" ]; then
             # .processes is every GPU client with its full cmdline. Not for a bar.
             nvtop_gpus=$(jq -c 'map(del(.processes))' <<<"$snapshot") || nvtop_gpus='[]'
           fi

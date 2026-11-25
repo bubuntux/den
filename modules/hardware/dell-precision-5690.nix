@@ -8,6 +8,7 @@
   flake.modules.nixos.dell-precision-5690 =
     {
       lib,
+      pkgs,
       ...
     }:
     {
@@ -36,7 +37,31 @@
       services.udev.extraRules = ''
         SUBSYSTEM=="drm", ENV{DEVTYPE}=="drm_minor", KERNEL=="card[0-9]*", KERNELS=="0000:00:02.0", SYMLINK+="dri/intel"
       '';
-      environment.sessionVariables.WLR_DRM_DEVICES = "/dev/dri/intel";
+      environment.sessionVariables = {
+        WLR_DRM_DEVICES = "/dev/dri/intel";
+        # libglvnd sorts 10_nvidia.json ahead of 50_mesa.json and Vulkan probes
+        # nvidia_icd.json, causing Sway and browsers to hold /dev/nvidia0 open
+        # permanently and block D3cold. gpu-offload unsets both.
+        __EGL_VENDOR_LIBRARY_FILENAMES = "/run/opengl-driver/share/glvnd/egl_vendor.d/50_mesa.json:/run/opengl-driver-32/share/glvnd/egl_vendor.d/50_mesa.json";
+        VK_DRIVER_FILES = "/run/opengl-driver/share/vulkan/icd.d/intel_icd.x86_64.json:/run/opengl-driver-32/share/vulkan/icd.d/intel_icd.i686.json";
+      };
+
+      # Enables dGPU power-down during s2idle (the only sleep mode on this board).
+      boot.extraModprobeConfig = ''
+        options nvidia NVreg_EnableS0ixPowerManagement=1
+      '';
+
+      environment.systemPackages = [
+        (pkgs.writeShellScriptBin "gpu-offload" ''
+          unset __EGL_VENDOR_LIBRARY_FILENAMES
+          unset VK_DRIVER_FILES
+          export __NV_PRIME_RENDER_OFFLOAD=1
+          export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
+          export __GLX_VENDOR_LIBRARY_NAME=nvidia
+          export __VK_LAYER_NV_optimus=NVIDIA_only
+          exec "$@"
+        '')
+      ];
 
       hardware = {
         enableRedistributableFirmware = lib.mkDefault true;
@@ -57,6 +82,7 @@
         nvidia = {
           modesetting.enable = lib.mkDefault true;
           nvidiaSettings = lib.mkDefault true;
+          dynamicBoost.enable = lib.mkDefault true;
 
           powerManagement = {
             enable = lib.mkDefault true;
@@ -66,6 +92,7 @@
           prime = {
             intelBusId = lib.mkDefault "PCI:0:2:0";
             nvidiaBusId = lib.mkDefault "PCI:1:0:0";
+            offload.enableOffloadCmd = lib.mkForce false;
           };
         };
       };
@@ -86,6 +113,9 @@
       # No real GPU inside QEMU, so the nvidia-container-toolkit assertion
       # ("requires nvidia drivers") fires when the host's vmVariant is
       # evaluated as part of `nix flake check`. Force-off in the vmVariant.
-      virtualisation.vmVariant.hardware.nvidia-container-toolkit.enable = lib.mkForce false;
+      virtualisation.vmVariant.hardware = {
+        nvidia-container-toolkit.enable = lib.mkForce false;
+        nvidia.dynamicBoost.enable = lib.mkForce false;
+      };
     };
 }

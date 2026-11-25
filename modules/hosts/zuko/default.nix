@@ -28,13 +28,6 @@
     networking.hostName = "zuko";
     system.stateVersion = "25.11";
 
-    # The only hybrid-GPU machine here (Intel iGPU + NVIDIA dGPU), so it is the
-    # only one that installs a render-offload command. `hardware.nvidia.prime`
-    # in dell-precision-5690.nix already generates the script; this just gives
-    # it the vendor-free name every host would use, so a Steam launch option
-    # reads `gpu-offload %command%` whatever the machine.
-    hardware.nvidia.prime.offload.offloadCmdMainProgram = "gpu-offload";
-
     den.desktop.loginManager = "greetd";
     services.displayManager.defaultSession = "sway";
 

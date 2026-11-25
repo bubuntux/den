@@ -121,17 +121,15 @@ Steam launch option reads `gpu-offload %command%` whatever the machine:
 
 | host | what provides `gpu-offload` |
 |---|---|
-| zuko | `hardware.nvidia.prime.offload.enableOffloadCmd`, renamed via `offloadCmdMainProgram` |
+| zuko | `dell-precision-5690.nix` (`writeShellScriptBin "gpu-offload"`, with `enableOffloadCmd` forced off) |
 | a future AMD-dGPU host | its own `writeShellScriptBin` exporting `DRI_PRIME` |
 | katara, or anything single-GPU | nothing — there is no second card to reach |
 
-zuko therefore costs **zero extra closure**: nixpkgs already generates that
-script (`hardware/video/nvidia.nix`) and the Dell module already enables it.
-The host only renames it:
-
-```nix
-hardware.nvidia.prime.offload.offloadCmdMainProgram = "gpu-offload";
-```
+`dell-precision-5690.nix` provides `gpu-offload` directly instead of using
+nixpkgs' `enableOffloadCmd` because the session sets `__EGL_VENDOR_LIBRARY_FILENAMES`
+and `VK_DRIVER_FILES` to keep Sway and desktop apps from holding `/dev/nvidia0`
+open out of D3cold, so `gpu-offload` must `unset` both alongside the four
+standard PRIME offload variables.
 
 `profile-gaming` contributes nothing to this. It is a *capability* and may not
 know the GPU topology; Steam reaches the host command through `PATH`. A
