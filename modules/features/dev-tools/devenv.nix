@@ -15,10 +15,7 @@
         enableZshIntegration = true;
 
         # devenv cuts releases far faster than the stable channel picks them up.
-        package =
-          (import inputs.nixpkgs-unstable {
-            inherit (pkgs.stdenv.hostPlatform) system;
-          }).devenv;
+        package = pkgs.unstable.devenv;
       };
     };
 }

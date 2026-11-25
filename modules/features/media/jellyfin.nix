@@ -1,4 +1,4 @@
-{ self, inputs, ... }:
+{ self, ... }:
 {
   flake.modules.nixos.jellyfin =
     { pkgs, ... }:
@@ -18,10 +18,7 @@
         # 10.11 gets no fix for the 2026-09 advisories (GHSA-hw73-62vp-9gxf);
         # 12.x is unstable-only, and its database migration is one-way. The
         # module is compatible across channels, so only the package crosses.
-        package =
-          (import inputs.nixpkgs-unstable {
-            inherit (pkgs.stdenv.hostPlatform) system;
-          }).jellyfin;
+        package = pkgs.unstable.jellyfin;
       };
 
       # `render` owns /dev/dri/renderD128 (GPU compute / VA-API), `video` owns

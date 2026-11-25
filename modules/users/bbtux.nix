@@ -81,6 +81,7 @@
           inputs.home-manager.lib.homeManagerConfiguration {
             pkgs = import inputs.nixpkgs {
               inherit system;
+              overlays = [ self.overlays.unstable ];
               config.allowUnfree = true;
             };
             modules = with self.modules.homeManager; [

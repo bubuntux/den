@@ -1,5 +1,19 @@
-{ self, inputs, ... }:
+{
+  config,
+  self,
+  inputs,
+  lib,
+  ...
+}:
 let
+  unstablePkgs = lib.genAttrs config.systems (
+    system:
+    import inputs.nixpkgs-unstable {
+      inherit system;
+      config.allowUnfree = true;
+    }
+  );
+
   users = [
     "root"
     "@wheel"
@@ -37,10 +51,15 @@ let
   };
 in
 {
+  flake.overlays.unstable = _final: prev: {
+    unstable = unstablePkgs.${prev.stdenv.hostPlatform.system};
+  };
+
   flake.modules = {
     nixos.nix = {
       key = "den:nixos.nix";
       home-manager.sharedModules = [ self.modules.homeManager.nix ];
+      nixpkgs.overlays = [ self.overlays.unstable ];
       nixpkgs.config.allowUnfree = true;
       # pnpm 10.29.2 is flagged insecure but is only a hermetic build-time dep of
       # the gws (googleworkspace/cli) flake package; no runtime exposure.
