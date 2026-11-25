@@ -78,12 +78,11 @@
       boot.plymouth.enable = lib.mkForce false;
       # This ASRock J5040-ITX (BIOS P1.60) can fail to re-POST on a warm
       # reboot and never come back (2026-06-07, see system.autoUpgrade in
-      # default.nix). reboot=pci (CF9h reset) still hung on 2026-10-23, so
-      # this pins the ACPI reset register instead. Validate with one attended
-      # `sudo reboot` after deploying; if it still hangs, try reboot=cold.
+      # default.nix). Both reboot=pci (2026-10-23) and reboot=acpi (2026-11-24)
+      # still hung pre-POST, so try UEFI ResetSystem cold reset next.
       boot.kernelParams = lib.mkForce [
         "boot.shell_on_fail"
-        "reboot=acpi"
+        "reboot=efi,cold"
         # Load HuC firmware on Gemini Lake (required for Intel Low-Power encoding).
         "i915.enable_guc=2"
       ];
