@@ -117,12 +117,14 @@
                 else "unknown" end;
 
             ($nvtop | map({
-              name:  (.device_name // "GPU"),
-              util:  (.gpu_util   | num),
-              temp:  (.temp       | num),
-              power: (.power_draw | num),
-              used:  (.mem_used   | num),
-              total: (.mem_total  | num),
+              name:     (.device_name // "GPU"),
+              util:     (.gpu_util   | num),
+              clock:    (.gpu_clock  | num),
+              temp:     (.temp       | num),
+              power:    (.power_draw | num),
+              has_vram: (.mem_util != null),
+              used:     (.mem_used   | num),
+              total:    (.mem_total  | num),
             }))
             | map(. + { color: ($colors[.name | vendor] // $colors.unknown) }) as $gpus
             | ($gpus | map(select(.util > 0))) as $busy
@@ -141,9 +143,11 @@
                 # temperature worth reading.
                 tooltip: ($gpus | map(
                   "<span color=\"\(.color)\">\(.name | @html)</span>"
-                  + "\n󰢮 \(.util)%  󰔏 \(.temp)°C"
+                  + "\n󰢮 \(.util)%"
+                  + (if .clock > 0 then "  󰓅 \(.clock) MHz" else "" end)
+                  + (if .temp > 0 then "  󰔏 \(.temp)°C" else "" end)
                   + (if .power > 0 then "  󱐋 \(.power) W" else "" end)
-                  + "\n󰍛 \(.used | mib)MiB / \(.total | mib)MiB"
+                  + (if .has_vram and .total > 0 then "\n󰍛 \(.used | mib)MiB / \(.total | mib)MiB" else "" end)
                 ) | join("\n\n")),
                 class: (if $peak >= 90 then "critical"
                         elif $peak >= 70 then "warning"
