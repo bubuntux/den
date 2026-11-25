@@ -27,8 +27,6 @@
 
       boot.kernelModules = [
         "kvm-intel"
-        # Required by net.ipv4.tcp_congestion_control = "bbr" in default.nix.
-        "tcp_bbr"
       ];
 
       # em28xx corrupts kernel memory and hangs the box (oopses 2026-08-09 and

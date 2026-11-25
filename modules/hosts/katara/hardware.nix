@@ -29,7 +29,14 @@
       fileSystems."/" = {
         device = "/dev/disk/by-uuid/1f24fa25-4b1e-4433-a643-0a585c1a5134";
         fsType = "ext4";
+        # Skip atime writes and coalesce mtime/ctime updates in memory to reduce SSD wear.
+        options = [
+          "noatime"
+          "lazytime"
+        ];
       };
+
+      boot.tmp.useTmpfs = true;
 
       fileSystems."/boot" = {
         device = "/dev/disk/by-uuid/55CA-E94B";

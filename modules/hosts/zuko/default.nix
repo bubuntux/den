@@ -37,12 +37,6 @@
       # 62 GiB RAM workstation: avoid premature swap and retain dentry/inode cache longer.
       "vm.swappiness" = 10;
       "vm.vfs_cache_pressure" = 50;
-      # Coalesce buffered writes over 15s (default 5s) to cut NVMe write churn.
-      "vm.dirty_writeback_centisecs" = 1500;
-      # BBR + fq (applies to both IPv4 and IPv6 despite the ipv4 prefix).
-      "net.core.default_qdisc" = "fq";
-      "net.ipv4.tcp_congestion_control" = "bbr";
     };
-    services.journald.extraConfig = "SystemMaxUse=1G";
   };
 }
